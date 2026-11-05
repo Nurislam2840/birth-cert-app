@@ -3,7 +3,105 @@ import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { generateBRN } from '../lib/generateBRN';
-import CustomAlert from '../components/CustomAlert'; // নতুন অ্যালার্ট
+import CustomAlert from '../components/CustomAlert';
+
+// কাস্টম ইনপুট স্টাইল
+const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
+const selectClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white disabled:bg-gray-200 appearance-none cursor-pointer";
+
+// 🟢 AddressFields কম্পোনেন্টকে Apply ফাংশনের বাইরে নিয়ে আসা হলো
+const AddressFields = ({ prefix, formData, handleChange, locations }) => {
+  const currentDiv = formData[prefix].division;
+  const currentDist = formData[prefix].district;
+  const currentUpazila = formData[prefix].upazila;
+
+  const availableDivisions = [...new Set(locations.map(loc => loc.division_name))];
+  const availableDistricts = currentDiv ? [...new Set(locations.filter(loc => loc.division_name === currentDiv).map(loc => loc.district_name))] : [];
+  const availableUpazilas = (currentDiv && currentDist) ? [...new Set(locations.filter(loc => loc.division_name === currentDiv && loc.district_name === currentDist).map(loc => loc.upazila_name))] : [];
+  const availableUnions = (currentDiv && currentDist && currentUpazila) ? locations.filter(loc => loc.division_name === currentDiv && loc.district_name === currentDist && loc.upazila_name === currentUpazila).map(loc => loc.union_name) : [];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div><label className="text-sm font-semibold text-gray-700">দেশ</label><input name={`${prefix}.country`} value={formData[prefix].country} onChange={handleChange} className={`${inputClass} bg-gray-200 cursor-not-allowed`} readOnly /></div>
+      
+      <div>
+        <label className="text-sm font-semibold text-gray-700">বিভাগ *</label>
+        <div className="relative">
+          <select name={`${prefix}.division`} value={formData[prefix].division} onChange={handleChange} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableDivisions.map(div => <option key={div} value={div}>{div}</option>)}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-semibold text-gray-700">জেলা *</label>
+        <div className="relative">
+          <select name={`${prefix}.district`} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-semibold text-gray-700">উপজেলা/থানা *</label>
+        <div className="relative">
+          <select name={`${prefix}.upazila`} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableUpazilas.map(up => <option key={up} value={up}>{up}</option>)}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-semibold text-gray-700">এলাকার ধরন</label>
+        <div className="relative">
+          <select name={`${prefix}.areaType`} value={formData[prefix].areaType} onChange={handleChange} className={selectClass}>
+            <option value="ইউনিয়ন পরিষদ">ইউনিয়ন পরিষদ</option>
+            <option value="পৌরসভা">পৌরসভা</option>
+            <option value="সিটি কর্পোরেশন">সিটি কর্পোরেশন</option>
+            <option value="ক্যান্টনমেন্ট বোর্ড">ক্যান্টনমেন্ট বোর্ড</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-semibold text-gray-700">ইউনিয়ন/পৌরসভা *</label>
+        <div className="relative">
+          <select name={`${prefix}.union`} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableUnions.map(un => <option key={un} value={un}>{un}</option>)}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div><label className="text-sm font-semibold text-gray-700">ওয়ার্ড নং</label><input name={`${prefix}.ward`} value={formData[prefix].ward} onChange={handleChange} className={inputClass} /></div>
+      <div><label className="text-sm font-semibold text-gray-700">গ্রাম/পাড়া/মহল্লা (বাংলা)</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn} onChange={handleChange} className={inputClass} /></div>
+      <div><label className="text-sm font-semibold text-gray-700">গ্রাম/পাড়া/মহল্লা (ইংরেজি)</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn} onChange={handleChange} className={inputClass} /></div>
+      <div><label className="text-sm font-semibold text-gray-700">ডাকঘর (বাংলা)</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn} onChange={handleChange} className={inputClass} /></div>
+      <div><label className="text-sm font-semibold text-gray-700">ডাকঘর (ইংরেজি)</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn} onChange={handleChange} className={inputClass} /></div>
+      <div><label className="text-sm font-semibold text-gray-700">বাসা ও সড়ক (বাংলা)</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn} onChange={handleChange} className={inputClass} /></div>
+      <div><label className="text-sm font-semibold text-gray-700">বাসা ও সড়ক (ইংরেজি)</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn} onChange={handleChange} className={inputClass} /></div>
+    </div>
+  );
+};
+
 
 export default function Apply() {
   const router = useRouter();
@@ -12,7 +110,6 @@ export default function Apply() {
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState([]);
 
-  // কাস্টম অ্যালার্ট স্টেট
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
 
   useEffect(() => {
@@ -26,7 +123,7 @@ export default function Apply() {
       if (!error && data) setLocations(data);
     };
     fetchLocations();
-  }, []);
+  }, [router]);
 
   const [formData, setFormData] = useState({
     firstNameBn: '', lastNameBn: '', firstNameEn: '', lastNameEn: '',
@@ -52,6 +149,7 @@ export default function Apply() {
       const [parent, child] = name.split('.');
       setFormData(prev => {
         const newData = { ...prev, [parent]: { ...prev[parent], [child]: val } };
+        // ক্যাসকেডিং লজিক (পরের ড্রপডাউন রিসেট)
         if (child === 'division') { newData[parent].district = ''; newData[parent].upazila = ''; newData[parent].union = ''; }
         if (child === 'district') { newData[parent].upazila = ''; newData[parent].union = ''; }
         if (child === 'upazila') { newData[parent].union = ''; }
@@ -62,12 +160,9 @@ export default function Apply() {
     }
   };
 
-  const handleBlur = (e) => handleChange(e);
-
   const handleSubmit = async () => {
     if (!user) return;
     
-    // ভ্যালিডেশন চেক (উদাহরণস্বরূপ)
     if (!formData.firstNameBn || !formData.dob || !formData.birthAddress.division) {
       setAlertState({ isOpen: true, message: 'অনুগ্রহ করে সব প্রয়োজনীয় তথ্য (যেমন: নাম, জন্ম তারিখ, বিভাগ) পূরণ করুন।', type: 'error' });
       return;
@@ -151,102 +246,6 @@ export default function Apply() {
     }
   };
 
-  // কাস্টম ইনপুট স্টাইল
-  const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
-  const selectClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white disabled:bg-gray-200 appearance-none cursor-pointer";
-
-  const AddressFields = ({ prefix }) => {
-    const currentDiv = formData[prefix].division;
-    const currentDist = formData[prefix].district;
-    const currentUpazila = formData[prefix].upazila;
-
-    const availableDivisions = [...new Set(locations.map(loc => loc.division_name))];
-    const availableDistricts = currentDiv ? [...new Set(locations.filter(loc => loc.division_name === currentDiv).map(loc => loc.district_name))] : [];
-    const availableUpazilas = (currentDiv && currentDist) ? [...new Set(locations.filter(loc => loc.division_name === currentDiv && loc.district_name === currentDist).map(loc => loc.upazila_name))] : [];
-    const availableUnions = (currentDiv && currentDist && currentUpazila) ? locations.filter(loc => loc.division_name === currentDiv && loc.district_name === currentDist && loc.upazila_name === currentUpazila).map(loc => loc.union_name) : [];
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div><label className="text-sm font-semibold text-gray-700">দেশ</label><input name={`${prefix}.country`} defaultValue={formData[prefix].country} onBlur={handleBlur} className={`${inputClass} bg-gray-200 cursor-not-allowed`} readOnly /></div>
-        
-        <div>
-          <label className="text-sm font-semibold text-gray-700">বিভাগ *</label>
-          <div className="relative">
-            <select name={`${prefix}.division`} value={formData[prefix].division} onChange={handleChange} className={selectClass}>
-              <option value="">-- নির্বাচন করুন --</option>
-              {availableDivisions.map(div => <option key={div} value={div}>{div}</option>)}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-semibold text-gray-700">জেলা *</label>
-          <div className="relative">
-            <select name={`${prefix}.district`} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} className={selectClass}>
-              <option value="">-- নির্বাচন করুন --</option>
-              {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-semibold text-gray-700">উপজেলা/থানা *</label>
-          <div className="relative">
-            <select name={`${prefix}.upazila`} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} className={selectClass}>
-              <option value="">-- নির্বাচন করুন --</option>
-              {availableUpazilas.map(up => <option key={up} value={up}>{up}</option>)}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-semibold text-gray-700">এলাকার ধরন</label>
-          <div className="relative">
-            <select name={`${prefix}.areaType`} value={formData[prefix].areaType} onChange={handleChange} className={selectClass}>
-              <option value="ইউনিয়ন পরিষদ">ইউনিয়ন পরিষদ</option>
-              <option value="পৌরসভা">পৌরসভা</option>
-              <option value="সিটি কর্পোরেশন">সিটি কর্পোরেশন</option>
-              <option value="ক্যান্টনমেন্ট বোর্ড">ক্যান্টনমেন্ট বোর্ড</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-semibold text-gray-700">ইউনিয়ন/পৌরসভা *</label>
-          <div className="relative">
-            <select name={`${prefix}.union`} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} className={selectClass}>
-              <option value="">-- নির্বাচন করুন --</option>
-              {availableUnions.map(un => <option key={un} value={un}>{un}</option>)}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-          </div>
-        </div>
-
-        <div><label className="text-sm font-semibold text-gray-700">ওয়ার্ড নং</label><input name={`${prefix}.ward`} value={formData[prefix].ward} onChange={handleChange} className={inputClass} /></div>
-        <div><label className="text-sm font-semibold text-gray-700">গ্রাম/পাড়া/মহল্লা (বাংলা)</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn} onChange={handleChange} className={inputClass} /></div>
-        <div><label className="text-sm font-semibold text-gray-700">গ্রাম/পাড়া/মহল্লা (ইংরেজি)</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn} onChange={handleChange} className={inputClass} /></div>
-        <div><label className="text-sm font-semibold text-gray-700">ডাকঘর (বাংলা)</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn} onChange={handleChange} className={inputClass} /></div>
-        <div><label className="text-sm font-semibold text-gray-700">ডাকঘর (ইংরেজি)</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn} onChange={handleChange} className={inputClass} /></div>
-        <div><label className="text-sm font-semibold text-gray-700">বাসা ও সড়ক (বাংলা)</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn} onChange={handleChange} className={inputClass} /></div>
-        <div><label className="text-sm font-semibold text-gray-700">বাসা ও সড়ক (ইংরেজি)</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn} onChange={handleChange} className={inputClass} /></div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -267,16 +266,16 @@ export default function Apply() {
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2">নিবন্ধনাধীন ব্যক্তির পরিচিতি</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-semibold text-gray-700">নামের প্রথম অংশ (বাংলা)</label><input name="firstNameBn" defaultValue={formData.firstNameBn} onBlur={handleBlur} placeholder="যেমন: মোঃ" className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">নামের শেষ অংশ (বাংলা)</label><input name="lastNameBn" defaultValue={formData.lastNameBn} onBlur={handleBlur} placeholder="যেমন: ইমন" className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">First Name (English)</label><input name="firstNameEn" defaultValue={formData.firstNameEn} onBlur={handleBlur} placeholder="MD" className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">Last Name (English)</label><input name="lastNameEn" defaultValue={formData.lastNameEn} onBlur={handleBlur} placeholder="EMON" className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ</label><input type="date" name="dob" defaultValue={formData.dob} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">পিতা-মাতার কততম সন্তান</label><input type="number" name="childOrder" defaultValue={formData.childOrder} onBlur={handleBlur} placeholder="যেমন: ১" className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">নামের প্রথম অংশ (বাংলা)</label><input name="firstNameBn" value={formData.firstNameBn} onChange={handleChange} placeholder="যেমন: মোঃ" className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">নামের শেষ অংশ (বাংলা)</label><input name="lastNameBn" value={formData.lastNameBn} onChange={handleChange} placeholder="যেমন: ইমন" className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">First Name (English)</label><input name="firstNameEn" value={formData.firstNameEn} onChange={handleChange} placeholder="MD" className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">Last Name (English)</label><input name="lastNameEn" value={formData.lastNameEn} onChange={handleChange} placeholder="EMON" className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ</label><input type="date" name="dob" value={formData.dob} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">পিতা-মাতার কততম সন্তান</label><input type="number" name="childOrder" value={formData.childOrder} onChange={handleChange} placeholder="যেমন: ১" className={inputClass} /></div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700">লিঙ্গ</label>
                   <div className="relative">
-                    <select name="gender" defaultValue={formData.gender} onBlur={handleBlur} className={selectClass}>
+                    <select name="gender" value={formData.gender} onChange={handleChange} className={selectClass}>
                       <option value="">নির্বাচন করুন</option>
                       <option value="পুরুষ">পুরুষ</option>
                       <option value="মহিলা">মহিলা</option>
@@ -290,7 +289,7 @@ export default function Apply() {
               </div>
 
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mt-8">জন্মস্থানের ঠিকানা</h3>
-              <AddressFields prefix="birthAddress" />
+              <AddressFields prefix="birthAddress" formData={formData} handleChange={handleChange} locations={locations} />
             </div>
           )}
 
@@ -298,20 +297,20 @@ export default function Apply() {
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2">পিতার তথ্য</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-semibold text-gray-700">পিতার জন্ম নিবন্ধন নম্বর</label><input name="fatherBrn" defaultValue={formData.fatherBrn} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ (খ্রিঃ)</label><input type="date" name="fatherDob" defaultValue={formData.fatherDob} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">পিতার নাম (বাংলা)</label><input name="fatherNameBn" defaultValue={formData.fatherNameBn} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">পিতার নাম (ইংরেজি)</label><input name="fatherNameEn" defaultValue={formData.fatherNameEn} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">জাতীয়তা</label><input name="fatherNationality" defaultValue={formData.fatherNationality} onBlur={handleBlur} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">পিতার জন্ম নিবন্ধন নম্বর</label><input name="fatherBrn" value={formData.fatherBrn} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ (খ্রিঃ)</label><input type="date" name="fatherDob" value={formData.fatherDob} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">পিতার নাম (বাংলা)</label><input name="fatherNameBn" value={formData.fatherNameBn} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">পিতার নাম (ইংরেজি)</label><input name="fatherNameEn" value={formData.fatherNameEn} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">জাতীয়তা</label><input name="fatherNationality" value={formData.fatherNationality} onChange={handleChange} className={inputClass} /></div>
               </div>
 
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mt-8">মাতার তথ্য</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-semibold text-gray-700">মাতার জন্ম নিবন্ধন নম্বর</label><input name="motherBrn" defaultValue={formData.motherBrn} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ (খ্রিঃ)</label><input type="date" name="motherDob" defaultValue={formData.motherDob} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">মাতার নাম (বাংলা)</label><input name="motherNameBn" defaultValue={formData.motherNameBn} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">মাতার নাম (ইংরেজি)</label><input name="motherNameEn" defaultValue={formData.motherNameEn} onBlur={handleBlur} className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">জাতীয়তা</label><input name="motherNationality" defaultValue={formData.motherNationality} onBlur={handleBlur} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">মাতার জন্ম নিবন্ধন নম্বর</label><input name="motherBrn" value={formData.motherBrn} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ (খ্রিঃ)</label><input type="date" name="motherDob" value={formData.motherDob} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">মাতার নাম (বাংলা)</label><input name="motherNameBn" value={formData.motherNameBn} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">মাতার নাম (ইংরেজি)</label><input name="motherNameEn" value={formData.motherNameEn} onChange={handleChange} className={inputClass} /></div>
+                <div><label className="text-sm font-semibold text-gray-700">জাতীয়তা</label><input name="motherNationality" value={formData.motherNationality} onChange={handleChange} className={inputClass} /></div>
               </div>
             </div>
           )}
@@ -326,7 +325,7 @@ export default function Apply() {
               {!formData.permanentSame && (
                 <>
                   <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mt-6">স্থায়ী ঠিকানা</h3>
-                  <AddressFields prefix="permanentAddress" />
+                  <AddressFields prefix="permanentAddress" formData={formData} handleChange={handleChange} locations={locations} />
                 </>
               )}
             </div>
@@ -348,7 +347,6 @@ export default function Apply() {
         </div>
       </div>
 
-      {/* কাস্টম অ্যালার্ট পপআপ */}
       <CustomAlert 
         isOpen={alertState.isOpen} 
         message={alertState.message} 
