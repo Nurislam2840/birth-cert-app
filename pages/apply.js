@@ -9,7 +9,7 @@ import CustomAlert from '../components/CustomAlert';
 const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
 const selectClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white disabled:bg-gray-200 appearance-none cursor-pointer";
 
-// 🟢 AddressFields কম্পোনেন্টকে Apply ফাংশনের বাইরে নিয়ে আসা হলো
+// AddressFields কম্পোনেন্ট
 const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   const currentDiv = formData[prefix].division;
   const currentDist = formData[prefix].district;
@@ -182,46 +182,47 @@ export default function Apply() {
 
     const brnNumber = generateBRN(formData);
 
+    // 🟢 আপডেট করা Payload (ডেটা টাইপ ও নাল ভ্যালু ফিক্স)
     const payload = {
       user_id: user.id,
       tracking_id: brnNumber,
-      first_name_bn: formData.firstNameBn,
-      last_name_bn: formData.lastNameBn,
-      first_name_en: formData.firstNameEn,
-      last_name_en: formData.lastNameEn,
+      first_name_bn: formData.firstNameBn || null,
+      last_name_bn: formData.lastNameBn || null,
+      first_name_en: formData.firstNameEn || null,
+      last_name_en: formData.lastNameEn || null,
       dob: formData.dob || null,
-      child_order: formData.childOrder || null,
-      gender: formData.gender,
-      father_brn: formData.fatherBrn,
+      child_order: formData.childOrder ? parseInt(formData.childOrder, 10) : null,
+      gender: formData.gender || null,
+      father_brn: formData.fatherBrn || null,
       father_dob: formData.fatherDob || null,
-      father_name_bn: formData.fatherNameBn,
-      father_name_en: formData.fatherNameEn,
-      father_nationality: formData.fatherNationality,
-      mother_brn: formData.motherBrn,
+      father_name_bn: formData.fatherNameBn || null,
+      father_name_en: formData.fatherNameEn || null,
+      father_nationality: formData.fatherNationality || null,
+      mother_brn: formData.motherBrn || null,
       mother_dob: formData.motherDob || null,
-      mother_name_bn: formData.motherNameBn,
-      mother_name_en: formData.motherNameEn,
-      mother_nationality: formData.motherNationality,
-      division: birth.division,
-      district: birth.district,
-      city_corp: birth.upazila,
-      union_name: birth.union,
-      ward: birth.ward,
-      village_bn: birth.villageBn,
-      village_en: birth.villageEn,
-      post_office_bn: birth.postOfficeBn,
-      post_office_en: birth.postOfficeEn,
-      house_road_bn: birth.houseRoadBn,
-      house_road_en: birth.houseRoadEn,
-      division_en: matchedLoc?.division_en || birth.division,
-      district_en: matchedLoc?.district_en || birth.district,
-      upazila_en: matchedLoc?.upazila_en || birth.upazila,
-      union_en: matchedLoc?.union_en || birth.union,
-      permanent_same: formData.permanentSame,
-      permanent_division: perm.division,
-      permanent_district: perm.district,
-      permanent_village_bn: perm.villageBn,
-      permanent_village_en: perm.villageEn,
+      mother_name_bn: formData.motherNameBn || null,
+      mother_name_en: formData.motherNameEn || null,
+      mother_nationality: formData.motherNationality || null,
+      division: birth.division || null,
+      district: birth.district || null,
+      city_corp: birth.upazila || null,
+      union_name: birth.union || null,
+      ward: birth.ward || null,
+      village_bn: birth.villageBn || null,
+      village_en: birth.villageEn || null,
+      post_office_bn: birth.postOfficeBn || null,
+      post_office_en: birth.postOfficeEn || null,
+      house_road_bn: birth.houseRoadBn || null,
+      house_road_en: birth.houseRoadEn || null,
+      division_en: matchedLoc?.division_en || birth.division || null,
+      district_en: matchedLoc?.district_en || birth.district || null,
+      upazila_en: matchedLoc?.upazila_en || birth.upazila || null,
+      union_en: matchedLoc?.union_en || birth.union || null,
+      permanent_same: formData.permanentSame || false,
+      permanent_division: perm.division || null,
+      permanent_district: perm.district || null,
+      permanent_village_bn: perm.villageBn || null,
+      permanent_village_en: perm.villageEn || null,
       status: 'Pending'
     };
 
@@ -229,6 +230,7 @@ export default function Apply() {
     setLoading(false);
 
     if (error) {
+      console.error("Supabase Insert Error:", error);
       setAlertState({ isOpen: true, message: 'এরর: ' + error.message, type: 'error' });
     } else {
       setAlertState({ 
