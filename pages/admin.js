@@ -6,7 +6,7 @@ import CertificatePDF from '../components/CertificatePDF';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import Link from 'next/link';
-import CustomAlert from '../components/CustomAlert'; // কাস্টম অ্যালার্ট ইমপোর্ট
+import CustomAlert from '../components/CustomAlert';
 
 export default function Admin() {
   const router = useRouter();
@@ -34,6 +34,12 @@ export default function Admin() {
     union_name: '', union_en: ''
   });
   const [isAddingLoc, setIsAddingLoc] = useState(false);
+
+  // 🟢 এডিট মোডালের নতুন স্টেট
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editLocData, setEditLocData] = useState({
+    id: '', division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: ''
+  });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -72,7 +78,7 @@ export default function Admin() {
   };
 
   const handleDeleteApp = async (id) => {
-    if (!window.confirm("আপনি কি নিশ্চিতভাবে এই আবেদনটি ডিলিট করতে চান? এটি আর ফিরে পাওয়া যাবে না।")) return;
+    if (!window.confirm("আপনি কি নিশ্চিতভাবে এই আবেদনটি ডিলিট করতে চান? এটি আর ফিরে পাওয়া যাবে না।")) return;
     try {
       const { error } = await supabase.from('birth_applications').delete().eq('id', id);
       if (error) throw error;
@@ -195,6 +201,39 @@ export default function Admin() {
     }
   };
 
+  // 🟢 এডিট ফাংশনসমূহ
+  const handleOpenEdit = (loc) => {
+    setEditLocData(loc);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateLocation = async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .update({
+          division_name: editLocData.division_name,
+          division_en: editLocData.division_en,
+          district_name: editLocData.district_name,
+          district_en: editLocData.district_en,
+          upazila_name: editLocData.upazila_name,
+          upazila_en: editLocData.upazila_en,
+          union_name: editLocData.union_name,
+          union_en: editLocData.union_en,
+        })
+        .eq('id', editLocData.id);
+
+      if (error) throw error;
+
+      setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে আপডেট হয়েছে!', type: 'success' });
+      setIsEditModalOpen(false);
+      fetchLocations();
+    } catch (err) {
+      setAlertState({ isOpen: true, message: 'আপডেটে সমস্যা: ' + err.message, type: 'error' });
+    }
+  };
+
   // ফিল্টার করা অ্যাপ্লিকেশন (সার্চের জন্য)
   const filteredApps = applications.filter(app => 
     app.tracking_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -273,7 +312,7 @@ export default function Admin() {
                 <div className="mb-4 flex justify-between items-center">
                   <input 
                     type="text" 
-                    placeholder="ট্র্যাকিং আইডি বা নাম দিয়ে খুঁজুন..." 
+                    placeholder="ট্র্যাকিং আইডি বা নাম দিয়ে খুঁজুন..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className={inputClass + " md:w-1/2"}
@@ -394,7 +433,9 @@ export default function Admin() {
                             <td className="px-4 py-2">{loc.district_name} <span className="text-gray-400 text-xs">({loc.district_en})</span></td>
                             <td className="px-4 py-2">{loc.upazila_name} <span className="text-gray-400 text-xs">({loc.upazila_en})</span></td>
                             <td className="px-4 py-2">{loc.union_name} <span className="text-gray-400 text-xs">({loc.union_en})</span></td>
-                            <td className="px-4 py-2">
+                            <td className="px-4 py-2 flex gap-3">
+                              {/* 🟢 এডিট বাটন */}
+                              <button onClick={() => handleOpenEdit(loc)} className="text-blue-600 font-bold hover:underline transition">এডিট</button>
                               <button onClick={() => handleDeleteLocation(loc.id)} className="text-red-600 font-bold hover:underline transition">ডিলিট</button>
                             </td>
                           </tr>
@@ -466,7 +507,65 @@ export default function Admin() {
         </div>
       )}
 
-      {/* কাস্টম অ্যালার্ট পপআপ (সব alert এর বদলে) */}
+      {/* ================= Edit Location Modal ================= */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[90] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b bg-gray-50 sticky top-0">
+              <h3 className="text-lg font-bold text-gray-800">লোকেশন আপডেট করুন</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-500 hover:text-red-600 font-bold text-2xl">&times;</button>
+            </div>
+            
+            <form onSubmit={handleUpdateLocation} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">বিভাগ (বাংলা) *</label>
+                  <input value={editLocData.division_name || ''} onChange={(e) => setEditLocData({...editLocData, division_name: e.target.value})} className={inputClass} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Division (English) *</label>
+                  <input value={editLocData.division_en || ''} onChange={(e) => setEditLocData({...editLocData, division_en: e.target.value})} className={inputClass} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">জেলা (বাংলা) *</label>
+                  <input value={editLocData.district_name || ''} onChange={(e) => setEditLocData({...editLocData, district_name: e.target.value})} className={inputClass} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">District (English) *</label>
+                  <input value={editLocData.district_en || ''} onChange={(e) => setEditLocData({...editLocData, district_en: e.target.value})} className={inputClass} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">উপজেলা (বাংলা)</label>
+                  <input value={editLocData.upazila_name || ''} onChange={(e) => setEditLocData({...editLocData, upazila_name: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Upazila (English)</label>
+                  <input value={editLocData.upazila_en || ''} onChange={(e) => setEditLocData({...editLocData, upazila_en: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা)</label>
+                  <input value={editLocData.union_name || ''} onChange={(e) => setEditLocData({...editLocData, union_name: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Union/Paurshava (English)</label>
+                  <input value={editLocData.union_en || ''} onChange={(e) => setEditLocData({...editLocData, union_en: e.target.value})} className={inputClass} />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-6 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500 transition">
+                  বাতিল
+                </button>
+                <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow">
+                  আপডেট করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* কাস্টম অ্যালার্ট পপআপ */}
       <CustomAlert 
         isOpen={alertState.isOpen} 
         message={alertState.message} 
