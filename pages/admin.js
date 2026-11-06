@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic'; // 🟢 dynamic ইমপোর্ট
 import { pdf } from '@react-pdf/renderer';
-import CertificatePDF from '../components/CertificatePDF';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
+
+// 🟢 CertificatePDF কম্পোনেন্টকে শুধুমাত্র ক্লায়েন্ট-সাইডে লোড করতে বাধ্য করা হলো
+const CertificatePDF = dynamic(
+  () => import('../components/CertificatePDF'),
+  { ssr: false }
+);
 
 export default function Admin() {
   const router = useRouter();
@@ -95,14 +101,14 @@ export default function Admin() {
       let qrCodeUrl = null;
       let barcodeUrl = null;
 
-      // 🟢 QR কোড জেনারেশন (আলাদা try-catch)
+      // 🟢 QR কোড জেনারেশন
       try {
         qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
       } catch (qrErr) {
         console.error("QR Code generation failed:", qrErr);
       }
 
-      // 🟢 বারকোড জেনারেশন (আলাদা try-catch)
+      // 🟢 বারকোড জেনারেশন
       try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
@@ -123,26 +129,21 @@ export default function Admin() {
         fatherNameEn: safe(app.father_name_en),
         motherNameBn: safe(app.mother_name_bn),
         motherNameEn: safe(app.mother_name_en),
-        qrCodeUrl, // null অথবা base64 string
-        barcodeUrl, // null অথবা base64 string
+        qrCodeUrl,
+        barcodeUrl,
         birthAddress: {
           villageBn: safe(app.village_bn),
           villageEn: safe(app.village_en),
           postOfficeBn: safe(app.post_office_bn),
           postOfficeEn: safe(app.post_office_en),
-          
-          // বাংলা
           district: safe(app.district),
           division: safe(app.division),
           cityCorp: safe(app.city_corp), 
           unionName: safe(app.union_name),
-          
-          // ইংরেজি
           districtEn: safe(app.district_en) || safe(app.district),
           divisionEn: safe(app.division_en) || safe(app.division),
           upazilaEn: safe(app.upazila_en) || safe(app.city_corp),
           unionEn: safe(app.union_en) || safe(app.union_name),
-          
           ward: safe(app.ward),
           houseRoadBn: safe(app.house_road_bn),
           houseRoadEn: safe(app.house_road_en),
