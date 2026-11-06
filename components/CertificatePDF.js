@@ -1,12 +1,15 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
+// 🟢 ধাপ ১-এ তৈরি করা ফাইল থেকে Base64 ডেটা ইমপোর্ট করা হচ্ছে
+import { notoFontBase64 } from '../lib/fontData'; 
 
-// 🟢 আপডেট: ফন্ট এখন সরাসরি CDN থেকে লোড হবে, যা Vercel-এ কাজ করবে
+// ফন্ট রেজিস্ট্রেশন
 Font.register({
   family: 'NotoBengali',
   fonts: [
     { 
-      src: 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSansBengali/NotoSansBengali-Regular.ttf' 
+      src: `data:font/ttf;base64,${notoFontBase64}`,
+      fontWeight: 400 
     }
   ]
 });
@@ -42,7 +45,6 @@ const styles = StyleSheet.create({
   logoContainer: { alignItems: 'center', flex: 1, marginTop: -5 },
   logo: { width: 55, height: 55, marginBottom: 5 },
   
-  // হেডার টেক্সট স্টাইল
   titleEn: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   titleSub: { fontSize: 9, textAlign: 'center', marginTop: 3 },
   titleSub2: { fontSize: 9.5, textAlign: 'center', marginTop: 10, fontWeight: 'bold', color: '#333' },
