@@ -2,6 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { notoFontBase64 } from '../lib/fontData';
 
+// Base64 ডেটা ক্লিন করা হচ্ছে
 const cleanBase64 = notoFontBase64.replace(/\s/g, '');
 
 Font.register({
@@ -112,7 +113,6 @@ const CertificatePDF = ({ data }) => {
 
         <View style={styles.headerRow}>
           <View style={styles.qrContainer}>
-            {/* 🟢 শক্তিশালী কন্ডিশনাল চেক */}
             {d.qrCodeUrl && typeof d.qrCodeUrl === 'string' && d.qrCodeUrl.length > 0 ? (
               <Image src={d.qrCodeUrl} style={styles.qrImage} />
             ) : null}
