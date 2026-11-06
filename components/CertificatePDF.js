@@ -1,9 +1,14 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
+// 🟢 আপডেট: ফন্ট এখন সরাসরি CDN থেকে লোড হবে, যা Vercel-এ কাজ করবে
 Font.register({
   family: 'NotoBengali',
-  src: '/fonts/NotoSansBengali-Regular.ttf',
+  fonts: [
+    { 
+      src: 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSansBengali/NotoSansBengali-Regular.ttf' 
+    }
+  ]
 });
 
 const numberToWords = (num) => {
@@ -39,9 +44,9 @@ const styles = StyleSheet.create({
   
   // হেডার টেক্সট স্টাইল
   titleEn: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-  titleSub: { fontSize: 9, textAlign: 'center', marginTop: 3 }, // Office of the Register...
-  titleSub2: { fontSize: 9.5, textAlign: 'center', marginTop: 10, fontWeight: 'bold', color: '#333' }, // পৌরসভা ও ইউনিয়ন
-  titleSub3: { fontSize: 8, textAlign: 'center', marginTop: 3, color: '#555' }, // (Rule 9, 10)
+  titleSub: { fontSize: 9, textAlign: 'center', marginTop: 3 },
+  titleSub2: { fontSize: 9.5, textAlign: 'center', marginTop: 10, fontWeight: 'bold', color: '#333' },
+  titleSub3: { fontSize: 8, textAlign: 'center', marginTop: 3, color: '#555' },
   
   titleBn: { fontSize: 16, fontWeight: 'bold', fontFamily: 'NotoBengali', textAlign: 'center', marginTop: 12, marginBottom: 15 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
@@ -92,8 +97,6 @@ const CertificatePDF = ({ data }) => {
   const upazilaEn = birthAddr.upazilaEn || 'Sadar';
   const districtEn = birthAddr.districtEn || 'Dhaka';
   
-  const unionBn = birthAddr.unionName || '';
-  const upazilaBn = birthAddr.cityCorp || '';
   const districtBn = birthAddr.district || '';
 
   const placeOfBirthEn = `${birthAddr.villageEn ? birthAddr.villageEn + ', ' : ''}${districtEn}, Bangladesh`;
@@ -116,18 +119,11 @@ const CertificatePDF = ({ data }) => {
           <View style={styles.logoContainer}>
             <Image src="https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png" style={styles.logo} />
             
-            {/* ১. সরকারি লেখা */}
             <Text style={styles.titleEn}>Government of the People's Republic of Bangladesh</Text>
-            
-            {/* ২. অফিসের নাম */}
             <Text style={styles.titleSub}>Office of the Register, Birth and Death Registration</Text>
-            
-            {/* ৩. পৌরসভা ও ইউনিয়নের নাম */}
             <Text style={styles.titleSub2}>
               {unionEn}, {upazilaEn}, {districtEn}
             </Text>
-            
-            {/* ৪. রুল */}
             <Text style={styles.titleSub3}>(Rule 9, 10)</Text>
           </View>
 
