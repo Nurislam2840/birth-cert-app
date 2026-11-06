@@ -1,14 +1,15 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
-// 🟢 ধাপ ১-এ তৈরি করা ফাইল থেকে Base64 ডেটা ইমপোর্ট করা হচ্ছে
 import { notoFontBase64 } from '../lib/fontData'; 
 
-// ফন্ট রেজিস্ট্রেশন
+// 🟢 ফন্টের ডেটা ক্লিন করা হচ্ছে যাতে কোনো বাড়তি স্পেস বা নিউলাইন না থাকে
+const cleanBase64 = notoFontBase64.replace(/\s/g, ''); 
+
 Font.register({
   family: 'NotoBengali',
   fonts: [
     { 
-      src: `data:font/ttf;base64,${notoFontBase64}`,
+      src: `data:font/ttf;base64,${cleanBase64}`,
       fontWeight: 400 
     }
   ]
