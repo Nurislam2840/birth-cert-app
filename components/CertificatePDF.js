@@ -1,5 +1,5 @@
 import React from 'react';
-import path from 'node:path'; // 🟢 ফন্টের পাথ ঠিক করার জন্য path ইমপোর্ট করা হলো
+import path from 'path'; // 🟢 ফন্টের পাথ ঠিক করার জন্য path ইমপোর্ট করা হলো
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
 // 🟢 Vercel-এর জন্য অ্যাবসোলিউট পাথ (Absolute Path) ব্যবহার করা হলো
