@@ -92,10 +92,24 @@ export default function Admin() {
   const handleApprove = async (app) => {
     setProcessingId(app.id);
     try {
-      const qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
-      const barcodeUrl = canvas.toDataURL('image/png');
+      let qrCodeUrl = null;
+      let barcodeUrl = null;
+
+      // 🟢 QR কোড জেনারেশন (আলাদা try-catch)
+      try {
+        qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
+      } catch (qrErr) {
+        console.error("QR Code generation failed:", qrErr);
+      }
+
+      // 🟢 বারকোড জেনারেশন (আলাদা try-catch)
+      try {
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
+        barcodeUrl = canvas.toDataURL('image/png');
+      } catch (barErr) {
+        console.error("Barcode generation failed:", barErr);
+      }
 
       const safe = (val) => (val === null || val === undefined ? '' : String(val));
 
@@ -109,8 +123,8 @@ export default function Admin() {
         fatherNameEn: safe(app.father_name_en),
         motherNameBn: safe(app.mother_name_bn),
         motherNameEn: safe(app.mother_name_en),
-        qrCodeUrl,
-        barcodeUrl,
+        qrCodeUrl, // null অথবা base64 string
+        barcodeUrl, // null অথবা base64 string
         birthAddress: {
           villageBn: safe(app.village_bn),
           villageEn: safe(app.village_en),
@@ -434,7 +448,6 @@ export default function Admin() {
                             <td className="px-4 py-2">{loc.upazila_name} <span className="text-gray-400 text-xs">({loc.upazila_en})</span></td>
                             <td className="px-4 py-2">{loc.union_name} <span className="text-gray-400 text-xs">({loc.union_en})</span></td>
                             <td className="px-4 py-2 flex gap-3">
-                              {/* 🟢 এডিট বাটন */}
                               <button onClick={() => handleOpenEdit(loc)} className="text-blue-600 font-bold hover:underline transition">এডিট</button>
                               <button onClick={() => handleDeleteLocation(loc.id)} className="text-red-600 font-bold hover:underline transition">ডিলিট</button>
                             </td>

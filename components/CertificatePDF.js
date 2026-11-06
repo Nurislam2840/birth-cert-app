@@ -2,10 +2,8 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { notoFontBase64 } from '../lib/fontData';
 
-// 🟢 Base64 ডেটা থেকে বাড়তি স্পেস বা লাইন ব্রেক ক্লিন করা হচ্ছে
 const cleanBase64 = notoFontBase64.replace(/\s/g, '');
 
-// 🟢 ফন্ট রেজিস্ট্রেশন
 Font.register({
   family: 'NotoBengali',
   fonts: [
@@ -100,12 +98,10 @@ const CertificatePDF = ({ data }) => {
   const unionEn = birthAddr.unionEn || 'Union';
   const upazilaEn = birthAddr.upazilaEn || 'Sadar';
   const districtEn = birthAddr.districtEn || 'Dhaka';
-  
   const districtBn = birthAddr.district || '';
 
   const placeOfBirthEn = `${birthAddr.villageEn ? birthAddr.villageEn + ', ' : ''}${districtEn}, Bangladesh`;
   const placeOfBirthBn = `${birthAddr.villageBn ? birthAddr.villageBn + ', ' : ''}${districtBn}, বাংলাদেশ`;
-  
   const permanentAddressEn = `${birthAddr.houseRoadEn ? birthAddr.houseRoadEn + ', ' : ''}${birthAddr.villageEn}, ${birthAddr.postOfficeEn}, ${districtEn}.`;
   const permanentAddressBn = `${birthAddr.houseRoadBn ? birthAddr.houseRoadBn + ', ' : ''}${birthAddr.villageBn}, ${birthAddr.postOfficeBn}, ${districtBn}।`;
 
@@ -116,24 +112,25 @@ const CertificatePDF = ({ data }) => {
 
         <View style={styles.headerRow}>
           <View style={styles.qrContainer}>
-            {/* 🟢 টার্নারি অপারেটর ব্যবহার করা হলো যাতে null হলে ক্র্যাশ না করে */}
-            {d.qrCodeUrl ? <Image src={d.qrCodeUrl} style={styles.qrImage} /> : null}
+            {/* 🟢 শক্তিশালী কন্ডিশনাল চেক */}
+            {d.qrCodeUrl && typeof d.qrCodeUrl === 'string' && d.qrCodeUrl.length > 0 ? (
+              <Image src={d.qrCodeUrl} style={styles.qrImage} />
+            ) : null}
             <Text style={styles.qrText}>ASERTR</Text>
           </View>
           
           <View style={styles.logoContainer}>
             <Image src="https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png" style={styles.logo} />
-            
             <Text style={styles.titleEn}>Government of the People's Republic of Bangladesh</Text>
             <Text style={styles.titleSub}>Office of the Register, Birth and Death Registration</Text>
-            <Text style={styles.titleSub2}>
-              {unionEn}, {upazilaEn}, {districtEn}
-            </Text>
+            <Text style={styles.titleSub2}>{unionEn}, {upazilaEn}, {districtEn}</Text>
             <Text style={styles.titleSub3}>(Rule 9, 10)</Text>
           </View>
 
           <View style={styles.qrContainer}>
-            {d.barcodeUrl ? <Image src={d.barcodeUrl} style={{ width: 130, height: 45, marginLeft: 10 }} /> : null}
+            {d.barcodeUrl && typeof d.barcodeUrl === 'string' && d.barcodeUrl.length > 0 ? (
+              <Image src={d.barcodeUrl} style={{ width: 130, height: 45, marginLeft: 10 }} />
+            ) : null}
           </View>
         </View>
 
@@ -161,54 +158,46 @@ const CertificatePDF = ({ data }) => {
             <Text style={styles.labelEnRight}>Sex</Text>
             <Text style={styles.valEnRight}>: {genderEn}</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.labelEnLeft}>In Word</Text>
             <Text style={styles.valEnLeft}>: {dobInWords}</Text>
           </View>
-
           <View style={{ ...styles.row, marginTop: 15 }}>
             <Text style={styles.labelBn}>নাম</Text>
             <Text style={styles.valBn}>: {safeStr(d.nameBn)}</Text>
             <Text style={styles.labelEnRight}>Name</Text>
             <Text style={styles.valEnRight}>: {safeStr(d.nameEn)}</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.labelBn}>মাতা</Text>
             <Text style={styles.valBn}>: {safeStr(d.motherNameBn)}</Text>
             <Text style={styles.labelEnRight}>Mother</Text>
             <Text style={styles.valEnRight}>: {safeStr(d.motherNameEn)}</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.labelBn}>মাতার জাতীয়তা</Text>
             <Text style={styles.valBn}>: বাংলাদেশী</Text>
             <Text style={styles.labelEnRight}>Nationality</Text>
             <Text style={styles.valEnRight}>: Bangladeshi</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.labelBn}>পিতা</Text>
             <Text style={styles.valBn}>: {safeStr(d.fatherNameBn)}</Text>
             <Text style={styles.labelEnRight}>Father</Text>
             <Text style={styles.valEnRight}>: {safeStr(d.fatherNameEn)}</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.labelBn}>পিতার জাতীয়তা</Text>
             <Text style={styles.valBn}>: বাংলাদেশী</Text>
             <Text style={styles.labelEnRight}>Nationality</Text>
             <Text style={styles.valEnRight}>: Bangladeshi</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.addrLabelBn}>জন্মস্থান</Text>
             <Text style={styles.addrValBn}>: {placeOfBirthBn}</Text>
             <Text style={styles.addrLabelEn}>Place of Birth</Text>
             <Text style={styles.addrValEn}>: {placeOfBirthEn}</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={styles.addrLabelBn}>স্থায়ী ঠিকানা</Text>
             <Text style={styles.addrValBn}>: {permanentAddressBn}</Text>
@@ -227,7 +216,6 @@ const CertificatePDF = ({ data }) => {
             <Text style={styles.footerSub}>Registrar</Text>
           </View>
         </View>
-        
         <Text style={styles.bottomNote}>
           This certificate is generated from bdris.gov.bd, and to verify this certificate, please scan the above QR Code & Bar Code.
         </Text>
