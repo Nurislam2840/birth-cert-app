@@ -56,6 +56,9 @@ export default function Admin() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // 🟢 নতুন স্টেট: জেনারেট হওয়া PDF এর ডেটা রাখার জন্য
+  const [pdfDataUrl, setPdfDataUrl] = useState(null);
+
   const [locationList, setLocationList] = useState([]);
   const [newLoc, setNewLoc] = useState({ 
     division_name: '', division_en: '',
@@ -119,6 +122,7 @@ export default function Admin() {
 
   const handleApprove = async (app) => {
     setProcessingId(app.id);
+    setPdfDataUrl(null); // আগের ডেটা ক্লিয়ার করা
     try {
       let qrCodeUrl = null;
       let barcodeUrl = null;
@@ -140,7 +144,6 @@ export default function Admin() {
         pageSize: 'A4',
         pageMargins: [40, 35, 40, 35],
         content: [
-          // হেডার সেকশন
           {
             columns: [
               {
@@ -169,11 +172,7 @@ export default function Admin() {
             ],
             margin: [0, 0, 0, 10]
           },
-
-          // টাইটেল
           { text: 'জন্ম নিবন্ধন সনদ / Birth Registration Certificate', fontSize: 16, bold: true, alignment: 'center', margin: [0, 10, 0, 15] },
-
-          // মেটা ডেটা
           {
             columns: [
               {
@@ -200,8 +199,6 @@ export default function Admin() {
             ],
             margin: [0, 0, 0, 20]
           },
-
-          // মূল তথ্য
           {
             columns: [
               { text: 'Date of Birth', width: '20%', fontSize: 10 },
@@ -316,31 +313,39 @@ export default function Admin() {
         }
       };
 
-      // 🟢 PDF তৈরি এবং জোরপূর্বক ডাউনলোড
-      pdfMake.createPdf(docDefinition).getBlob((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `Certificate_${app.tracking_id}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      // 🟢 PDF জেনারেট করে Base64 Data URL হিসেবে সেভ করা
+      pdfMake.createPdf(docDefinition).getDataUrl((dataUrl) => {
+        setPdfDataUrl(dataUrl); // স্টেটে সেভ করা হলো
+        
+        // ডেটাবেস আপডেট
+        supabase.from('birth_applications').update({ status: 'Approved' }).eq('id', app.id)
+          .then(({ error: updateError }) => {
+            if (updateError) {
+              setAlertState({ isOpen: true, message: 'ডেটাবেস আপডেটে সমস্যা: ' + updateError.message, type: 'error' });
+            } else {
+              setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved' } : a));
+              setAlertState({ isOpen: true, message: 'সার্টিফিকেট সফলভাবে তৈরি হয়েছে! এখন ডাউনলোড বাটনে ক্লিক করুন।', type: 'success' });
+            }
+          });
       });
 
-      // ডেটাবেস আপডেট
-      const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved' }).eq('id', app.id);
-      if (updateError) throw new Error("ডেটাবেস আপডেটে সমস্যা: " + updateError.message);
-
-      setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved' } : a));
-      setAlertState({ isOpen: true, message: 'সার্টিফিকেট সফলভাবে ডাউনলোড এবং অনুমোদন হয়েছে!', type: 'success' });
     } catch (err) {
       console.error(err);
       setAlertState({ isOpen: true, message: 'PDF তৈরিতে সমস্যা:\n' + (err?.message || err.toString()), type: 'error' });
     } finally {
       setProcessingId(null);
     }
+  };
+
+  // 🟢 ডাউনলোড বাটনের ফাংশন
+  const handleDownload = () => {
+    if (!pdfDataUrl) return;
+    const a = document.createElement('a');
+    a.href = pdfDataUrl;
+    a.download = 'Certificate.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const fetchLocations = async () => {
@@ -505,13 +510,21 @@ export default function Admin() {
                             </td>
                             <td className="px-4 py-3 flex flex-wrap justify-center gap-2">
                               <button onClick={() => handleView(app)} className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-bold hover:bg-gray-700 transition">View</button>
+                              
                               {app.status === 'Pending' ? (
                                 <button onClick={() => handleApprove(app)} disabled={processingId === app.id} className={`px-3 py-1 text-white rounded text-xs font-bold transition ${processingId === app.id ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
                                   {processingId === app.id ? 'তৈরি হচ্ছে...' : 'Approve'}
                                 </button>
                               ) : (
-                                <span className="text-green-600 text-xs font-bold py-1">✓ সম্পন্ন</span>
+                                <>
+                                  <span className="text-green-600 text-xs font-bold py-1">✓ সম্পন্ন</span>
+                                  {/* 🟢 ডাউনলোড বাটন */}
+                                  {pdfDataUrl && (
+                                    <button onClick={handleDownload} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-700 transition">Download</button>
+                                  )}
+                                </>
                               )}
+                              
                               <button onClick={() => handleDeleteApp(app.id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 transition">Delete</button>
                             </td>
                           </tr>
