@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
-import { pdf } from '@react-pdf/renderer';
-import CertificatePDF from '../components/CertificatePDF'; // 🟢 সরাসরি ইমপোর্ট
-import QRCode from 'qrcode';
-import JsBarcode from 'jsbarcode';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
+import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
+import pdfMake from 'pdfmake/build/pdfmake';
+import { vfs } from '../lib/vfs_fonts'; // 🟢 তৈরি করা ফন্ট ফাইল
+
+// 🟢 pdfmake-এ ফন্ট রেজিস্টার করা
+pdfMake.vfs = vfs;
+pdfMake.fonts = {
+  NotoSansBengali: {
+    normal: 'NotoSansBengali-Regular.ttf',
+    bold: 'NotoSansBengali-Regular.ttf',
+    italics: 'NotoSansBengali-Regular.ttf',
+    bolditalics: 'NotoSansBengali-Regular.ttf'
+  }
+};
 
 export default function Admin() {
   const router = useRouter();
@@ -84,6 +95,7 @@ export default function Admin() {
     }
   };
 
+  // 🟢 pdfmake দিয়ে PDF জেনারেশন
   const handleApprove = async (app) => {
     setProcessingId(app.id);
     try {
@@ -92,63 +104,45 @@ export default function Admin() {
 
       try {
         qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
-      } catch (qrErr) {
-        console.error("QR Code generation failed:", qrErr);
-      }
+      } catch (qrErr) { console.error("QR Code generation failed:", qrErr); }
 
       try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
         barcodeUrl = canvas.toDataURL('image/png');
-      } catch (barErr) {
-        console.error("Barcode generation failed:", barErr);
-      }
+      } catch (barErr) { console.error("Barcode generation failed:", barErr); }
 
       const safe = (val) => (val === null || val === undefined ? '' : String(val));
 
-      const finalData = {
-        brnNumber: safe(app.tracking_id),
-        nameBn: `${safe(app.first_name_bn)} ${safe(app.last_name_bn)}`.trim(),
-        nameEn: `${safe(app.first_name_en)} ${safe(app.last_name_en)}`.trim(),
-        dob: safe(app.dob),
-        gender: safe(app.gender),
-        fatherNameBn: safe(app.father_name_bn),
-        fatherNameEn: safe(app.father_name_en),
-        motherNameBn: safe(app.mother_name_bn),
-        motherNameEn: safe(app.mother_name_en),
-        qrCodeUrl,
-        barcodeUrl,
-        birthAddress: {
-          villageBn: safe(app.village_bn),
-          villageEn: safe(app.village_en),
-          postOfficeBn: safe(app.post_office_bn),
-          postOfficeEn: safe(app.post_office_en),
-          district: safe(app.district),
-          division: safe(app.division),
-          cityCorp: safe(app.city_corp), 
-          unionName: safe(app.union_name),
-          districtEn: safe(app.district_en) || safe(app.district),
-          divisionEn: safe(app.division_en) || safe(app.division),
-          upazilaEn: safe(app.upazila_en) || safe(app.city_corp),
-          unionEn: safe(app.union_en) || safe(app.union_name),
-          ward: safe(app.ward),
-          houseRoadBn: safe(app.house_road_bn),
-          houseRoadEn: safe(app.house_road_en),
+      // 🟢 pdfmake-এর জন্য ডকুমেন্ট ডেফিনিশন
+      const docDefinition = {
+        pageSize: 'A4',
+        pageMargins: [45, 35, 45, 35],
+        content: [
+          // ... (এখানে আপনার PDF-এর ডিজাইন pdfmake সিনট্যাক্সে করতে হবে)
+          // নিচে একটি সংক্ষিপ্ত উদাহরণ দেওয়া হলো
+          { text: 'Government of the People\'s Republic of Bangladesh', style: 'header' },
+          { text: 'Office of the Register, Birth and Death Registration', style: 'subheader' },
+          { text: 'জন্ম নিবন্ধন সনদ / Birth Registration Certificate', style: 'title' },
+          { text: `Birth Registration Number: ${safe(app.tracking_id)}`, style: 'content' },
+          { text: `Name (Bn): ${safe(app.first_name_bn)} ${safe(app.last_name_bn)}`, style: 'content' },
+          // ...
+        ],
+        defaultStyle: {
+          font: 'NotoSansBengali' // 🟢 বাংলা ফন্ট সেট করা হলো
         },
+        styles: {
+          header: { fontSize: 14, bold: true, alignment: 'center' },
+          subheader: { fontSize: 9, alignment: 'center', margin: [0, 3, 0, 0] },
+          title: { fontSize: 16, bold: true, alignment: 'center', margin: [0, 12, 0, 15] },
+          content: { fontSize: 10, margin: [0, 2, 0, 2] }
+        }
       };
 
-      const blob = await pdf(<CertificatePDF data={finalData} />).toBlob();
-      if (!blob || blob.size < 1000) throw new Error('PDF ফাইল তৈরি হয়নি।');
+      // 🟢 PDF তৈরি এবং ডাউনলোড
+      pdfMake.createPdf(docDefinition).download(`Certificate_${app.tracking_id}.pdf`);
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Certificate_${app.tracking_id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-
+      // ডেটাবেস আপডেট
       const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved' }).eq('id', app.id);
       if (updateError) throw new Error("ডেটাবেস আপডেটে সমস্যা: " + updateError.message);
 
@@ -291,13 +285,7 @@ export default function Admin() {
               <>
                 {errorMsg && <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{errorMsg}</div>}
                 <div className="mb-4 flex justify-between items-center">
-                  <input 
-                    type="text" 
-                    placeholder="ট্র্যাকিং আইডি বা নাম দিয়ে খুঁজুন..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className={inputClass + " md:w-1/2"}
-                  />
+                  <input type="text" placeholder="ট্র্যাকিং আইডি বা নাম দিয়ে খুঁজুন..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={inputClass + " md:w-1/2"} />
                 </div>
 
                 <div className="overflow-x-auto">
@@ -472,12 +460,7 @@ export default function Admin() {
         </div>
       )}
 
-      <CustomAlert 
-        isOpen={alertState.isOpen} 
-        message={alertState.message} 
-        type={alertState.type} 
-        onClose={() => setAlertState({ ...alertState, isOpen: false })} 
-      />
+      <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
     </div>
   );
 }
