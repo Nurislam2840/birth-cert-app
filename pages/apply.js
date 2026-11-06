@@ -102,7 +102,6 @@ const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   );
 };
 
-
 export default function Apply() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -113,14 +112,22 @@ export default function Apply() {
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.push('/login');
-      else setUser(data.user);
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error || !data.user) {
+        console.error("Auth Error:", error);
+        router.push('/login');
+      } else {
+        setUser(data.user);
+      }
     });
 
     const fetchLocations = async () => {
       const { data, error } = await supabase.from('locations').select('*');
-      if (!error && data) setLocations(data);
+      if (error) {
+        console.error("Locations Fetch Error:", error);
+      } else {
+        setLocations(data || []);
+      }
     };
     fetchLocations();
   }, [router]);
@@ -161,7 +168,10 @@ export default function Apply() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user) {
+      setAlertState({ isOpen: true, message: 'আপনি লগইন করা নেই। আবার লগইন করুন।', type: 'error' });
+      return;
+    }
     
     if (!formData.firstNameBn || !formData.dob || !formData.birthAddress.division) {
       setAlertState({ isOpen: true, message: 'অনুগ্রহ করে সব প্রয়োজনীয় তথ্য (যেমন: নাম, জন্ম তারিখ, বিভাগ) পূরণ করুন।', type: 'error' });
@@ -182,7 +192,7 @@ export default function Apply() {
 
     const brnNumber = generateBRN(formData);
 
-    // 🟢 আপডেট করা Payload (ডেটা টাইপ ও নাল ভ্যালু ফিক্স)
+    // 🟢 নিরাপদ Payload — সব ফাঁকা string null এ রূপান্তর
     const payload = {
       user_id: user.id,
       tracking_id: brnNumber,
@@ -226,18 +236,32 @@ export default function Apply() {
       status: 'Pending'
     };
 
-    const { error } = await supabase.from('birth_applications').insert([payload]);
-    setLoading(false);
+    console.log('📤 Submitting Payload:', payload); // Debugging
 
-    if (error) {
-      console.error("Supabase Insert Error:", error);
-      setAlertState({ isOpen: true, message: 'এরর: ' + error.message, type: 'error' });
-    } else {
-      setAlertState({ 
-        isOpen: true, 
-        message: `সফলভাবে জমা হয়েছে!\nআপনার জন্ম নিবন্ধন নম্বর:\n${brnNumber}`, 
-        type: 'success' 
-      });
+    try {
+      const { data, error } = await supabase.from('birth_applications').insert([payload]).select();
+
+      if (error) {
+        console.error('❌ Supabase Error Details:', error);
+        
+        let errorMsg = `এরর: ${error.message}`;
+        if (error.details) errorMsg += `\nDetails: ${error.details}`;
+        if (error.hint) errorMsg += `\nHint: ${error.hint}`;
+        if (error.code) errorMsg += `\nCode: ${error.code}`;
+
+        setAlertState({ isOpen: true, message: errorMsg, type: 'error' });
+      } else {
+        setAlertState({ 
+          isOpen: true, 
+          message: `সফলভাবে জমা হয়েছে!\nআপনার জন্ম নিবন্ধন নম্বর:\n${brnNumber}`, 
+          type: 'success' 
+        });
+      }
+    } catch (err) {
+      console.error('❌ Unexpected Error:', err);
+      setAlertState({ isOpen: true, message: 'সিস্টেম এরর: ' + (err?.message || err.toString()), type: 'error' });
+    } finally {
+      setLoading(false);
     }
   };
 

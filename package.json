@@ -2,6 +2,9 @@
   "name": "birth-cert-app",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0 <22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +12,7 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "3.4.5",
-    "@supabase/supabase-js": "^2.119.0",
+    "@supabase/supabase-js": "2.45.4",
     "jsbarcode": "^3.11.6",
     "next": "14.1.0",
     "qrcode": "^1.5.3",
