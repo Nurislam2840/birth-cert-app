@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
   brnValue: { fontSize: 11, fontWeight: 'bold', marginTop: 3 },
   row: { flexDirection: 'row', marginBottom: 10, alignItems: 'flex-start' },
   labelEnLeft: { width: 75, fontSize: 9.5 },
-  // 🟢 italic বাদ দেওয়া হয়েছে
   labelBn: { width: 80, fontFamily: 'NotoBengali', fontSize: 10.5 }, 
   labelEnRight: { width: 85, fontSize: 9.5 },
   valEnLeft: { width: 130, fontSize: 9.5 },
@@ -117,7 +116,8 @@ const CertificatePDF = ({ data }) => {
 
         <View style={styles.headerRow}>
           <View style={styles.qrContainer}>
-            {d.qrCodeUrl && <Image src={d.qrCodeUrl} style={styles.qrImage} />}
+            {/* 🟢 টার্নারি অপারেটর ব্যবহার করা হলো যাতে null হলে ক্র্যাশ না করে */}
+            {d.qrCodeUrl ? <Image src={d.qrCodeUrl} style={styles.qrImage} /> : null}
             <Text style={styles.qrText}>ASERTR</Text>
           </View>
           
@@ -133,7 +133,7 @@ const CertificatePDF = ({ data }) => {
           </View>
 
           <View style={styles.qrContainer}>
-            {d.barcodeUrl && <Image src={d.barcodeUrl} style={{ width: 130, height: 45, marginLeft: 10 }} />}
+            {d.barcodeUrl ? <Image src={d.barcodeUrl} style={{ width: 130, height: 45, marginLeft: 10 }} /> : null}
           </View>
         </View>
 
