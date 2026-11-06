@@ -1,20 +1,20 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// 🟢 সরাসরি ফন্ট ফাইলটি ইমপোর্ট করা হচ্ছে
-import NotoSansBengali from './fonts/NotoSansBengali-Regular.ttf'; 
+// 🟢 তৈরি করা JSON ফাইল থেকে ডেটা ইমপোর্ট করা হচ্ছে
+import fontData from '../lib/fontData.json'; 
 
 Font.register({
   family: 'NotoBengali',
   fonts: [
     { 
-      src: NotoSansBengali, // ইমপোর্ট করা ফন্টের ভ্যারিয়েবলটি এখানে দেওয়া হলো
+      src: `data:font/ttf;base64,${fontData.notoFontBase64}`, 
       fontWeight: 400 
     }
   ]
 });
 
-// বাকি কোড (numberToWords, styles, CertificatePDF কম্পোনেন্ট ইত্যাদি) আগের মতোই থাকবে...
+// বাকি কোড অপরিবর্তিত থাকবে...
 
 const numberToWords = (num) => {
   const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
