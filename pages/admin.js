@@ -6,7 +6,7 @@ import CustomAlert from '../components/CustomAlert';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import pdfMake from 'pdfmake/build/pdfmake';
-import { vfs } from '../lib/vfs_fonts'; // 🟢 তৈরি করা ফন্ট ফাইল
+import { vfs } from '../lib/vfs_fonts';
 
 // 🟢 pdfmake-এ ফন্ট রেজিস্টার করা
 pdfMake.vfs = vfs;
@@ -17,6 +17,28 @@ pdfMake.fonts = {
     italics: 'NotoSansBengali-Regular.ttf',
     bolditalics: 'NotoSansBengali-Regular.ttf'
   }
+};
+
+// ইংরেজি সংখ্যাকে কথায় রূপান্তর করার ফাংশন
+const numberToWords = (num) => {
+  const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+  const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
+  if (num === 0) return 'Zero';
+  if (num < 20) return a[num].trim();
+  if (num < 100) return (b[Math.floor(num / 10)] + ' ' + a[num % 10]).trim();
+  if (num < 1000) return (a[Math.floor(num / 100)] + 'Hundred ' + numberToWords(num % 100)).trim();
+  if (num < 100000) return (numberToWords(Math.floor(num / 1000)) + ' Thousand ' + numberToWords(num % 1000)).trim();
+  return num.toString();
+};
+
+const dateToWords = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const d = parseInt(day, 10);
+  const m = months[parseInt(month, 10) - 1];
+  const y = parseInt(year, 10);
+  return `${numberToWords(d)} of ${m} ${numberToWords(y)}`;
 };
 
 export default function Admin() {
@@ -95,7 +117,6 @@ export default function Admin() {
     }
   };
 
-  // 🟢 pdfmake দিয়ে PDF জেনারেশন
   const handleApprove = async (app) => {
     setProcessingId(app.id);
     try {
@@ -117,30 +138,196 @@ export default function Admin() {
       // 🟢 pdfmake-এর জন্য ডকুমেন্ট ডেফিনিশন
       const docDefinition = {
         pageSize: 'A4',
-        pageMargins: [45, 35, 45, 35],
+        pageMargins: [40, 35, 40, 35],
         content: [
-          // ... (এখানে আপনার PDF-এর ডিজাইন pdfmake সিনট্যাক্সে করতে হবে)
-          // নিচে একটি সংক্ষিপ্ত উদাহরণ দেওয়া হলো
-          { text: 'Government of the People\'s Republic of Bangladesh', style: 'header' },
-          { text: 'Office of the Register, Birth and Death Registration', style: 'subheader' },
-          { text: 'জন্ম নিবন্ধন সনদ / Birth Registration Certificate', style: 'title' },
-          { text: `Birth Registration Number: ${safe(app.tracking_id)}`, style: 'content' },
-          { text: `Name (Bn): ${safe(app.first_name_bn)} ${safe(app.last_name_bn)}`, style: 'content' },
-          // ...
+          // হেডার সেকশন
+          {
+            columns: [
+              {
+                width: 100,
+                stack: [
+                  qrCodeUrl ? { image: qrCodeUrl, width: 70, height: 70 } : { text: '' },
+                  { text: 'ASERTR', fontSize: 9, margin: [0, 5, 0, 0], alignment: 'center' }
+                ]
+              },
+              {
+                width: '*',
+                stack: [
+                  { image: 'https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png', width: 50, alignment: 'center' },
+                  { text: 'Government of the People\'s Republic of Bangladesh', fontSize: 14, bold: true, alignment: 'center', margin: [0, 5, 0, 0] },
+                  { text: 'Office of the Register, Birth and Death Registration', fontSize: 9, alignment: 'center', margin: [0, 2, 0, 0] },
+                  { text: `${safe(app.union_name)}, ${safe(app.city_corp)}, ${safe(app.district)}`, fontSize: 10, alignment: 'center', margin: [0, 10, 0, 0] },
+                  { text: '(Rule 9, 10)', fontSize: 8, alignment: 'center', margin: [0, 2, 0, 0] }
+                ]
+              },
+              {
+                width: 120,
+                stack: [
+                  barcodeUrl ? { image: barcodeUrl, width: 130, height: 45, alignment: 'right' } : { text: '' }
+                ]
+              }
+            ],
+            margin: [0, 0, 0, 10]
+          },
+
+          // টাইটেল
+          { text: 'জন্ম নিবন্ধন সনদ / Birth Registration Certificate', fontSize: 16, bold: true, alignment: 'center', margin: [0, 10, 0, 15] },
+
+          // মেটা ডেটা
+          {
+            columns: [
+              {
+                width: '30%',
+                stack: [
+                  { text: 'Date of Registration', fontSize: 9, bold: true },
+                  { text: new Date().toLocaleDateString('en-GB'), fontSize: 10, margin: [0, 3, 0, 0] }
+                ]
+              },
+              {
+                width: '40%',
+                stack: [
+                  { text: 'Birth Registration Number', fontSize: 9, bold: true, alignment: 'center' },
+                  { text: safe(app.tracking_id) || 'N/A', fontSize: 11, bold: true, alignment: 'center', margin: [0, 3, 0, 0] }
+                ]
+              },
+              {
+                width: '30%',
+                stack: [
+                  { text: 'Date of Issuance', fontSize: 9, bold: true, alignment: 'right' },
+                  { text: new Date().toLocaleDateString('en-GB'), fontSize: 10, alignment: 'right', margin: [0, 3, 0, 0] }
+                ]
+              }
+            ],
+            margin: [0, 0, 0, 20]
+          },
+
+          // মূল তথ্য
+          {
+            columns: [
+              { text: 'Date of Birth', width: '20%', fontSize: 10 },
+              { text: `: ${safe(app.dob)}`, width: '35%', fontSize: 10 },
+              { text: 'Sex', width: '15%', fontSize: 10 },
+              { text: `: ${safe(app.gender) === 'পুরুষ' ? 'Male' : safe(app.gender) === 'মহিলা' ? 'Female' : 'Hijra'}`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 8]
+          },
+          {
+            columns: [
+              { text: 'In Word', width: '20%', fontSize: 10 },
+              { text: `: ${dateToWords(safe(app.dob))}`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 15]
+          },
+          {
+            columns: [
+              { text: 'নাম', width: '15%', fontSize: 11 },
+              { text: `: ${safe(app.first_name_bn)} ${safe(app.last_name_bn)}`, width: '35%', fontSize: 11 },
+              { text: 'Name', width: '15%', fontSize: 10 },
+              { text: `: ${safe(app.first_name_en)} ${safe(app.last_name_en)}`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 5]
+          },
+          {
+            columns: [
+              { text: 'মাতা', width: '15%', fontSize: 11 },
+              { text: `: ${safe(app.mother_name_bn)}`, width: '35%', fontSize: 11 },
+              { text: 'Mother', width: '15%', fontSize: 10 },
+              { text: `: ${safe(app.mother_name_en)}`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 5]
+          },
+          {
+            columns: [
+              { text: 'মাতার জাতীয়তা', width: '15%', fontSize: 11 },
+              { text: ': বাংলাদেশী', width: '35%', fontSize: 11 },
+              { text: 'Nationality', width: '15%', fontSize: 10 },
+              { text: ': Bangladeshi', width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 5]
+          },
+          {
+            columns: [
+              { text: 'পিতা', width: '15%', fontSize: 11 },
+              { text: `: ${safe(app.father_name_bn)}`, width: '35%', fontSize: 11 },
+              { text: 'Father', width: '15%', fontSize: 10 },
+              { text: `: ${safe(app.father_name_en)}`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 5]
+          },
+          {
+            columns: [
+              { text: 'পিতার জাতীয়তা', width: '15%', fontSize: 11 },
+              { text: ': বাংলাদেশী', width: '35%', fontSize: 11 },
+              { text: 'Nationality', width: '15%', fontSize: 10 },
+              { text: ': Bangladeshi', width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 5]
+          },
+          {
+            columns: [
+              { text: 'জন্মস্থান', width: '15%', fontSize: 11 },
+              { text: `: ${safe(app.village_bn)}, ${safe(app.district)}, বাংলাদেশ`, width: '35%', fontSize: 11 },
+              { text: 'Place of Birth', width: '15%', fontSize: 10 },
+              { text: `: ${safe(app.village_en)}, ${safe(app.district_en) || safe(app.district)}, Bangladesh`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 5]
+          },
+          {
+            columns: [
+              { text: 'স্থায়ী ঠিকানা', width: '15%', fontSize: 11 },
+              { text: `: ${safe(app.house_road_bn)}, ${safe(app.village_bn)}, ${safe(app.post_office_bn)}, ${safe(app.district)}।`, width: '35%', fontSize: 11 },
+              { text: 'Permanent\nAddress', width: '15%', fontSize: 10 },
+              { text: `: ${safe(app.house_road_en)}, ${safe(app.village_en)}, ${safe(app.post_office_en)}, ${safe(app.district_en) || safe(app.district)}.`, width: '*', fontSize: 10 }
+            ],
+            margin: [0, 0, 0, 0]
+          }
         ],
         defaultStyle: {
-          font: 'NotoSansBengali' // 🟢 বাংলা ফন্ট সেট করা হলো
+          font: 'NotoSansBengali'
         },
-        styles: {
-          header: { fontSize: 14, bold: true, alignment: 'center' },
-          subheader: { fontSize: 9, alignment: 'center', margin: [0, 3, 0, 0] },
-          title: { fontSize: 16, bold: true, alignment: 'center', margin: [0, 12, 0, 15] },
-          content: { fontSize: 10, margin: [0, 2, 0, 2] }
+        footer: function (currentPage, pageCount) {
+          return {
+            columns: [
+              {
+                width: '50%',
+                stack: [
+                  { text: 'Seal & Signature', fontSize: 12, bold: true },
+                  { text: 'Assistant to Registrar', fontSize: 9, margin: [0, 3, 0, 0] }
+                ]
+              },
+              {
+                width: '50%',
+                stack: [
+                  { text: 'Seal & Signature', fontSize: 12, bold: true, alignment: 'right' },
+                  { text: 'Registrar', fontSize: 9, alignment: 'right', margin: [0, 3, 0, 0] }
+                ]
+              }
+            ],
+            margin: [40, 0, 40, 0]
+          };
+        },
+        background: function (currentPage, pageSize) {
+          return {
+            image: 'https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png',
+            width: 450,
+            opacity: 0.1,
+            absolutePosition: { x: 70, y: 150 }
+          };
         }
       };
 
-      // 🟢 PDF তৈরি এবং ডাউনলোড
-      pdfMake.createPdf(docDefinition).download(`Certificate_${app.tracking_id}.pdf`);
+      // 🟢 PDF তৈরি এবং জোরপূর্বক ডাউনলোড
+      pdfMake.createPdf(docDefinition).getBlob((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `Certificate_${app.tracking_id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      });
 
       // ডেটাবেস আপডেট
       const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved' }).eq('id', app.id);
