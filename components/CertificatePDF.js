@@ -1,17 +1,20 @@
 import React from 'react';
-import path from 'path'; // 🟢 ফন্টের পাথ ঠিক করার জন্য path ইমপোর্ট করা হলো
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// 🟢 Vercel-এর জন্য অ্যাবসোলিউট পাথ (Absolute Path) ব্যবহার করা হলো
+// 🟢 সরাসরি ফন্ট ফাইলটি ইমপোর্ট করা হচ্ছে
+import NotoSansBengali from './fonts/NotoSansBengali-Regular.ttf'; 
+
 Font.register({
   family: 'NotoBengali',
   fonts: [
     { 
-      src: path.join(process.cwd(), 'public', 'fonts', 'NotoSansBengali-Regular.ttf'),
+      src: NotoSansBengali, // ইমপোর্ট করা ফন্টের ভ্যারিয়েবলটি এখানে দেওয়া হলো
       fontWeight: 400 
     }
   ]
 });
+
+// বাকি কোড (numberToWords, styles, CertificatePDF কম্পোনেন্ট ইত্যাদি) আগের মতোই থাকবে...
 
 const numberToWords = (num) => {
   const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
