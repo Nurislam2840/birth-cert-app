@@ -1,15 +1,13 @@
 import React from 'react';
+import path from 'node:path'; // 🟢 ফন্টের পাথ ঠিক করার জন্য path ইমপোর্ট করা হলো
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
-import { notoFontBase64 } from '../lib/fontData'; 
 
-// 🟢 ফন্টের ডেটা ক্লিন করা হচ্ছে যাতে কোনো বাড়তি স্পেস বা নিউলাইন না থাকে
-const cleanBase64 = notoFontBase64.replace(/\s/g, ''); 
-
+// 🟢 Vercel-এর জন্য অ্যাবসোলিউট পাথ (Absolute Path) ব্যবহার করা হলো
 Font.register({
   family: 'NotoBengali',
   fonts: [
     { 
-      src: `data:font/ttf;base64,${cleanBase64}`,
+      src: path.join(process.cwd(), 'public', 'fonts', 'NotoSansBengali-Regular.ttf'),
       fontWeight: 400 
     }
   ]
