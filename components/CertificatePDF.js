@@ -1,20 +1,20 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
-
-// 🟢 তৈরি করা ফাইল থেকে Base64 ডেটা ইমপোর্ট করা হচ্ছে
 import { notoFontBase64 } from '../lib/fontData';
 
+// 🟢 Base64 ডেটা থেকে বাড়তি স্পেস বা লাইন ব্রেক ক্লিন করা হচ্ছে
+const cleanBase64 = notoFontBase64.replace(/\s/g, '');
+
+// 🟢 ফন্ট রেজিস্ট্রেশন
 Font.register({
   family: 'NotoBengali',
   fonts: [
     { 
-      src: `data:font/ttf;base64,${notoFontBase64}`,
+      src: `data:font/ttf;base64,${cleanBase64}`,
       fontWeight: 400 
     }
   ]
 });
-
-// বাকি কোড অপরিবর্তিত থাকবে...
 
 const numberToWords = (num) => {
   const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
@@ -61,13 +61,14 @@ const styles = StyleSheet.create({
   brnValue: { fontSize: 11, fontWeight: 'bold', marginTop: 3 },
   row: { flexDirection: 'row', marginBottom: 10, alignItems: 'flex-start' },
   labelEnLeft: { width: 75, fontSize: 9.5 },
-  labelBn: { width: 80, fontFamily: 'NotoBengali', fontSize: 10.5, fontStyle: 'italic' },
+  // 🟢 italic বাদ দেওয়া হয়েছে
+  labelBn: { width: 80, fontFamily: 'NotoBengali', fontSize: 10.5 }, 
   labelEnRight: { width: 85, fontSize: 9.5 },
   valEnLeft: { width: 130, fontSize: 9.5 },
-  valBn: { width: 150, fontFamily: 'NotoBengali', fontSize: 10.5, fontStyle: 'italic' },
+  valBn: { width: 150, fontFamily: 'NotoBengali', fontSize: 10.5 },
   valEnRight: { flex: 1, fontSize: 9.5 },
-  addrLabelBn: { width: 80, fontFamily: 'NotoBengali', fontSize: 10.5, fontStyle: 'italic', marginTop: 6 },
-  addrValBn: { width: 150, fontFamily: 'NotoBengali', fontSize: 10.5, fontStyle: 'italic', marginTop: 6 },
+  addrLabelBn: { width: 80, fontFamily: 'NotoBengali', fontSize: 10.5, marginTop: 6 },
+  addrValBn: { width: 150, fontFamily: 'NotoBengali', fontSize: 10.5, marginTop: 6 },
   addrLabelEn: { width: 85, fontSize: 9.5, marginTop: 6 },
   addrValEn: { flex: 1, fontSize: 9.5, marginTop: 6 },
   footer: { position: 'absolute', bottom: 55, left: 45, right: 45, flexDirection: 'row', justifyContent: 'space-between' },
