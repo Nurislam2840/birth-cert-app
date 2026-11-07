@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isAdmin } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import NoticeBoard from '../components/NoticeBoard';
 import StatsSection from '../components/StatsSection';
@@ -8,6 +8,7 @@ import StatsSection from '../components/StatsSection';
 export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -15,21 +16,41 @@ export default function Home() {
       setUser(user);
     };
     checkUser();
+
+    // Load real stats from DB
+    const loadStats = async () => {
+      try {
+        const [totalRes, approvedRes] = await Promise.all([
+          supabase.from('birth_applications').select('id', { count: 'exact', head: true }),
+          supabase.from('birth_applications').select('id', { count: 'exact', head: true }).eq('status', 'Approved'),
+        ]);
+        setStats({
+          total: totalRes.count || 0,
+          approved: approvedRes.count || 0,
+        });
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadStats();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    router.reload();
+    router.push('/');
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      {/* হেডার */}
       <header className="bg-green-700 text-white shadow-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img src="https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png" alt="Logo" className="w-10 h-10 bg-white rounded-full p-1" />
+            <img
+              src="https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png"
+              alt="Logo"
+              className="w-10 h-10 bg-white rounded-full p-1"
+            />
             <div>
               <h1 className="text-lg md:text-xl font-bold leading-tight">জন্ম ও মৃত্যু নিবন্ধন পোর্টাল</h1>
               <p className="text-xs text-green-200 hidden md:block">Birth & Death Registration Portal</p>
@@ -39,13 +60,22 @@ export default function Home() {
             <Link href="/track" className="hover:text-green-200 px-2">ট্র্যাকিং</Link>
             {user ? (
               <>
-                <Link href={user.email === 'admin@gmail.com' ? '/admin' : '/dashboard'} className="bg-green-800 px-4 py-2 rounded-md hover:bg-green-900 transition">ড্যাশবোর্ড</Link>
-                <button onClick={handleLogout} className="bg-red-500 px-3 py-2 rounded-md hover:bg-red-600 transition">লগআউট</button>
+                <Link
+                  href={isAdmin(user.email) ? '/admin' : '/dashboard'}
+                  className="bg-green-800 px-4 py-2 rounded-md hover:bg-green-900 transition"
+                >
+                  ড্যাশবোর্ড
+                </Link>
+                <button onClick={handleLogout} className="bg-red-500 px-3 py-2 rounded-md hover:bg-red-600 transition">
+                  লগআউট
+                </button>
               </>
             ) : (
               <>
                 <Link href="/login" className="hover:text-green-200 px-2">লগইন</Link>
-                <Link href="/register" className="bg-white text-green-700 font-bold px-4 py-2 rounded-md hover:bg-gray-100 transition">রেজিস্ট্রেশন</Link>
+                <Link href="/register" className="bg-white text-green-700 font-bold px-4 py-2 rounded-md hover:bg-gray-100 transition">
+                  রেজিস্ট্রেশন
+                </Link>
               </>
             )}
           </nav>
@@ -53,7 +83,6 @@ export default function Home() {
       </header>
 
       <main className="flex-grow">
-        {/* হিরো সেকশন */}
         <section className="bg-gradient-to-r from-green-800 to-green-600 text-white">
           <div className="max-w-6xl mx-auto px-4 py-16 md:py-24 flex flex-col md:flex-row items-center gap-10">
             <div className="flex-1 space-y-6 text-center md:text-left">
@@ -65,23 +94,32 @@ export default function Home() {
                 ঘরে বসেই জন্ম ও মৃত্যু নিবন্ধন আবেদন করুন, ট্র্যাক করুন এবং ডিজিটাল সার্টিফিকেট ডাউনলোড করুন।
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start pt-4">
-                <Link href="/apply" className="px-8 py-3 bg-white text-green-800 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition transform hover:-translate-y-1">
+                <Link
+                  href="/apply"
+                  className="px-8 py-3 bg-white text-green-800 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition transform hover:-translate-y-1"
+                >
                   জন্ম নিবন্ধন আবেদন
                 </Link>
-                <Link href="/apply-death" className="px-8 py-3 bg-red-600 border border-red-500 text-white font-bold rounded-lg shadow-lg hover:bg-red-700 transition transform hover:-translate-y-1">
+                <Link
+                  href="/apply-death"
+                  className="px-8 py-3 bg-red-600 border border-red-500 text-white font-bold rounded-lg shadow-lg hover:bg-red-700 transition transform hover:-translate-y-1"
+                >
                   মৃত্যু নিবন্ধন আবেদন
                 </Link>
               </div>
             </div>
             <div className="flex-1 flex justify-center">
-              <img src="https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png" alt="Watermark" className="w-full max-w-sm drop-shadow-2xl opacity-90" />
+              <img
+                src="https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png"
+                alt="Watermark"
+                className="w-full max-w-sm drop-shadow-2xl opacity-90"
+              />
             </div>
           </div>
         </section>
 
-        <StatsSection />
+        <StatsSection liveStats={stats} />
 
-        {/* সার্ভিস সেকশন */}
         <section className="max-w-6xl mx-auto px-4 py-16">
           <div className="text-center mb-12">
             <h3 className="text-2xl md:text-3xl font-bold text-gray-800">আমাদের সেবাসমূহ</h3>
@@ -109,16 +147,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* নোটিশ সেকশন */}
         <section className="bg-gray-100 py-16">
           <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div>
               <h3 className="text-2xl font-bold text-gray-800 mb-4">কেন আমাদের সেবা নেবেন?</h3>
               <ul className="space-y-4">
-                <li className="flex gap-3"><span className="text-green-600 font-bold">✔</span> ১০০% অনলাইন এবং ঝামেলামুক্ত আবেদন প্রক্রিয়া।</li>
+                <li className="flex gap-3"><span className="text-green-600 font-bold">✔</span> ১০০% অনলাইন এবং ঝামেলামুক্ত আবেদন প্রক্রিয়া।</li>
                 <li className="flex gap-3"><span className="text-green-600 font-bold">✔</span> ২৪/৭ লাইভ ট্র্যাকিং সুবিধা।</li>
                 <li className="flex gap-3"><span className="text-green-600 font-bold">✔</span> অ্যাডমিন অনুমোদনের পরই ডিজিটাল সার্টিফিকেট।</li>
-                <li className="flex gap-3"><span className="text-green-600 font-bold">✔</span> সম্পূর্ণ নিরাপদ ও গোপনীয় ডেটা সিস্টেম।</li>
+                <li className="flex gap-3"><span className="text-green-600 font-bold">✔</span> সম্পূর্ণ নিরাপদ ও গোপনীয় ডেটা সিস্টেম।</li>
               </ul>
             </div>
             <div><NoticeBoard /></div>
@@ -126,7 +163,6 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ফুটার */}
       <footer className="bg-gray-900 text-gray-400 py-8 mt-auto">
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
           <div>

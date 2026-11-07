@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { generateBRN } from '../lib/generateBRN';
+import { generateBRN, checkTrackingIdExists } from '../lib/generateBRN';
 import CustomAlert from '../components/CustomAlert';
 
-// কাস্টম ইনপুট স্টাইল
 const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
 const selectClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white disabled:bg-gray-200 appearance-none cursor-pointer";
 
-// AddressFields কম্পোনেন্ট
 const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   const currentDiv = formData[prefix].division;
   const currentDist = formData[prefix].district;
@@ -23,72 +21,47 @@ const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       <div><label className="text-sm font-semibold text-gray-700">দেশ</label><input name={`${prefix}.country`} value={formData[prefix].country} onChange={handleChange} className={`${inputClass} bg-gray-200 cursor-not-allowed`} readOnly /></div>
-      
+
       <div>
         <label className="text-sm font-semibold text-gray-700">বিভাগ *</label>
-        <div className="relative">
-          <select name={`${prefix}.division`} value={formData[prefix].division} onChange={handleChange} className={selectClass}>
-            <option value="">-- নির্বাচন করুন --</option>
-            {availableDivisions.map(div => <option key={div} value={div}>{div}</option>)}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-          </div>
-        </div>
+        <select name={`${prefix}.division`} value={formData[prefix].division} onChange={handleChange} className={selectClass}>
+          <option value="">-- নির্বাচন করুন --</option>
+          {availableDivisions.map(div => <option key={div} value={div}>{div}</option>)}
+        </select>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">জেলা *</label>
-        <div className="relative">
-          <select name={`${prefix}.district`} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} className={selectClass}>
-            <option value="">-- নির্বাচন করুন --</option>
-            {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-          </div>
-        </div>
+        <select name={`${prefix}.district`} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} className={selectClass}>
+          <option value="">-- নির্বাচন করুন --</option>
+          {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+        </select>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">উপজেলা/থানা *</label>
-        <div className="relative">
-          <select name={`${prefix}.upazila`} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} className={selectClass}>
-            <option value="">-- নির্বাচন করুন --</option>
-            {availableUpazilas.map(up => <option key={up} value={up}>{up}</option>)}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-          </div>
-        </div>
+        <select name={`${prefix}.upazila`} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} className={selectClass}>
+          <option value="">-- নির্বাচন করুন --</option>
+          {availableUpazilas.map(up => <option key={up} value={up}>{up}</option>)}
+        </select>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">এলাকার ধরন</label>
-        <div className="relative">
-          <select name={`${prefix}.areaType`} value={formData[prefix].areaType} onChange={handleChange} className={selectClass}>
-            <option value="ইউনিয়ন পরিষদ">ইউনিয়ন পরিষদ</option>
-            <option value="পৌরসভা">পৌরসভা</option>
-            <option value="সিটি কর্পোরেশন">সিটি কর্পোরেশন</option>
-            <option value="ক্যান্টনমেন্ট বোর্ড">ক্যান্টনমেন্ট বোর্ড</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-          </div>
-        </div>
+        <select name={`${prefix}.areaType`} value={formData[prefix].areaType} onChange={handleChange} className={selectClass}>
+          <option value="ইউনিয়ন পরিষদ">ইউনিয়ন পরিষদ</option>
+          <option value="পৌরসভা">পৌরসভা</option>
+          <option value="সিটি কর্পোরেশন">সিটি কর্পোরেশন</option>
+          <option value="ক্যান্টনমেন্ট বোর্ড">ক্যান্টনমেন্ট বোর্ড</option>
+        </select>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">ইউনিয়ন/পৌরসভা *</label>
-        <div className="relative">
-          <select name={`${prefix}.union`} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} className={selectClass}>
-            <option value="">-- নির্বাচন করুন --</option>
-            {availableUnions.map(un => <option key={un} value={un}>{un}</option>)}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-          </div>
-        </div>
+        <select name={`${prefix}.union`} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} className={selectClass}>
+          <option value="">-- নির্বাচন করুন --</option>
+          {availableUnions.map(un => <option key={un} value={un}>{un}</option>)}
+        </select>
       </div>
 
       <div><label className="text-sm font-semibold text-gray-700">ওয়ার্ড নং</label><input name={`${prefix}.ward`} value={formData[prefix].ward} onChange={handleChange} className={inputClass} /></div>
@@ -102,19 +75,35 @@ const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   );
 };
 
+const defaultAddress = {
+  country: 'বাংলাদেশ',
+  division: '',
+  district: '',
+  areaType: 'ইউনিয়ন পরিষদ',
+  upazila: '',
+  union: '',
+  ward: '',
+  postOfficeBn: '',
+  postOfficeEn: '',
+  villageBn: '',
+  villageEn: '',
+  houseRoadBn: '',
+  houseRoadEn: '',
+};
+
 export default function Apply() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState([]);
+  const [submittedBrn, setSubmittedBrn] = useState(null);
 
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data.user) {
-        console.error("Auth Error:", error);
         router.push('/login');
       } else {
         setUser(data.user);
@@ -123,11 +112,8 @@ export default function Apply() {
 
     const fetchLocations = async () => {
       const { data, error } = await supabase.from('locations').select('*');
-      if (error) {
-        console.error("Locations Fetch Error:", error);
-      } else {
-        setLocations(data || []);
-      }
+      if (error) console.error("Locations Fetch Error:", error);
+      else setLocations(data || []);
     };
     fetchLocations();
   }, [router]);
@@ -135,17 +121,11 @@ export default function Apply() {
   const [formData, setFormData] = useState({
     firstNameBn: '', lastNameBn: '', firstNameEn: '', lastNameEn: '',
     dob: '', childOrder: '', gender: '',
-    birthAddress: {
-      country: 'বাংলাদেশ', division: '', district: '', areaType: 'ইউনিয়ন পরিষদ', upazila: '', union: '', ward: '',
-      postOfficeBn: '', postOfficeEn: '', villageBn: '', villageEn: '', houseRoadBn: '', houseRoadEn: ''
-    },
+    birthAddress: { ...defaultAddress },
     fatherBrn: '', fatherDob: '', fatherNameBn: '', fatherNameEn: '', fatherNationality: 'বাংলাদেশী',
     motherBrn: '', motherDob: '', motherNameBn: '', motherNameEn: '', motherNationality: 'বাংলাদেশী',
     permanentSame: false,
-    permanentAddress: {
-      country: 'বাংলাদেশ', division: '', district: '', areaType: 'ইউনিয়ন পরিষদ', upazila: '', union: '', ward: '',
-      postOfficeBn: '', postOfficeEn: '', villageBn: '', villageEn: '', houseRoadBn: '', houseRoadEn: ''
-    }
+    permanentAddress: { ...defaultAddress },
   });
 
   const handleChange = (e) => {
@@ -156,7 +136,6 @@ export default function Apply() {
       const [parent, child] = name.split('.');
       setFormData(prev => {
         const newData = { ...prev, [parent]: { ...prev[parent], [child]: val } };
-        // ক্যাসকেডিং লজিক (পরের ড্রপডাউন রিসেট)
         if (child === 'division') { newData[parent].district = ''; newData[parent].upazila = ''; newData[parent].union = ''; }
         if (child === 'district') { newData[parent].upazila = ''; newData[parent].union = ''; }
         if (child === 'upazila') { newData[parent].union = ''; }
@@ -167,15 +146,38 @@ export default function Apply() {
     }
   };
 
+  const validateStep = (s) => {
+    if (s === 1) {
+      if (!formData.firstNameBn || !formData.dob || !formData.birthAddress.division || !formData.birthAddress.district || !formData.birthAddress.upazila || !formData.birthAddress.union) {
+        setAlertState({ isOpen: true, message: 'অনুগ্রহ করে নাম, জন্ম তারিখ, বিভাগ, জেলা, উপজেলা ও ইউনিয়ন পূরণ করুন।', type: 'error' });
+        return false;
+      }
+    }
+    if (s === 2) {
+      if (!formData.fatherNameBn || !formData.motherNameBn) {
+        setAlertState({ isOpen: true, message: 'পিতা ও মাতার নাম আবশ্যক।', type: 'error' });
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) setStep(step + 1);
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       setAlertState({ isOpen: true, message: 'আপনি লগইন করা নেই। আবার লগইন করুন।', type: 'error' });
       return;
     }
-    
-    if (!formData.firstNameBn || !formData.dob || !formData.birthAddress.division) {
-      setAlertState({ isOpen: true, message: 'অনুগ্রহ করে সব প্রয়োজনীয় তথ্য (যেমন: নাম, জন্ম তারিখ, বিভাগ) পূরণ করুন।', type: 'error' });
-      return;
+    if (!validateStep(1) || !validateStep(2)) return;
+    if (!formData.permanentSame) {
+      const p = formData.permanentAddress;
+      if (!p.division || !p.district || !p.upazila || !p.union) {
+        setAlertState({ isOpen: true, message: 'স্থায়ী ঠিকানার বিভাগ, জেলা, উপজেলা ও ইউনিয়ন পূরণ করুন।', type: 'error' });
+        return;
+      }
     }
 
     setLoading(true);
@@ -183,16 +185,23 @@ export default function Apply() {
     const birth = formData.birthAddress;
     const perm = formData.permanentSame ? formData.birthAddress : formData.permanentAddress;
 
-    const matchedLoc = locations.find(loc => 
-      loc.division_name === birth.division && 
+    const matchedLoc = locations.find(loc =>
+      loc.division_name === birth.division &&
       loc.district_name === birth.district &&
       loc.upazila_name === birth.upazila &&
       loc.union_name === birth.union
     );
 
-    const brnNumber = generateBRN(formData);
+    // Retry loop for unique tracking id
+    let brnNumber = generateBRN(formData);
+    let duplicateChecked = 0;
+    while (duplicateChecked < 5) {
+      const { exists } = await checkTrackingIdExists(supabase, brnNumber);
+      if (!exists) break;
+      brnNumber = generateBRN(formData, 0, duplicateChecked + 1);
+      duplicateChecked++;
+    }
 
-    // 🟢 নিরাপদ Payload — সব ফাঁকা string null এ রূপান্তর
     const payload = {
       user_id: user.id,
       tracking_id: brnNumber,
@@ -233,32 +242,27 @@ export default function Apply() {
       permanent_district: perm.district || null,
       permanent_village_bn: perm.villageBn || null,
       permanent_village_en: perm.villageEn || null,
-      status: 'Pending'
+      status: 'Pending',
     };
 
-    console.log('📤 Submitting Payload:', payload); // Debugging
-
     try {
-      const { data, error } = await supabase.from('birth_applications').insert([payload]).select();
+      const { error } = await supabase.from('birth_applications').insert([payload]);
 
       if (error) {
-        console.error('❌ Supabase Error Details:', error);
-        
-        let errorMsg = `এরর: ${error.message}`;
-        if (error.details) errorMsg += `\nDetails: ${error.details}`;
-        if (error.hint) errorMsg += `\nHint: ${error.hint}`;
-        if (error.code) errorMsg += `\nCode: ${error.code}`;
-
-        setAlertState({ isOpen: true, message: errorMsg, type: 'error' });
+        setAlertState({
+          isOpen: true,
+          message: `এরর: ${error.message}${error.details ? `\nDetails: ${error.details}` : ''}${error.hint ? `\nHint: ${error.hint}` : ''}`,
+          type: 'error',
+        });
       } else {
-        setAlertState({ 
-          isOpen: true, 
-          message: `সফলভাবে জমা হয়েছে!\nআপনার জন্ম নিবন্ধন নম্বর:\n${brnNumber}`, 
-          type: 'success' 
+        setSubmittedBrn(brnNumber);
+        setAlertState({
+          isOpen: true,
+          message: `সফলভাবে জমা হয়েছে!\nআপনার জন্ম নিবন্ধন নম্বর:\n${brnNumber}\n\nএই নম্বরটি সংরক্ষণ করুন।`,
+          type: 'success',
         });
       }
     } catch (err) {
-      console.error('❌ Unexpected Error:', err);
       setAlertState({ isOpen: true, message: 'সিস্টেম এরর: ' + (err?.message || err.toString()), type: 'error' });
     } finally {
       setLoading(false);
@@ -268,6 +272,14 @@ export default function Apply() {
   const handleAlertClose = () => {
     setAlertState({ ...alertState, isOpen: false });
     if (alertState.type === 'success') {
+      if (submittedBrn) {
+        const a = document.createElement('a');
+        a.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
+          `জন্ম নিবন্ধন নম্বর: ${submittedBrn}\nনাম: ${formData.firstNameBn} ${formData.lastNameBn}\nজন্ম তারিখ: ${formData.dob}`
+        )}`;
+        a.download = `BRN-${submittedBrn}.txt`;
+        // do not auto-download; let user use dashboard
+      }
       router.push('/dashboard');
     }
   };
@@ -282,9 +294,11 @@ export default function Apply() {
         </div>
 
         <div className="flex bg-gray-50 border-b">
-          <div className={`flex-1 text-center py-3 text-sm font-semibold transition-colors ${step === 1 ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>১. পরিচিতি</div>
-          <div className={`flex-1 text-center py-3 text-sm font-semibold transition-colors ${step === 2 ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>২. পিতা-মাতা</div>
-          <div className={`flex-1 text-center py-3 text-sm font-semibold transition-colors ${step === 3 ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>৩. ঠিকানা ও সাবমিট</div>
+          {[1, 2, 3].map((s) => (
+            <div key={s} className={`flex-1 text-center py-3 text-sm font-semibold transition-colors ${step === s ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>
+              {s === 1 ? '১. পরিচিতি' : s === 2 ? '২. পিতা-মাতা' : '৩. ঠিকানা ও সাবমিট'}
+            </div>
+          ))}
         </div>
 
         <div className="p-6 md:p-8">
@@ -300,17 +314,12 @@ export default function Apply() {
                 <div><label className="text-sm font-semibold text-gray-700">পিতা-মাতার কততম সন্তান</label><input type="number" name="childOrder" value={formData.childOrder} onChange={handleChange} placeholder="যেমন: ১" className={inputClass} /></div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700">লিঙ্গ</label>
-                  <div className="relative">
-                    <select name="gender" value={formData.gender} onChange={handleChange} className={selectClass}>
-                      <option value="">নির্বাচন করুন</option>
-                      <option value="পুরুষ">পুরুষ</option>
-                      <option value="মহিলা">মহিলা</option>
-                      <option value="হিজড়া">হিজড়া</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                  </div>
+                  <select name="gender" value={formData.gender} onChange={handleChange} className={selectClass}>
+                    <option value="">নির্বাচন করুন</option>
+                    <option value="পুরুষ">পুরুষ</option>
+                    <option value="মহিলা">মহিলা</option>
+                    <option value="হিজড়া">হিজড়া</option>
+                  </select>
                 </div>
               </div>
 
@@ -364,7 +373,7 @@ export default function Apply() {
           ) : <div></div>}
 
           {step < 3 ? (
-            <button onClick={() => setStep(step + 1)} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow">পরবর্তী →</button>
+            <button onClick={handleNext} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow">পরবর্তী →</button>
           ) : (
             <button onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition disabled:bg-gray-400">
               {loading ? 'সাবমিট হচ্ছে...' : 'চূড়ান্ত সাবমিট করুন'}
@@ -373,11 +382,11 @@ export default function Apply() {
         </div>
       </div>
 
-      <CustomAlert 
-        isOpen={alertState.isOpen} 
-        message={alertState.message} 
-        type={alertState.type} 
-        onClose={handleAlertClose} 
+      <CustomAlert
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        type={alertState.type}
+        onClose={handleAlertClose}
       />
     </div>
   );

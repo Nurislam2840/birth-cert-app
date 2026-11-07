@@ -1,9 +1,20 @@
 import React from 'react';
 
-export default function StatsSection() {
+const toBnDigits = (n) => {
+  const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  return String(n).replace(/\d/g, (d) => bn[+d]);
+};
+
+export default function StatsSection({ liveStats }) {
+  const formatNum = (n) => {
+    if (typeof n !== 'number') return '—';
+    if (n >= 1000) return `${toBnDigits(Math.floor(n / 1000))},${toBnDigits(n % 1000).padStart(3, '0')}+`;
+    return `${toBnDigits(n)}+`;
+  };
+
   const stats = [
-    { number: '৫০,০০০+', label: 'মোট নিবন্ধন' },
-    { number: '১০,০০০+', label: 'অনুমোদিত সার্টিফিকেট' },
+    { number: formatNum(liveStats?.total ?? 0), label: 'মোট নিবন্ধন' },
+    { number: formatNum(liveStats?.approved ?? 0), label: 'অনুমোদিত সার্টিফিকেট' },
     { number: '৬৪', label: 'জেলা কভারেজ' },
     { number: '৪৯২', label: 'উপজেলা কভারেজ' },
   ];

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, isAdmin } from '../../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
@@ -17,13 +17,11 @@ export default function AdminLogin() {
 
     if (error) {
       alert(error.message);
+    } else if (!isAdmin(data.user.email)) {
+      alert('আপনি অ্যাডমিন নন!');
+      await supabase.auth.signOut();
     } else {
-      if (data.user.email === 'admin@gmail.com') { // আপনার অ্যাডমিন ইমেইল
-        router.push('/admin');
-      } else {
-        alert('আপনি অ্যাডমিন নন!');
-        await supabase.auth.signOut();
-      }
+      router.push('/admin');
     }
     setLoading(false);
   };

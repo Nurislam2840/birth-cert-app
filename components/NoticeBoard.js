@@ -1,10 +1,11 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function NoticeBoard() {
   const notices = [
-    { id: 1, date: '১০ নভেম্বর, ২০২৬', text: 'অনলাইনে জন্ম নিবন্ধন আবেদন কার্যক্রম চালু হয়েছে।' },
-    { id: 2, date: '০৫ নভেম্বর, ২০২৬', text: 'জন্ম নিবন্ধন সার্টিফিকেট ডাউনলোডের নিয়মাবলি যুক্ত করা হয়েছে।' },
-    { id: 3, date: '০১ নভেম্বর, ২০২৬', text: 'সিস্টেম আপডেটের কারণে কিছু সময় সার্ভার ধীরগতির থাকতে পারে।' },
+    { id: 1, date: '১০ নভেম্বর, ২০২৬', text: 'অনলাইনে জন্ম নিবন্ধন আবেদন কার্যক্রম চালু হয়েছে।' },
+    { id: 2, date: '০৫ নভেম্বর, ২০২৬', text: 'জন্ম নিবন্ধন সার্টিফিকেট ডাউনলোডের নিয়মাবলি যুক্ত করা হয়েছে।' },
+    { id: 3, date: '০১ নভেম্বর, ২০২৬', text: 'সিস্টেম আপডেটের কারণে কিছু সময় সার্ভার ধীরগতির থাকতে পারে।' },
   ];
 
   return (
@@ -24,9 +25,12 @@ export default function NoticeBoard() {
           </li>
         ))}
       </ul>
-      <button className="mt-6 w-full py-2 text-sm text-green-700 font-bold border border-green-600 rounded hover:bg-green-50 transition">
+      <Link
+        href="/notices"
+        className="mt-6 block text-center w-full py-2 text-sm text-green-700 font-bold border border-green-600 rounded hover:bg-green-50 transition"
+      >
         সব নোটিশ দেখুন
-      </button>
+      </Link>
     </div>
   );
 }
