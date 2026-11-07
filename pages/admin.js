@@ -59,7 +59,7 @@ export default function Admin() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🟢 স্ক্রিনে এরর দেখানোর জন্য স্পেশাল স্টেট
+  // 🟢 স্ক্রিনে প্রোগ্রেস ও এরর দেখানোর জন্য স্টেট
   const [debugError, setDebugError] = useState(null);
 
   const [locationList, setLocationList] = useState([]);
@@ -193,8 +193,11 @@ export default function Admin() {
 
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
-    setDebugError(null); // নতুন ক্লিকে পুরনো এরর মুছে ফেলা
     setProcessingIds(prev => new Set(prev).add(app.id));
+    
+    // 🟢 প্রোগ্রেস ট্র্যাকিং শুরু
+    setDebugError('স্টেপ ১: QR ও বারকোড তৈরি হচ্ছে...');
+    await new Promise(r => setTimeout(r, 800));
 
     try {
       let qrCodeUrl = null;
@@ -208,14 +211,25 @@ export default function Admin() {
         console.error('QR/Barcode failed', e);
       }
 
+      setDebugError('স্টেপ ২: লোগো ও ওয়াটারমার্ক ডাউনলোড হচ্ছে...');
+      await new Promise(r => setTimeout(r, 800));
+
       let logoDataUrl = null;
       let watermarkDataUrl = null;
+      
+      if (!LOGO_URL || LOGO_URL.includes('undefined')) {
+        throw new Error(`লোগো URL সেট করা নেই! Vercel Env Var চেক করুন।`);
+      }
+
       try { logoDataUrl = await getImageAsBase64('logo.png'); } 
-      catch (e) { throw new Error(e.message); }
+      catch (e) { throw new Error(`লোগো ফাইল পাওয়া যায়নি: ` + e.message); }
       
       try { watermarkDataUrl = await getImageAsBase64('watermark.png'); } 
       catch (e) { console.warn(e.message); }
 
+      setDebugError('স্টেপ ৩: PDF ফাইল তৈরি হচ্ছে (এতে ১০-১৫ সেকেন্ড লাগতে পারে)...');
+      await new Promise(r => setTimeout(r, 800));
+      
       const docDefinition = buildDocDefinition(app, qrCodeUrl, barcodeUrl, logoDataUrl, watermarkDataUrl);
       
       const pdfBlob = await new Promise((resolve, reject) => {
@@ -226,13 +240,16 @@ export default function Admin() {
         }
       });
 
+      setDebugError('স্টেপ ৪: PDF Supabase Storage-এ আপলোড হচ্ছে...');
+
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage
         .from('certificates')
         .upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-      if (uploadError) throw new Error('Supabase Storage-এ আপলোড ব্যর্থ: ' + uploadError.message);
+      if (uploadError) throw new Error('আপলোড ব্যর্থ: ' + uploadError.message);
 
+      setDebugError('স্টেপ ৫: ডাটাবেস আপডেট হচ্ছে...');
       const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
       const pdfUrl = publicUrlData.publicUrl;
 
@@ -241,16 +258,16 @@ export default function Admin() {
         .update({ status: 'Approved', pdf_url: pdfUrl })
         .eq('id', app.id);
 
-      if (updateError) throw new Error('ডাটাবেস আপডেট ব্যর্থ: ' + updateError.message);
+      if (updateError) throw new Error('ডাটাবেস ব্যর্থ: ' + updateError.message);
 
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: pdfUrl } : a));
+      setDebugError('সফলভাবে সার্টিফিকেট তৈরি হয়েছে!');
       
-      setAlertState({ isOpen: true, message: 'সার্টিফিকেট সফলভাবে তৈরি ও সেভ হয়েছে!', type: 'success' });
+      setTimeout(() => setDebugError(null), 3000);
 
     } catch (err) {
       console.error("Approve Flow Error:", err);
-      // 🟢 মোবাইলের স্ক্রিনে সরাসরি এরর দেখানোর জন্য স্টেট সেট
-      setDebugError(err?.message || err.toString() || 'অজানা একটি সমস্যা হয়েছে');
+      setDebugError('এরর: ' + (err?.message || err.toString()));
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -347,8 +364,8 @@ export default function Admin() {
       {debugError && (
         <div className="fixed top-0 left-0 w-full bg-red-600 text-white p-4 z-[9999] shadow-xl flex justify-between items-start">
           <div className="flex flex-col">
-            <span className="font-bold text-lg mb-1">⚠️ সিস্টেম এরর!</span>
-            <span className="text-sm break-all">{debugError}</span>
+            <span className="font-bold text-lg mb-1">⏳ প্রোগ্রেস / এরর:</span>
+            <span className="text-sm break-all font-semibold">{debugError}</span>
           </div>
           <button onClick={() => setDebugError(null)} className="bg-red-800 hover:bg-red-900 text-white font-bold py-1 px-3 rounded ml-2 whitespace-nowrap">
             বন্ধ করুন
