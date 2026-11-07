@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase, isAdmin, ASSETS_BUCKET_URL } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -18,7 +18,6 @@ pdfMake.fonts = {
   },
 };
 
-// logo/watermark on the Storage public bucket (fallback to postimg URLs)
 const LOGO_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/logo.png` : 'https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png';
 const WATERMARK_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/watermark.png` : 'https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png';
 
@@ -41,19 +40,6 @@ const dateToWords = (dateStr) => {
   const m = months[parseInt(month, 10) - 1];
   const y = parseInt(year, 10);
   return `${numberToWords(d)} of ${m} ${numberToWords(y)}`;
-};
-
-// helper: fetch remote image and convert to base64 dataURL (for pdfmake)
-const imageToDataURL = async (url) => {
-  const res = await fetch(url, { mode: 'cors' });
-  if (!res.ok) throw new Error(`Image fetch failed: ${url}`);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 };
 
 const safe = (val) => (val === null || val === undefined ? '' : String(val));
@@ -130,7 +116,23 @@ export default function Admin() {
       setApplications(prev => prev.filter(app => app.id !== id));
       setAlertState({ isOpen: true, message: 'আবেদনটি সফলভাবে ডিলিট করা হয়েছে।', type: 'success' });
     } catch (err) {
-      setAlertState({ isOpen: true, message: 'ডিলিটে সমস্যা: ' + err.message, type: 'error' });
+      alert('ডিলিটে সমস্যা: ' + err.message);
+    }
+  };
+
+  // 🟢 Supabase Storage থেকে ছবি ডাউনলোড করে Base64 এ কনভার্ট করার ফাংশন (মোবাইলে CORS এরর এড়াতে)
+  const getImageAsBase64 = async (fileName) => {
+    try {
+      const { data, error } = await supabase.storage.from('certificate-assets').download(fileName);
+      if (error) throw error;
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(data);
+      });
+    } catch (err) {
+      throw new Error(`ছবি (${fileName}) লোড করতে সমস্যা: ` + err.message);
     }
   };
 
@@ -141,13 +143,7 @@ export default function Admin() {
       content: [
         {
           columns: [
-            {
-              width: 100,
-              stack: [
-                qrCodeUrl ? { image: qrCodeUrl, width: 70, height: 70 } : { text: '' },
-                { text: 'ASERTR', fontSize: 9, margin: [0, 5, 0, 0], alignment: 'center' },
-              ],
-            },
+            { width: 100, stack: [ qrCodeUrl ? { image: qrCodeUrl, width: 70, height: 70 } : { text: '' }, { text: 'ASERTR', fontSize: 9, margin: [0, 5, 0, 0], alignment: 'center' } ] },
             {
               width: '*',
               stack: [
@@ -158,12 +154,7 @@ export default function Admin() {
                 { text: '(Rule 9, 10)', fontSize: 8, alignment: 'center', margin: [0, 2, 0, 0] },
               ],
             },
-            {
-              width: 120,
-              stack: [
-                barcodeUrl ? { image: barcodeUrl, width: 130, height: 45, alignment: 'right' } : { text: '' },
-              ],
-            },
+            { width: 120, stack: [ barcodeUrl ? { image: barcodeUrl, width: 130, height: 45, alignment: 'right' } : { text: '' } ] },
           ],
           margin: [0, 0, 0, 10],
         },
@@ -194,12 +185,7 @@ export default function Admin() {
         ],
         margin: [40, 0, 40, 0],
       }),
-      background: () => (watermarkDataUrl ? {
-        image: watermarkDataUrl,
-        width: 450,
-        opacity: 0.1,
-        absolutePosition: { x: 70, y: 150 },
-      } : {}),
+      background: () => (watermarkDataUrl ? { image: watermarkDataUrl, width: 450, opacity: 0.1, absolutePosition: { x: 70, y: 150 } } : {}),
     };
   };
 
@@ -208,55 +194,67 @@ export default function Admin() {
     setProcessingIds(prev => new Set(prev).add(app.id));
 
     try {
-      // 1. QR + Barcode
+      // ১. QR ও বারকোড তৈরি
       let qrCodeUrl = null;
       let barcodeUrl = null;
       try {
         qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
-      } catch (e) { console.error('QR failed', e); }
-      try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
         barcodeUrl = canvas.toDataURL('image/png');
-      } catch (e) { console.error('Barcode failed', e); }
+      } catch (e) {
+        console.error('QR/Barcode failed', e);
+      }
 
-      // 2. Fetch logo + watermark as base64 (needed for pdfmake reliability)
+      // ২. লোগো ও ওয়াটারমার্ক Supabase থেকে ডাউনলোড (CORS ফ্রি)
       let logoDataUrl = null;
       let watermarkDataUrl = null;
-      try { logoDataUrl = await imageToDataURL(LOGO_URL); } catch (e) { console.warn('Logo fetch failed', e); }
-      try { watermarkDataUrl = await imageToDataURL(WATERMARK_URL); } catch (e) { console.warn('Watermark fetch failed', e); }
+      try { logoDataUrl = await getImageAsBase64('logo.png'); } 
+      catch (e) { throw new Error(e.message); }
+      
+      try { watermarkDataUrl = await getImageAsBase64('watermark.png'); } 
+      catch (e) { console.warn(e.message); }
 
-      // 3. Build doc
+      // ৩. PDF তৈরি
       const docDefinition = buildDocDefinition(app, qrCodeUrl, barcodeUrl, logoDataUrl, watermarkDataUrl);
-
-      // 4. Generate PDF blob & upload to Supabase Storage
+      
       const pdfBlob = await new Promise((resolve, reject) => {
-        pdfMake.createPdf(docDefinition).getBlob((blob) => resolve(blob));
+        try {
+          pdfMake.createPdf(docDefinition).getBlob((blob) => resolve(blob));
+        } catch (e) {
+          reject(e);
+        }
       });
 
+      // ৪. Supabase Storage-এ আপলোড
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage
         .from('certificates')
         .upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-      if (uploadError) throw new Error('Storage upload failed: ' + uploadError.message);
+      if (uploadError) throw new Error('Storage-এ আপলোড ব্যর্থ: ' + uploadError.message);
 
+      // ৫. ডাটাবেস আপডেট
       const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
       const pdfUrl = publicUrlData.publicUrl;
 
-      // 5. Update DB
       const { error: updateError } = await supabase
         .from('birth_applications')
         .update({ status: 'Approved', pdf_url: pdfUrl })
         .eq('id', app.id);
 
-      if (updateError) throw updateError;
+      if (updateError) throw new Error('ডাটাবেস আপডেট ব্যর্থ: ' + updateError.message);
 
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: pdfUrl } : a));
+      
+      // সাকসেস অ্যালার্ট (মোবাইলে দেখা যাবে)
+      alert('সাফল্য! সার্টিফিকেট তৈরি হয়েছে এবং সেভ হয়েছে।');
       setAlertState({ isOpen: true, message: 'সার্টিফিকেট সফলভাবে তৈরি ও সেভ হয়েছে!', type: 'success' });
+
     } catch (err) {
-      console.error(err);
-      setAlertState({ isOpen: true, message: 'PDF তৈরিতে সমস্যা:\n' + (err?.message || err.toString()), type: 'error' });
+      console.error("Approve Flow Error:", err);
+      // মোবাইলে সরাসরি আসল এররটি দেখাবে
+      alert('PDF তৈরিতে সমস্যা:\n\n' + (err?.message || err.toString()));
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -287,12 +285,12 @@ export default function Admin() {
   const handleAddLocation = async (e) => {
     e.preventDefault();
     if (!newLoc.division_name || !newLoc.district_name) {
-      return setAlertState({ isOpen: true, message: 'বিভাগ ও জেলা অবশ্যই দিতে হবে।', type: 'error' });
+      return alert('বিভাগ ও জেলা অবশ্যই দিতে হবে।');
     }
     setIsAddingLoc(true);
     const { error } = await supabase.from('locations').insert([newLoc]);
     setIsAddingLoc(false);
-    if (error) return setAlertState({ isOpen: true, message: 'সেভ করতে সমস্যা: ' + error.message, type: 'error' });
+    if (error) return alert('সেভ করতে সমস্যা: ' + error.message);
     setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে সেভ হয়েছে!', type: 'success' });
     setNewLoc({ division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
     fetchLocations();
@@ -301,7 +299,7 @@ export default function Admin() {
   const handleDeleteLocation = async (id) => {
     if (!window.confirm('লোকেশনটি ডিলিট করতে চান?')) return;
     const { error } = await supabase.from('locations').delete().eq('id', id);
-    if (error) setAlertState({ isOpen: true, message: 'ডিলিটে সমস্যা: ' + error.message, type: 'error' });
+    if (error) alert('ডিলিটে সমস্যা: ' + error.message);
     else {
       setAlertState({ isOpen: true, message: 'লোকেশন ডিলিট করা হয়েছে।', type: 'success' });
       fetchLocations();
@@ -328,7 +326,7 @@ export default function Admin() {
       setIsEditModalOpen(false);
       fetchLocations();
     } catch (err) {
-      setAlertState({ isOpen: true, message: 'আপডেটে সমস্যা: ' + err.message, type: 'error' });
+      alert('আপডেটে সমস্যা: ' + err.message);
     }
   };
 
@@ -356,7 +354,7 @@ export default function Admin() {
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="hidden md:inline text-gray-400">{user?.email}</span>
-            <Link href="/" className="bg-gray-700 px-3 py-1.5 rounded hover:bg-gray-600 transition">← মেইন সাইট</Link>
+            <Link href="/" className="bg-gray-700 px-3 py-1.5 rounded hover:bg-gray-600 transition hidden md:inline">← মেইন সাইট</Link>
             <button onClick={async () => { await supabase.auth.signOut(); router.push('/admin/login'); }} className="bg-red-600 px-3 py-1.5 rounded hover:bg-red-700 transition">লগআউট</button>
           </div>
         </div>
