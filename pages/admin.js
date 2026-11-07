@@ -59,6 +59,9 @@ export default function Admin() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // 🟢 স্ক্রিনে এরর দেখানোর জন্য স্পেশাল স্টেট
+  const [debugError, setDebugError] = useState(null);
+
   const [locationList, setLocationList] = useState([]);
   const [newLoc, setNewLoc] = useState({
     division_name: '', division_en: '',
@@ -116,15 +119,14 @@ export default function Admin() {
       setApplications(prev => prev.filter(app => app.id !== id));
       setAlertState({ isOpen: true, message: 'আবেদনটি সফলভাবে ডিলিট করা হয়েছে।', type: 'success' });
     } catch (err) {
-      alert('ডিলিটে সমস্যা: ' + err.message);
+      setDebugError('ডিলিটে সমস্যা: ' + err.message);
     }
   };
 
-  // 🟢 Supabase Storage থেকে ছবি ডাউনলোড করে Base64 এ কনভার্ট করার ফাংশন (মোবাইলে CORS এরর এড়াতে)
   const getImageAsBase64 = async (fileName) => {
     try {
       const { data, error } = await supabase.storage.from('certificate-assets').download(fileName);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result);
@@ -191,10 +193,10 @@ export default function Admin() {
 
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
+    setDebugError(null); // নতুন ক্লিকে পুরনো এরর মুছে ফেলা
     setProcessingIds(prev => new Set(prev).add(app.id));
 
     try {
-      // ১. QR ও বারকোড তৈরি
       let qrCodeUrl = null;
       let barcodeUrl = null;
       try {
@@ -206,7 +208,6 @@ export default function Admin() {
         console.error('QR/Barcode failed', e);
       }
 
-      // ২. লোগো ও ওয়াটারমার্ক Supabase থেকে ডাউনলোড (CORS ফ্রি)
       let logoDataUrl = null;
       let watermarkDataUrl = null;
       try { logoDataUrl = await getImageAsBase64('logo.png'); } 
@@ -215,7 +216,6 @@ export default function Admin() {
       try { watermarkDataUrl = await getImageAsBase64('watermark.png'); } 
       catch (e) { console.warn(e.message); }
 
-      // ৩. PDF তৈরি
       const docDefinition = buildDocDefinition(app, qrCodeUrl, barcodeUrl, logoDataUrl, watermarkDataUrl);
       
       const pdfBlob = await new Promise((resolve, reject) => {
@@ -226,15 +226,13 @@ export default function Admin() {
         }
       });
 
-      // ৪. Supabase Storage-এ আপলোড
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage
         .from('certificates')
         .upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-      if (uploadError) throw new Error('Storage-এ আপলোড ব্যর্থ: ' + uploadError.message);
+      if (uploadError) throw new Error('Supabase Storage-এ আপলোড ব্যর্থ: ' + uploadError.message);
 
-      // ৫. ডাটাবেস আপডেট
       const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
       const pdfUrl = publicUrlData.publicUrl;
 
@@ -247,14 +245,12 @@ export default function Admin() {
 
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: pdfUrl } : a));
       
-      // সাকসেস অ্যালার্ট (মোবাইলে দেখা যাবে)
-      alert('সাফল্য! সার্টিফিকেট তৈরি হয়েছে এবং সেভ হয়েছে।');
       setAlertState({ isOpen: true, message: 'সার্টিফিকেট সফলভাবে তৈরি ও সেভ হয়েছে!', type: 'success' });
 
     } catch (err) {
       console.error("Approve Flow Error:", err);
-      // মোবাইলে সরাসরি আসল এররটি দেখাবে
-      alert('PDF তৈরিতে সমস্যা:\n\n' + (err?.message || err.toString()));
+      // 🟢 মোবাইলের স্ক্রিনে সরাসরি এরর দেখানোর জন্য স্টেট সেট
+      setDebugError(err?.message || err.toString() || 'অজানা একটি সমস্যা হয়েছে');
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -285,12 +281,12 @@ export default function Admin() {
   const handleAddLocation = async (e) => {
     e.preventDefault();
     if (!newLoc.division_name || !newLoc.district_name) {
-      return alert('বিভাগ ও জেলা অবশ্যই দিতে হবে।');
+      return setDebugError('বিভাগ ও জেলা অবশ্যই দিতে হবে।');
     }
     setIsAddingLoc(true);
     const { error } = await supabase.from('locations').insert([newLoc]);
     setIsAddingLoc(false);
-    if (error) return alert('সেভ করতে সমস্যা: ' + error.message);
+    if (error) return setDebugError('সেভ করতে সমস্যা: ' + error.message);
     setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে সেভ হয়েছে!', type: 'success' });
     setNewLoc({ division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
     fetchLocations();
@@ -299,7 +295,7 @@ export default function Admin() {
   const handleDeleteLocation = async (id) => {
     if (!window.confirm('লোকেশনটি ডিলিট করতে চান?')) return;
     const { error } = await supabase.from('locations').delete().eq('id', id);
-    if (error) alert('ডিলিটে সমস্যা: ' + error.message);
+    if (error) setDebugError('ডিলিটে সমস্যা: ' + error.message);
     else {
       setAlertState({ isOpen: true, message: 'লোকেশন ডিলিট করা হয়েছে।', type: 'success' });
       fetchLocations();
@@ -326,7 +322,7 @@ export default function Admin() {
       setIsEditModalOpen(false);
       fetchLocations();
     } catch (err) {
-      alert('আপডেটে সমস্যা: ' + err.message);
+      setDebugError('আপডেটে সমস্যা: ' + err.message);
     }
   };
 
@@ -346,6 +342,20 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans relative">
+      
+      {/* 🟢 স্ক্রিনের উপরে লাল রঙের স্পেশাল এরর বক্স */}
+      {debugError && (
+        <div className="fixed top-0 left-0 w-full bg-red-600 text-white p-4 z-[9999] shadow-xl flex justify-between items-start">
+          <div className="flex flex-col">
+            <span className="font-bold text-lg mb-1">⚠️ সিস্টেম এরর!</span>
+            <span className="text-sm break-all">{debugError}</span>
+          </div>
+          <button onClick={() => setDebugError(null)} className="bg-red-800 hover:bg-red-900 text-white font-bold py-1 px-3 rounded ml-2 whitespace-nowrap">
+            বন্ধ করুন
+          </button>
+        </div>
+      )}
+
       <nav className="bg-gray-900 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
