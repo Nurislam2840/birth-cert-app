@@ -38,42 +38,32 @@ export default function Admin() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState('applications');
 
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
+  const [debugError, setDebugError] = useState(null);
 
+  // অ্যাপ্লিকেশন স্টেট
   const [applications, setApplications] = useState([]);
   const [processingIds, setProcessingIds] = useState(new Set());
   const [selectedApp, setSelectedApp] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // 🟢 প্রোগ্রেস ও QR/বারকোড স্টেট
-  const [debugError, setDebugError] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [barcodeUrl, setBarcodeUrl] = useState(null);
-  
   const printRef = useRef(null);
 
   // লোকেশন স্টেট
-  const [locationList, setLocationList] = useState([]);
-  
-  // লোকেশন ফর্ম স্টেট
-  const [locForm, setLocForm] = useState({
-    division_name: '', division_en: '',
-    district_name: '', district_en: '',
-    upazila_name: '', upazila_en: '',
-    union_name: '', union_en: ''
-  });
-  const [isAddingLoc, setIsAddingLoc] = useState(false);
+  const [locTab, setLocTab] = useState('divisions');
+  const [divisions, setDivisions] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [upazilas, setUpazilas] = useState([]);
+  const [unions, setUnions] = useState([]);
 
-  // ফিল্টার স্টেট
-  const [filterDiv, setFilterDiv] = useState('');
-  const [filterDist, setFilterDist] = useState('');
-
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editLocData, setEditLocData] = useState({ id: '', division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
+  const [newDiv, setNewDiv] = useState({ name_bn: '', name_en: '' });
+  const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '' });
+  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '' });
+  const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -81,53 +71,71 @@ export default function Admin() {
       if (!user || !isAdmin(user.email)) { router.push('/admin/login'); return; }
       setUser(user);
       await fetchApplications();
+      await fetchAllLocations();
       setLoading(false);
     };
     checkAdmin();
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'locations') fetchLocations();
-  }, [activeTab]);
+  const fetchAllLocations = async () => {
+    const [divRes, distRes, upaRes, uniRes] = await Promise.all([
+      supabase.from('divisions').select('*').order('id'),
+      supabase.from('districts').select('*').order('id'),
+      supabase.from('upazilas').select('*').order('id'),
+      supabase.from('unions').select('*').order('id')
+    ]);
+    setDivisions(divRes.data || []);
+    setDistricts(distRes.data || []);
+    setUpazilas(upaRes.data || []);
+    setUnions(uniRes.data || []);
+  };
 
   const fetchApplications = async () => {
     try {
       const { data, error } = await supabase.from('birth_applications').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setApplications(data || []);
-    } catch (err) { setErrorMsg('ডেটা লোডে সমস্যা: ' + err.message); }
+    } catch (err) { setDebugError('ডেটা লোডে সমস্যা: ' + err.message); }
   };
 
-  const fetchLocations = async () => {
-    const { data } = await supabase.from('locations').select('*').order('created_at', { ascending: false });
-    setLocationList(data || []);
+  // লোকেশন অ্যাড ফাংশন
+  const handleAddDivision = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('divisions').insert([newDiv]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'বিভাগ সেভ হয়েছে!', type: 'success' });
+    setNewDiv({ name_bn: '', name_en: '' });
+    fetchAllLocations();
   };
 
-  const handleView = (app) => { setSelectedApp(app); setIsViewOpen(true); };
-
-  const handleDeleteApp = async (id) => {
-    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই আবেদনটি ডিলিট করতে চান? এটি আর ফিরে পাওয়া যাবে না।')) return;
-    try {
-      const { error } = await supabase.from('birth_applications').delete().eq('id', id);
-      if (error) throw error;
-      setApplications(prev => prev.filter(app => app.id !== id));
-      setAlertState({ isOpen: true, message: 'আবেদনটি সফলভাবে ডিলিট করা হয়েছে।', type: 'success' });
-    } catch (err) { setDebugError('ডিলিটে সমস্যা: ' + err.message); }
+  const handleAddDistrict = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('districts').insert([{ ...newDist, division_id: parseInt(newDist.division_id) }]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'জেলা সেভ হয়েছে!', type: 'success' });
+    setNewDist({ ...newDist, name_bn: '', name_en: '' });
+    fetchAllLocations();
   };
 
-  const getImageAsBase64 = async (fileName) => {
-    try {
-      const { data, error } = await supabase.storage.from('certificate-assets').download(fileName);
-      if (error) throw new Error(error.message);
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(data);
-      });
-    } catch (err) { throw new Error(`ছবি (${fileName}) লোড করতে সমস্যা: ` + err.message); }
+  const handleAddUpazila = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('upazilas').insert([{ ...newUpa, district_id: parseInt(newUpa.district_id) }]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'উপজেলা সেভ হয়েছে!', type: 'success' });
+    setNewUpa({ ...newUpa, name_bn: '', name_en: '' });
+    fetchAllLocations();
   };
 
+  const handleAddUnion = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('unions').insert([{ ...newUni, upazila_id: parseInt(newUni.upazila_id) }]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'ইউনিয়ন সেভ হয়েছে!', type: 'success' });
+    setNewUni({ ...newUni, name_bn: '', name_en: '' });
+    fetchAllLocations();
+  };
+
+  // PDF জেনারেশন (আগের মতোই)
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
     setProcessingIds(prev => new Set(prev).add(app.id));
@@ -147,11 +155,9 @@ export default function Admin() {
       
       setQrCodeUrl(qr);
       setBarcodeUrl(bar);
-      await new Promise(r => setTimeout(r, 800)); // DOM আপডেট হওয়ার জন্য অপেক্ষা
+      await new Promise(r => setTimeout(r, 800));
 
-      setDebugError('স্টেপ ৩: সার্টিফিকেট তৈরি হচ্ছে (মোবাইল ফ্রেন্ডলি)...');
-      await new Promise(r => setTimeout(r, 500));
-
+      setDebugError('স্টেপ ৩: সার্টিফিকেট তৈরি হচ্ছে...');
       const element = printRef.current;
       const canvasImg = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true });
       const imgData = canvasImg.toDataURL('image/jpeg', 0.95);
@@ -166,23 +172,19 @@ export default function Admin() {
       setDebugError('স্টেপ ৫: Supabase Storage-এ আপলোড হচ্ছে...');
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage.from('certificates').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
-
       if (uploadError) throw new Error('আপলোড ব্যর্থ: ' + uploadError.message);
 
-      setDebugError('স্টেপ ৬: ডাটাবেস আপডেট হচ্ছে...');
       const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
       const pdfUrl = publicUrlData.publicUrl;
 
       const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved', pdf_url: pdfUrl }).eq('id', app.id);
-
       if (updateError) throw new Error('ডাটাবেস ব্যর্থ: ' + updateError.message);
 
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: pdfUrl } : a));
-      setDebugError('সফলভাবে সার্টিফিকেট তৈরি হয়েছে!');
+      setDebugError('সফলভাবে সার্টিফিকেট তৈরি হয়েছে!');
       setTimeout(() => setDebugError(null), 3000);
 
     } catch (err) {
-      console.error("Approve Flow Error:", err);
       setDebugError('এরর: ' + (err?.message || err.toString()));
     } finally {
       setProcessingIds(prev => { const next = new Set(prev); next.delete(app.id); return next; });
@@ -196,66 +198,12 @@ export default function Admin() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `Certificate-${app.tracking_id}.pdf`;
+      a.href = url; a.download = `Certificate-${app.tracking_id}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  const handleAddLocation = async (e) => {
-    e.preventDefault();
-    if (!locForm.division_name || !locForm.district_name || !locForm.upazila_name || !locForm.union_name) {
-      return setDebugError('বিভাগ, জেলা, উপজেলা এবং ইউনিয়ন/পৌরসভার নাম অবশ্যই দিতে হবে।');
-    }
-
-    setIsAddingLoc(true);
-    const { error } = await supabase.from('locations').insert([locForm]);
-    setIsAddingLoc(false);
-
-    if (error) {
-      return setDebugError('সেভ করতে সমস্যা: ' + error.message);
-    }
-    
-    setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে সেভ হয়েছে!', type: 'success' });
-    // ফর্ম রিসেট (বিভাগ ও জেলা রেখে দেওয়া হলো যাতে পরের ইউনিয়ন দ্রুত অ্যাড করা যায়)
-    setLocForm(prev => ({ ...prev, union_name: '', union_en: '' }));
-    fetchLocations();
-  };
-
-  const handleDeleteLocation = async (id) => {
-    if (!window.confirm('লোকেশনটি ডিলিট করতে চান?')) return;
-    const { error } = await supabase.from('locations').delete().eq('id', id);
-    if (error) setDebugError('ডিলিটে সমস্যা: ' + error.message);
-    else { setAlertState({ isOpen: true, message: 'লোকেশন ডিলিট করা হয়েছে।', type: 'success' }); fetchLocations(); }
-  };
-
-  const handleOpenEdit = (loc) => { setEditLocData(loc); setIsEditModalOpen(true); };
-
-  const handleUpdateLocation = async (e) => {
-    e.preventDefault();
-    try {
-      const { error } = await supabase.from('locations').update({
-        division_name: editLocData.division_name, division_en: editLocData.division_en,
-        district_name: editLocData.district_name, district_en: editLocData.district_en,
-        upazila_name: editLocData.upazila_name, upazila_en: editLocData.upazila_en,
-        union_name: editLocData.union_name, union_en: editLocData.union_en,
-      }).eq('id', editLocData.id);
-      if (error) throw error;
-      setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে আপডেট হয়েছে!', type: 'success' });
-      setIsEditModalOpen(false); fetchLocations();
-    } catch (err) { setDebugError('আপডেটে সমস্যা: ' + err.message); }
-  };
-
-  const filteredApps = applications.filter(app =>
-    (app.tracking_id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (app.first_name_bn || '').includes(searchQuery) ||
-    (app.first_name_en || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalApps = applications.length;
-  const pendingApps = applications.filter(a => a.status === 'Pending').length;
-  const approvedApps = applications.filter(a => a.status === 'Approved').length;
-  const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
+  const inputClass = "w-full p-2 border border-gray-300 rounded-lg text-sm";
 
   if (loading) return <div className="text-center mt-20 text-lg font-bold">লোড হচ্ছে...</div>;
 
@@ -287,419 +235,171 @@ export default function Admin() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-600"><p className="text-gray-500 text-sm font-medium">মোট আবেদন</p><h3 className="text-3xl font-bold text-gray-800 mt-1">{totalApps}</h3></div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-500"><p className="text-gray-500 text-sm font-medium">অপেক্ষমাণ (Pending)</p><h3 className="text-3xl font-bold text-gray-800 mt-1">{pendingApps}</h3></div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-600"><p className="text-gray-500 text-sm font-medium">অনুমোদিত (Approved)</p><h3 className="text-3xl font-bold text-gray-800 mt-1">{approvedApps}</h3></div>
+        <div className="flex border-b bg-white rounded-t-xl overflow-hidden mb-6">
+          <button onClick={() => setActiveTab('applications')} className={`px-6 py-4 font-bold text-sm ${activeTab === 'applications' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>আবেদনসমূহ</button>
+          <button onClick={() => setActiveTab('locations')} className={`px-6 py-4 font-bold text-sm ${activeTab === 'locations' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>লোকেশন ম্যানেজার</button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="flex border-b bg-gray-50">
-            <button onClick={() => setActiveTab('applications')} className={`px-6 py-4 font-bold text-sm flex items-center gap-2 transition-colors ${activeTab === 'applications' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-800'}`}>
-              <span>আবেদনসমূহ</span>
-              <span className="bg-blue-100 text-blue-600 py-0.5 px-2 rounded-full text-xs">{totalApps}</span>
-            </button>
-            <button onClick={() => setActiveTab('locations')} className={`px-6 py-4 font-bold text-sm flex items-center gap-2 transition-colors ${activeTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-800'}`}>
-              <span>লোকেশন ম্যানেজার</span>
-            </button>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'applications' && (
-              <>
-                {errorMsg && <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{errorMsg}</div>}
-                <div className="mb-4 flex justify-between items-center">
-                  <input type="text" placeholder="ট্র্যাকিং আইডি বা নাম দিয়ে খুঁজুন..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={inputClass + ' md:w-1/2'} />
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left border">
-                    <thead className="bg-gray-100 text-gray-700">
-                      <tr>
-                        <th className="px-4 py-3 border-b">ট্র্যাকিং আইডি</th>
-                        <th className="px-4 py-3 border-b">আবেদনকারীর নাম</th>
-                        <th className="px-4 py-3 border-b">তারিখ</th>
-                        <th className="px-4 py-3 border-b">স্ট্যাটাস</th>
-                        <th className="px-4 py-3 border-b text-center">অ্যাকশন</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredApps.length === 0 ? (
-                        <tr><td colSpan="5" className="text-center py-8 text-gray-500">কোনো আবেদন পাওয়া যায়নি।</td></tr>
-                      ) : (
-                        filteredApps.map(app => {
-                          const busy = processingIds.has(app.id);
-                          return (
-                            <tr key={app.id} className="border-b hover:bg-gray-50">
-                              <td className="px-4 py-3 font-mono font-bold text-blue-600">{app.tracking_id}</td>
-                              <td className="px-4 py-3">
-                                <p className="font-medium text-gray-800">{app.first_name_bn} {app.last_name_bn}</p>
-                                <p className="text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
-                              </td>
-                              <td className="px-4 py-3 text-gray-600">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
-                              <td className="px-4 py-3">
-                                <span className={`px-2 py-1 text-white rounded text-xs font-bold ${app.status === 'Pending' ? 'bg-yellow-500' : 'bg-green-600'}`}>
-                                  {app.status === 'Pending' ? 'Pending' : 'Approved'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 flex flex-wrap justify-center gap-2">
-                                <button onClick={() => handleView(app)} className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-bold hover:bg-gray-700 transition">View</button>
-                                {app.status === 'Pending' ? (
-                                  <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1 text-white rounded text-xs font-bold transition ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                                    {busy ? 'তৈরি হচ্ছে...' : 'Approve'}
-                                  </button>
-                                ) : (
-                                  app.pdf_url ? (
-                                    <button onClick={() => handleDownload(app)} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-700 transition">Download</button>
-                                  ) : (
-                                    <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1 text-white rounded text-xs font-bold transition ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                                      {busy ? 'তৈরি হচ্ছে...' : 'Regenerate'}
-                                    </button>
-                                  )
-                                )}
-                                <button onClick={() => handleDeleteApp(app.id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 transition">Delete</button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'locations' && (
-              <div className="space-y-8">
-                {/* লোকেশন অ্যাড ফর্ম */}
-                <form onSubmit={handleAddLocation} className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                  <h3 className="font-bold text-lg mb-4 text-blue-800">নতুন লোকেশন যুক্ত করুন</h3>
-                  <p className="text-sm text-gray-600 mb-4">প্রথমে বিভাগ ও জেলা সিলেক্ট করে সেভ করুন, তারপর উপজেলা ও ইউনিয়ন যোগ করুন। (একই জেলার একাধিক ইউনিয়নের জন্য শুধু ইউনিয়নের নাম পরিবর্তন করে বারবার সেভ দিন)।</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* বিভাগ */}
-                    <div>
-                      <label className="text-sm font-medium">বিভাগ (বাংলা) *</label>
-                      <input 
-                        value={locForm.division_name} 
-                        onChange={(e) => setLocForm({ ...locForm, division_name: e.target.value })} 
-                        placeholder="যেমন: সিলেট" 
-                        className={inputClass} 
-                        list="division-list"
-                        required 
-                      />
-                      <datalist id="division-list">
-                        <option value="ঢাকা" />
-                        <option value="চট্টগ্রাম" />
-                        <option value="রাজশাহী" />
-                        <option value="খুলনা" />
-                        <option value="বরিশাল" />
-                        <option value="সিলেট" />
-                        <option value="রংপুর" />
-                        <option value="ময়মনসিংহ" />
-                      </datalist>
-                    </div>
-                    <div><label className="text-sm font-medium">Division (English) *</label><input value={locForm.division_en} onChange={(e) => setLocForm({ ...locForm, division_en: e.target.value })} placeholder="e.g. Sylhet" className={inputClass} required /></div>
-
-                    {/* জেলা */}
-                    <div><label className="text-sm font-medium">জেলা (বাংলা) *</label><input value={locForm.district_name} onChange={(e) => setLocForm({ ...locForm, district_name: e.target.value })} placeholder="যেমন: সুনামগঞ্জ" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">District (English) *</label><input value={locForm.district_en} onChange={(e) => setLocForm({ ...locForm, district_en: e.target.value })} placeholder="e.g. Sunamganj" className={inputClass} required /></div>
-
-                    {/* উপজেলা */}
-                    <div><label className="text-sm font-medium">উপজেলা/থানা (বাংলা) *</label><input value={locForm.upazila_name} onChange={(e) => setLocForm({ ...locForm, upazila_name: e.target.value })} placeholder="যেমন: সুনামগঞ্জ সদর" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">Upazila (English) *</label><input value={locForm.upazila_en} onChange={(e) => setLocForm({ ...locForm, upazila_en: e.target.value })} placeholder="e.g. Sunamganj Sadar" className={inputClass} required /></div>
-
-                    {/* ইউনিয়ন */}
-                    <div><label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা) *</label><input value={locForm.union_name} onChange={(e) => setLocForm({ ...locForm, union_name: e.target.value })} placeholder="যেমন: পৌরসভা বা বীরগাঁও" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">Union/Paurshava (English) *</label><input value={locForm.union_en} onChange={(e) => setLocForm({ ...locForm, union_en: e.target.value })} placeholder="e.g. Pourashava or Birgaon" className={inputClass} required /></div>
-                  </div>
-                  
-                  <button type="submit" disabled={isAddingLoc} className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow disabled:bg-gray-400 w-full md:w-auto">
-                    {isAddingLoc ? 'সেভ হচ্ছে...' : 'লোকেশন সেভ করুন'}
-                  </button>
-                </form>
-
-                {/* লোকেশন তালিকা */}
-                <div>
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                    <h3 className="font-bold text-lg">সেভ করা লোকেশন তালিকা ({locationList.length})</h3>
-                    
-                    {/* ফিল্টার */}
-                    <div className="flex gap-2 w-full md:w-auto">
-                      <select value={filterDiv} onChange={(e) => {setFilterDiv(e.target.value); setFilterDist('');}} className="p-2 border rounded-lg text-sm bg-white">
-                        <option value="">সব বিভাগ</option>
-                        {[...new Set(locationList.map(l => l.division_name))].map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                      <select value={filterDist} onChange={(e) => setFilterDist(e.target.value)} disabled={!filterDiv} className="p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100">
-                        <option value="">সব জেলা</option>
-                        {[...new Set(locationList.filter(l => l.division_name === filterDiv).map(l => l.district_name))].map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto border rounded-lg bg-white">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-100 sticky top-0 z-10 text-gray-700">
-                        <tr>
-                          <th className="px-4 py-3 border-b">বিভাগ</th>
-                          <th className="px-4 py-3 border-b">জেলা</th>
-                          <th className="px-4 py-3 border-b">উপজেলা</th>
-                          <th className="px-4 py-3 border-b">ইউনিয়ন/পৌরসভা</th>
-                          <th className="px-4 py-3 border-b">অ্যাকশন</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {locationList
-                          .filter(l => filterDiv ? l.division_name === filterDiv : true)
-                          .filter(l => filterDist ? l.district_name === filterDist : true)
-                          .map(loc => (
-                          <tr key={loc.id} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-2">{loc.division_name} <span className="text-gray-400 text-xs">({loc.division_en})</span></td>
-                            <td className="px-4 py-2">{loc.district_name} <span className="text-gray-400 text-xs">({loc.district_en})</span></td>
-                            <td className="px-4 py-2">{loc.upazila_name} <span className="text-gray-400 text-xs">({loc.upazila_en})</span></td>
-                            <td className="px-4 py-2 font-semibold text-green-700">{loc.union_name} <span className="text-gray-400 text-xs font-normal">({loc.union_en})</span></td>
-                            <td className="px-4 py-2 flex gap-3">
-                              <button onClick={() => handleOpenEdit(loc)} className="text-blue-600 font-bold hover:underline">এডিট</button>
-                              <button onClick={() => handleDeleteLocation(loc.id)} className="text-red-600 font-bold hover:underline">ডিলিট</button>
-                            </td>
-                          </tr>
-                        ))}
-                        {locationList.length === 0 && (
-                          <tr><td colSpan="5" className="text-center py-6 text-gray-500">কোনো লোকেশন পাওয়া যায়নি।</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          {activeTab === 'applications' && (
+            <>
+              <div className="mb-4 flex justify-between items-center">
+                <input type="text" placeholder="ট্র্যাকিং আইডি বা নাম দিয়ে খুঁজুন..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={inputClass + ' md:w-1/2'} />
               </div>
-            )}
-          </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left border">
+                  <thead className="bg-gray-100 text-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 border-b">ট্র্যাকিং আইডি</th>
+                      <th className="px-4 py-3 border-b">আবেদনকারীর নাম</th>
+                      <th className="px-4 py-3 border-b">তারিখ</th>
+                      <th className="px-4 py-3 border-b">স্ট্যাটাস</th>
+                      <th className="px-4 py-3 border-b text-center">অ্যাকশন</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {applications.filter(app => (app.tracking_id || '').includes(searchQuery)).map(app => {
+                      const busy = processingIds.has(app.id);
+                      return (
+                        <tr key={app.id} className="border-b hover:bg-gray-50">
+                          <td className="px-4 py-3 font-mono font-bold text-blue-600">{app.tracking_id}</td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-gray-800">{app.first_name_bn} {app.last_name_bn}</p>
+                            <p className="text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 text-white rounded text-xs font-bold ${app.status === 'Pending' ? 'bg-yellow-500' : 'bg-green-600'}`}>
+                              {app.status === 'Pending' ? 'Pending' : 'Approved'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 flex flex-wrap justify-center gap-2">
+                            <button onClick={() => { setSelectedApp(app); setIsViewOpen(true); }} className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-bold hover:bg-gray-700">View</button>
+                            {app.status === 'Pending' ? (
+                              <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1 text-white rounded text-xs font-bold ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                                {busy ? 'তৈরি হচ্ছে...' : 'Approve'}
+                              </button>
+                            ) : (
+                              app.pdf_url && (
+                                <button onClick={() => handleDownload(app)} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-700">Download</button>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'locations' && (
+            <div>
+              <div className="flex border-b mb-6 space-x-4 overflow-x-auto">
+                <button onClick={() => setLocTab('divisions')} className={`pb-2 font-bold whitespace-nowrap ${locTab === 'divisions' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500'}`}>১. বিভাগ</button>
+                <button onClick={() => setLocTab('districts')} className={`pb-2 font-bold whitespace-nowrap ${locTab === 'districts' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500'}`}>২. জেলা</button>
+                <button onClick={() => setLocTab('upazilas')} className={`pb-2 font-bold whitespace-nowrap ${locTab === 'upazilas' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500'}`}>৩. উপজেলা</button>
+                <button onClick={() => setLocTab('unions')} className={`pb-2 font-bold whitespace-nowrap ${locTab === 'unions' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500'}`}>৪. ইউনিয়ন/পৌরসভা</button>
+              </div>
+
+              {locTab === 'divisions' && (
+                <div>
+                  <form onSubmit={handleAddDivision} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">বিভাগ (বাংলা)</label><input value={newDiv.name_bn} onChange={e => setNewDiv({...newDiv, name_bn: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">Division (English)</label><input value={newDiv.name_en} onChange={e => setNewDiv({...newDiv, name_en: e.target.value})} className={inputClass} required/></div>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                  </form>
+                  <ul className="divide-y border rounded-lg">
+                    {divisions.map(d => <li key={d.id} className="p-3 flex justify-between"><span>{d.name_bn} ({d.name_en})</span></li>)}
+                  </ul>
+                </div>
+              )}
+
+              {locTab === 'districts' && (
+                <div>
+                  <form onSubmit={handleAddDistrict} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">বিভাগ</label>
+                    <select value={newDist.division_id} onChange={e => setNewDist({...newDist, division_id: e.target.value})} className={inputClass} required>
+                      <option value="">নির্বাচন করুন</option>
+                      {divisions.map(d => <option key={d.id} value={d.id}>{d.name_bn}</option>)}
+                    </select></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">জেলা (বাংলা)</label><input value={newDist.name_bn} onChange={e => setNewDist({...newDist, name_bn: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                  </form>
+                  <ul className="divide-y border rounded-lg">
+                    {districts.map(d => <li key={d.id} className="p-3 flex justify-between"><span>{d.name_bn} ({d.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">বিভাগ ID: {d.division_id}</span></li>)}
+                  </ul>
+                </div>
+              )}
+
+              {locTab === 'upazilas' && (
+                <div>
+                  <form onSubmit={handleAddUpazila} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">জেলা</label>
+                    <select value={newUpa.district_id} onChange={e => setNewUpa({...newUpa, district_id: e.target.value})} className={inputClass} required>
+                      <option value="">নির্বাচন করুন</option>
+                      {districts.map(d => <option key={d.id} value={d.id}>{d.name_bn}</option>)}
+                    </select></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">উপজেলা (বাংলা)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                  </form>
+                  <ul className="divide-y border rounded-lg">
+                    {upazilas.map(u => <li key={u.id} className="p-3 flex justify-between"><span>{u.name_bn} ({u.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">জেলা ID: {u.district_id}</span></li>)}
+                  </ul>
+                </div>
+              )}
+
+              {locTab === 'unions' && (
+                <div>
+                  <form onSubmit={handleAddUnion} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">উপজেলা</label>
+                    <select value={newUni.upazila_id} onChange={e => setNewUni({...newUni, upazila_id: e.target.value})} className={inputClass} required>
+                      <option value="">নির্বাচন করুন</option>
+                      {upazilas.map(u => <option key={u.id} value={u.id}>{u.name_bn}</option>)}
+                    </select></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={newUni.name_bn} onChange={e => setNewUni({...newUni, name_bn: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold">Union (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} className={inputClass} required/></div>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                  </form>
+                  <ul className="divide-y border rounded-lg">
+                    {unions.map(u => <li key={u.id} className="p-3 flex justify-between"><span>{u.name_bn} ({u.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">উপজেলা ID: {u.upazila_id}</span></li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
+      {/* View Modal */}
       {isViewOpen && selectedApp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-4 border-b bg-gray-50 sticky top-0">
-              <h3 className="text-lg font-bold text-gray-800">আবেদনকারীর বিস্তারিত তথ্য</h3>
-              <button onClick={() => setIsViewOpen(false)} className="text-gray-500 hover:text-red-600 font-bold text-2xl">&times;</button>
-            </div>
-            <div className="p-6 space-y-6">
-              <div>
-                <h4 className="font-bold text-green-700 border-b pb-1 mb-3">মৌলিক তথ্য</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <p><strong>ট্র্যাকিং আইডি:</strong> {selectedApp.tracking_id}</p>
-                  <p><strong>জন্ম তারিখ:</strong> {selectedApp.dob}</p>
-                  <p><strong>নাম (বাংলা):</strong> {selectedApp.first_name_bn} {selectedApp.last_name_bn}</p>
-                  <p><strong>নাম (ইংরেজি):</strong> {selectedApp.first_name_en} {selectedApp.last_name_en}</p>
-                  <p><strong>লিঙ্গ:</strong> {selectedApp.gender}</p>
-                  <p><strong>সন্তান ক্রম:</strong> {selectedApp.child_order}</p>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-bold text-green-700 border-b pb-1 mb-3">পিতা-মাতার তথ্য</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <p><strong>পিতার নাম:</strong> {selectedApp.father_name_bn} ({selectedApp.father_name_en})</p>
-                  <p><strong>মাতার নাম:</strong> {selectedApp.mother_name_bn} ({selectedApp.mother_name_en})</p>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-bold text-green-700 border-b pb-1 mb-3">ঠিকানার তথ্য</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <p><strong>বিভাগ:</strong> {selectedApp.division} ({selectedApp.division_en})</p>
-                  <p><strong>জেলা:</strong> {selectedApp.district} ({selectedApp.district_en})</p>
-                  <p><strong>উপজেলা:</strong> {selectedApp.city_corp} ({selectedApp.upazila_en})</p>
-                  <p><strong>ইউনিয়ন/পৌরসভা:</strong> {selectedApp.union_name} ({selectedApp.union_en})</p>
-                  <p><strong>ওয়ার্ড:</strong> {selectedApp.ward}</p>
-                  <p><strong>গ্রাম/মহল্লা:</strong> {selectedApp.village_bn} ({selectedApp.village_en})</p>
-                  <p><strong>ডাকঘর:</strong> {selectedApp.post_office_bn} ({selectedApp.post_office_en})</p>
-                </div>
-              </div>
-              <div className="flex justify-between items-center bg-gray-100 p-3 rounded mt-4">
-                <p><strong>স্ট্যাটাস:</strong> <span className={`px-2 py-1 text-white rounded text-xs font-bold ${selectedApp.status === 'Pending' ? 'bg-yellow-500' : 'bg-green-600'}`}>{selectedApp.status}</span></p>
-                <p><strong>তারিখ:</strong> {new Date(selectedApp.created_at).toLocaleDateString('en-GB')}</p>
-              </div>
-            </div>
-            <div className="p-4 border-t bg-gray-50 text-right">
-              <button onClick={() => setIsViewOpen(false)} className="px-6 py-2 bg-gray-600 text-white rounded-lg font-bold hover:bg-gray-700 transition">বন্ধ করুন</button>
-            </div>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+            <h3 className="text-lg font-bold mb-4">আবেদনকারীর বিস্তারিত</h3>
+            <p><strong>নাম:</strong> {selectedApp.first_name_bn} {selectedApp.last_name_bn}</p>
+            <p><strong>ট্র্যাকিং:</strong> {selectedApp.tracking_id}</p>
+            <p><strong>জেলা:</strong> {selectedApp.district}</p>
+            <button onClick={() => setIsViewOpen(false)} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded">বন্ধ করুন</button>
           </div>
         </div>
       )}
 
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[90] p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-4 border-b bg-gray-50 sticky top-0">
-              <h3 className="text-lg font-bold text-gray-800">লোকেশন আপডেট করুন</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-500 hover:text-red-600 font-bold text-2xl">&times;</button>
-            </div>
-            <form onSubmit={handleUpdateLocation} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium">বিভাগ (বাংলা) *</label><input value={editLocData.division_name || ''} onChange={(e) => setEditLocData({ ...editLocData, division_name: e.target.value })} className={inputClass} required /></div>
-                <div><label className="text-sm font-medium">Division (English) *</label><input value={editLocData.division_en || ''} onChange={(e) => setEditLocData({ ...editLocData, division_en: e.target.value })} className={inputClass} required /></div>
-                <div><label className="text-sm font-medium">জেলা (বাংলা) *</label><input value={editLocData.district_name || ''} onChange={(e) => setEditLocData({ ...editLocData, district_name: e.target.value })} className={inputClass} required /></div>
-                <div><label className="text-sm font-medium">District (English) *</label><input value={editLocData.district_en || ''} onChange={(e) => setEditLocData({ ...editLocData, district_en: e.target.value })} className={inputClass} required /></div>
-                <div><label className="text-sm font-medium">উপজেলা (বাংলা)</label><input value={editLocData.upazila_name || ''} onChange={(e) => setEditLocData({ ...editLocData, upazila_name: e.target.value })} className={inputClass} /></div>
-                <div><label className="text-sm font-medium">Upazila (English)</label><input value={editLocData.upazila_en || ''} onChange={(e) => setEditLocData({ ...editLocData, upazila_en: e.target.value })} className={inputClass} /></div>
-                <div><label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={editLocData.union_name || ''} onChange={(e) => setEditLocData({ ...editLocData, union_name: e.target.value })} className={inputClass} /></div>
-                <div><label className="text-sm font-medium">Union/Paurshava (English)</label><input value={editLocData.union_en || ''} onChange={(e) => setEditLocData({ ...editLocData, union_en: e.target.value })} className={inputClass} /></div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-6 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500 transition">বাতিল</button>
-                <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow">আপডেট করুন</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
-
-      {/* 🟢 হিডেন ডিভ (QR ও বারকোড সহ, ছবির মতো হুবহু ডিজাইন) */}
+      {/* Hidden PDF Template */}
       {selectedApp && (
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
-          <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
-            
-            {/* ওয়াটারমার্ক (বড় এবং হালকা করা হয়েছে) */}
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.08, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
-              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '750px' }} crossOrigin="anonymous" />
-            </div>
-
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              
-              {/* হেডার সেকশন */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                
-                {/* QR CODE */}
-                <div style={{ width: '120px', textAlign: 'center', marginTop: '10px' }}>
-                  {qrCodeUrl && <img id="qr-img" src={qrCodeUrl} alt="QR" style={{ width: '110px', height: '110px', margin: '0 auto', display: 'block' }} />}
-                  <p style={{ fontSize: '13px', marginTop: '8px', fontWeight: 'bold', letterSpacing: '1px', color: '#555' }}>AEIZ</p>
-                </div>
-                
-                {/* সেন্টার লোগো ও নাম */}
-                <div style={{ flex: 1, textAlign: 'center', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <img src={LOGO_URL} alt="Logo" style={{ width: '75px', margin: '0 auto 10px auto', display: 'block' }} crossOrigin="anonymous" />
-                  <h1 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Government of the People's Republic of Bangladesh</h1>
-                  <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>Office of the Register, Birth and Death Registration</p>
-                  
-                  {/* ২ লাইনে ঠিকানা */}
-                  <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
-                    <p style={{ margin: 0 }}>
-                      {safe(selectedApp.union_en || selectedApp.union_name)}
-                    </p>
-                    <p style={{ margin: 0 }}>
-                      {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: '11px', margin: '5px 0 0 0', color: '#555' }}>(Rule 9, 10)</p>
-                </div>
-                
-                {/* বারকোড */}
-                <div style={{ width: '150px', textAlign: 'right', marginTop: '15px' }}>
-                  {barcodeUrl && <img id="barcode-img" src={barcodeUrl} alt="Barcode" style={{ width: '150px', height: '45px' }} />}
-                </div>
-              </div>
-
-              {/* টাইটেল */}
-              <h2 style={{ fontSize: '21px', fontWeight: 'bold', textAlign: 'center', margin: '20px 0 25px 0', fontFamily: 'Noto Sans Bengali, Arial, sans-serif', color: '#111' }}>
-                জন্ম নিবন্ধন সনদ / Birth Registration Certificate
-              </h2>
-
-              {/* রেজিস্ট্রেশন নম্বর সেকশন */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', fontSize: '12px' }}>
-                <div style={{ width: '30%' }}>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Registration</p>
-                  <p style={{ margin: 0, color: '#444' }}>{new Date().toLocaleDateString('en-GB')}</p>
-                </div>
-                <div style={{ width: '40%', textAlign: 'center' }}>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Birth Registration Number</p>
-                  <p style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#111' }}>{selectedApp.tracking_id}</p>
-                </div>
-                <div style={{ width: '30%', textAlign: 'right' }}>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Issuance</p>
-                  <p style={{ margin: 0, color: '#444' }}>{new Date().toLocaleDateString('en-GB')}</p>
-                </div>
-              </div>
-
-              {/* ডাটা টেবিল (কলামের মাঝে বেশি গ্যাপ দেওয়া হয়েছে) */}
-              <div style={{ fontSize: '13px', lineHeight: '2', color: '#222' }}>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '20%' }}>Date of Birth</div>
-                  <div style={{ width: '30%' }}>: {selectedApp.dob}</div>
-                  <div style={{ width: '15%' }}>Sex</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.gender === 'পুরুষ' ? 'Male' : selectedApp.gender === 'মহিলা' ? 'Female' : 'Hijra'}</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '25px' }}>
-                  <div style={{ width: '20%' }}>In Word</div>
-                  <div style={{ width: '80%' }}>: {dateToWords(selectedApp.dob)}</div>
-                </div>
-
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>নাম</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.first_name_bn} {selectedApp.last_name_bn}</div>
-                  <div style={{ width: '15%' }}>Name</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.first_name_en} {selectedApp.last_name_en}</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতা</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.mother_name_bn}</div>
-                  <div style={{ width: '15%' }}>Mother</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.mother_name_en}</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতার জাতীয়তা</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
-                  <div style={{ width: '15%' }}>Nationality</div>
-                  <div style={{ width: '35%' }}>: Bangladeshi</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতা</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.father_name_bn}</div>
-                  <div style={{ width: '15%' }}>Father</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.father_name_en}</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতার জাতীয়তা</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
-                  <div style={{ width: '15%' }}>Nationality</div>
-                  <div style={{ width: '35%' }}>: Bangladeshi</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
-                  <div style={{ width: '15%' }}>Place of Birth</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.village_en}, {selectedApp.district_en || selectedApp.district}, Bangladesh</div>
-                </div>
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
-                  <div style={{ width: '15%' }}>Permanent<br/>Address</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.house_road_en}, {selectedApp.village_en}, {selectedApp.post_office_en}, {selectedApp.district_en || selectedApp.district}.</div>
-                </div>
-              </div>
-
-              {/* সিল ও সিগনেচার সেকশন */}
-              <div style={{ marginTop: '100px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <div style={{ width: '40%' }}>
-                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#444' }}>Assistant to Registrar</p>
-                </div>
-                <div style={{ width: '40%', textAlign: 'right' }}>
-                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#444' }}>Registrar</p>
-                </div>
-              </div>
-              
-              {/* ফুটার টেক্সট */}
-              <div style={{ textAlign: 'center', fontSize: '10px', marginTop: '40px', color: '#555', letterSpacing: '0.5px' }}>
-                This certificate is generated from bdris.gov.bd and to verify this certificate. please scan the above QR Code & Bar Code
-              </div>
-
-            </div>
+           {/* এখানে আপনার আগের দেওয়া সার্টিফিকেট ডিজাইনটি থাকবে (আমি নিচে শুধু একটি ডামি দিলাম, আপনি আগের ডিজাইনটি এখানে পেস্ট করবেন) */}
+          <div ref={printRef} style={{ width: '800px', padding: '50px', backgroundColor: '#fff' }}>
+            <h1>জন্ম নিবন্ধন সনদ</h1>
+            <p>নাম: {selectedApp.first_name_bn}</p>
+            <img src={qrCodeUrl} width="100" />
+            <img src={barcodeUrl} width="150" />
           </div>
         </div>
       )}
+      <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
     </div>
   );
 }
