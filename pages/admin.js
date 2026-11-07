@@ -58,8 +58,20 @@ export default function Admin() {
 
   // লোকেশন স্টেট
   const [locationList, setLocationList] = useState([]);
-  const [newLoc, setNewLoc] = useState({ division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
+  
+  // লোকেশন ফর্ম স্টেট
+  const [locForm, setLocForm] = useState({
+    division_name: '', division_en: '',
+    district_name: '', district_en: '',
+    upazila_name: '', upazila_en: '',
+    union_name: '', union_en: ''
+  });
   const [isAddingLoc, setIsAddingLoc] = useState(false);
+
+  // ফিল্টার স্টেট
+  const [filterDiv, setFilterDiv] = useState('');
+  const [filterDist, setFilterDist] = useState('');
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editLocData, setEditLocData] = useState({ id: '', division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
 
@@ -192,13 +204,21 @@ export default function Admin() {
 
   const handleAddLocation = async (e) => {
     e.preventDefault();
-    if (!newLoc.division_name || !newLoc.district_name) return setDebugError('বিভাগ ও জেলা অবশ্যই দিতে হবে।');
+    if (!locForm.division_name || !locForm.district_name || !locForm.upazila_name || !locForm.union_name) {
+      return setDebugError('বিভাগ, জেলা, উপজেলা এবং ইউনিয়ন/পৌরসভার নাম অবশ্যই দিতে হবে।');
+    }
+
     setIsAddingLoc(true);
-    const { error } = await supabase.from('locations').insert([newLoc]);
+    const { error } = await supabase.from('locations').insert([locForm]);
     setIsAddingLoc(false);
-    if (error) return setDebugError('সেভ করতে সমস্যা: ' + error.message);
+
+    if (error) {
+      return setDebugError('সেভ করতে সমস্যা: ' + error.message);
+    }
+    
     setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে সেভ হয়েছে!', type: 'success' });
-    setNewLoc({ division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
+    // ফর্ম রিসেট (বিভাগ ও জেলা রেখে দেওয়া হলো যাতে পরের ইউনিয়ন দ্রুত অ্যাড করা যায়)
+    setLocForm(prev => ({ ...prev, union_name: '', union_en: '' }));
     fetchLocations();
   };
 
@@ -351,41 +371,102 @@ export default function Admin() {
 
             {activeTab === 'locations' && (
               <div className="space-y-8">
+                {/* লোকেশন অ্যাড ফর্ম */}
                 <form onSubmit={handleAddLocation} className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                   <h3 className="font-bold text-lg mb-4 text-blue-800">নতুন লোকেশন যুক্ত করুন</h3>
+                  <p className="text-sm text-gray-600 mb-4">প্রথমে বিভাগ ও জেলা সিলেক্ট করে সেভ করুন, তারপর উপজেলা ও ইউনিয়ন যোগ করুন। (একই জেলার একাধিক ইউনিয়নের জন্য শুধু ইউনিয়নের নাম পরিবর্তন করে বারবার সেভ দিন)।</p>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="text-sm font-medium">বিভাগ (বাংলা) *</label><input value={newLoc.division_name} onChange={(e) => setNewLoc({ ...newLoc, division_name: e.target.value })} className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">Division (English) *</label><input value={newLoc.division_en} onChange={(e) => setNewLoc({ ...newLoc, division_en: e.target.value })} className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">জেলা (বাংলা) *</label><input value={newLoc.district_name} onChange={(e) => setNewLoc({ ...newLoc, district_name: e.target.value })} className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">District (English) *</label><input value={newLoc.district_en} onChange={(e) => setNewLoc({ ...newLoc, district_en: e.target.value })} className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">উপজেলা (বাংলা)</label><input value={newLoc.upazila_name} onChange={(e) => setNewLoc({ ...newLoc, upazila_name: e.target.value })} className={inputClass} /></div>
-                    <div><label className="text-sm font-medium">Upazila (English)</label><input value={newLoc.upazila_en} onChange={(e) => setNewLoc({ ...newLoc, upazila_en: e.target.value })} className={inputClass} /></div>
-                    <div><label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={newLoc.union_name} onChange={(e) => setNewLoc({ ...newLoc, union_name: e.target.value })} className={inputClass} /></div>
-                    <div><label className="text-sm font-medium">Union/Paurshava (English)</label><input value={newLoc.union_en} onChange={(e) => setNewLoc({ ...newLoc, union_en: e.target.value })} className={inputClass} /></div>
+                    {/* বিভাগ */}
+                    <div>
+                      <label className="text-sm font-medium">বিভাগ (বাংলা) *</label>
+                      <input 
+                        value={locForm.division_name} 
+                        onChange={(e) => setLocForm({ ...locForm, division_name: e.target.value })} 
+                        placeholder="যেমন: সিলেট" 
+                        className={inputClass} 
+                        list="division-list"
+                        required 
+                      />
+                      <datalist id="division-list">
+                        <option value="ঢাকা" />
+                        <option value="চট্টগ্রাম" />
+                        <option value="রাজশাহী" />
+                        <option value="খুলনা" />
+                        <option value="বরিশাল" />
+                        <option value="সিলেট" />
+                        <option value="রংপুর" />
+                        <option value="ময়মনসিংহ" />
+                      </datalist>
+                    </div>
+                    <div><label className="text-sm font-medium">Division (English) *</label><input value={locForm.division_en} onChange={(e) => setLocForm({ ...locForm, division_en: e.target.value })} placeholder="e.g. Sylhet" className={inputClass} required /></div>
+
+                    {/* জেলা */}
+                    <div><label className="text-sm font-medium">জেলা (বাংলা) *</label><input value={locForm.district_name} onChange={(e) => setLocForm({ ...locForm, district_name: e.target.value })} placeholder="যেমন: সুনামগঞ্জ" className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">District (English) *</label><input value={locForm.district_en} onChange={(e) => setLocForm({ ...locForm, district_en: e.target.value })} placeholder="e.g. Sunamganj" className={inputClass} required /></div>
+
+                    {/* উপজেলা */}
+                    <div><label className="text-sm font-medium">উপজেলা/থানা (বাংলা) *</label><input value={locForm.upazila_name} onChange={(e) => setLocForm({ ...locForm, upazila_name: e.target.value })} placeholder="যেমন: সুনামগঞ্জ সদর" className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">Upazila (English) *</label><input value={locForm.upazila_en} onChange={(e) => setLocForm({ ...locForm, upazila_en: e.target.value })} placeholder="e.g. Sunamganj Sadar" className={inputClass} required /></div>
+
+                    {/* ইউনিয়ন */}
+                    <div><label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা) *</label><input value={locForm.union_name} onChange={(e) => setLocForm({ ...locForm, union_name: e.target.value })} placeholder="যেমন: পৌরসভা বা বীরগাঁও" className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">Union/Paurshava (English) *</label><input value={locForm.union_en} onChange={(e) => setLocForm({ ...locForm, union_en: e.target.value })} placeholder="e.g. Pourashava or Birgaon" className={inputClass} required /></div>
                   </div>
-                  <button type="submit" disabled={isAddingLoc} className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow disabled:bg-gray-400">{isAddingLoc ? 'সেভ হচ্ছে...' : 'সেভ করুন'}</button>
+                  
+                  <button type="submit" disabled={isAddingLoc} className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow disabled:bg-gray-400 w-full md:w-auto">
+                    {isAddingLoc ? 'সেভ হচ্ছে...' : 'লোকেশন সেভ করুন'}
+                  </button>
                 </form>
 
+                {/* লোকেশন তালিকা */}
                 <div>
-                  <h3 className="font-bold text-lg mb-2">সেভ করা লোকেশন তালিকা ({locationList.length})</h3>
-                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto border rounded-lg">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                    <h3 className="font-bold text-lg">সেভ করা লোকেশন তালিকা ({locationList.length})</h3>
+                    
+                    {/* ফিল্টার */}
+                    <div className="flex gap-2 w-full md:w-auto">
+                      <select value={filterDiv} onChange={(e) => {setFilterDiv(e.target.value); setFilterDist('');}} className="p-2 border rounded-lg text-sm bg-white">
+                        <option value="">সব বিভাগ</option>
+                        {[...new Set(locationList.map(l => l.division_name))].map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <select value={filterDist} onChange={(e) => setFilterDist(e.target.value)} disabled={!filterDiv} className="p-2 border rounded-lg text-sm bg-white disabled:bg-gray-100">
+                        <option value="">সব জেলা</option>
+                        {[...new Set(locationList.filter(l => l.division_name === filterDiv).map(l => l.district_name))].map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto border rounded-lg bg-white">
                     <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-200 sticky top-0 z-10">
-                        <tr><th className="px-4 py-3">বিভাগ</th><th className="px-4 py-3">জেলা</th><th className="px-4 py-3">উপজেলা</th><th className="px-4 py-3">ইউনিয়ন/পৌরসভা</th><th className="px-4 py-3">অ্যাকশন</th></tr>
+                      <thead className="bg-gray-100 sticky top-0 z-10 text-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 border-b">বিভাগ</th>
+                          <th className="px-4 py-3 border-b">জেলা</th>
+                          <th className="px-4 py-3 border-b">উপজেলা</th>
+                          <th className="px-4 py-3 border-b">ইউনিয়ন/পৌরসভা</th>
+                          <th className="px-4 py-3 border-b">অ্যাকশন</th>
+                        </tr>
                       </thead>
                       <tbody>
-                        {locationList.map(loc => (
+                        {locationList
+                          .filter(l => filterDiv ? l.division_name === filterDiv : true)
+                          .filter(l => filterDist ? l.district_name === filterDist : true)
+                          .map(loc => (
                           <tr key={loc.id} className="border-b hover:bg-gray-50">
                             <td className="px-4 py-2">{loc.division_name} <span className="text-gray-400 text-xs">({loc.division_en})</span></td>
                             <td className="px-4 py-2">{loc.district_name} <span className="text-gray-400 text-xs">({loc.district_en})</span></td>
                             <td className="px-4 py-2">{loc.upazila_name} <span className="text-gray-400 text-xs">({loc.upazila_en})</span></td>
-                            <td className="px-4 py-2">{loc.union_name} <span className="text-gray-400 text-xs">({loc.union_en})</span></td>
+                            <td className="px-4 py-2 font-semibold text-green-700">{loc.union_name} <span className="text-gray-400 text-xs font-normal">({loc.union_en})</span></td>
                             <td className="px-4 py-2 flex gap-3">
                               <button onClick={() => handleOpenEdit(loc)} className="text-blue-600 font-bold hover:underline">এডিট</button>
                               <button onClick={() => handleDeleteLocation(loc.id)} className="text-red-600 font-bold hover:underline">ডিলিট</button>
                             </td>
                           </tr>
                         ))}
+                        {locationList.length === 0 && (
+                          <tr><td colSpan="5" className="text-center py-6 text-gray-500">কোনো লোকেশন পাওয়া যায়নি।</td></tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -475,7 +556,7 @@ export default function Admin() {
 
       <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
 
-      {/* 🟢 হিডেন ডিভ (QR ও বারকোড সহ) */}
+      {/* 🟢 হিডেন ডিভ (QR ও বারকোড সহ, ছবির মতো হুবহু ডিজাইন) */}
       {selectedApp && (
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
           <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
