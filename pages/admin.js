@@ -1,22 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, isAdmin, ASSETS_BUCKET_URL } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
-import pdfMake from 'pdfmake/build/pdfmake';
-import { vfs } from '../lib/vfs_fonts';
-
-pdfMake.vfs = vfs;
-pdfMake.fonts = {
-  NotoSansBengali: {
-    normal: 'NotoSansBengali-Regular.ttf',
-    bold: 'NotoSansBengali-Regular.ttf',
-    italics: 'NotoSansBengali-Regular.ttf',
-    bolditalics: 'NotoSansBengali-Regular.ttf',
-  },
-};
+// 🟢 pdfmake এর বদলে html2canvas এবং jspdf ইমপোর্ট করা হলো
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const LOGO_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/logo.png` : 'https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png';
 const WATERMARK_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/watermark.png` : 'https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png';
@@ -59,30 +50,23 @@ export default function Admin() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🟢 স্ক্রিনে প্রোগ্রেস ও এরর দেখানোর জন্য স্টেট
+  // 🟢 স্ক্রিনে প্রোগ্রেস দেখানোর জন্য
   const [debugError, setDebugError] = useState(null);
+  
+  // 🟢 PDF রেন্ডার করার জন্য হিডেন ডিভ রেফারেন্স
+  const printRef = useRef(null);
 
+  // লোকেশন স্টেট
   const [locationList, setLocationList] = useState([]);
-  const [newLoc, setNewLoc] = useState({
-    division_name: '', division_en: '',
-    district_name: '', district_en: '',
-    upazila_name: '', upazila_en: '',
-    union_name: '', union_en: '',
-  });
+  const [newLoc, setNewLoc] = useState({ division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
   const [isAddingLoc, setIsAddingLoc] = useState(false);
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editLocData, setEditLocData] = useState({
-    id: '', division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '',
-  });
+  const [editLocData, setEditLocData] = useState({ id: '', division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
 
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !isAdmin(user.email)) {
-        router.push('/admin/login');
-        return;
-      }
+      if (!user || !isAdmin(user.email)) { router.push('/admin/login'); return; }
       setUser(user);
       await fetchApplications();
       setLoading(false);
@@ -99,9 +83,7 @@ export default function Admin() {
       const { data, error } = await supabase.from('birth_applications').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setApplications(data || []);
-    } catch (err) {
-      setErrorMsg('ডেটা লোডে সমস্যা: ' + err.message);
-    }
+    } catch (err) { setErrorMsg('ডেটা লোডে সমস্যা: ' + err.message); }
   };
 
   const fetchLocations = async () => {
@@ -118,9 +100,7 @@ export default function Admin() {
       if (error) throw error;
       setApplications(prev => prev.filter(app => app.id !== id));
       setAlertState({ isOpen: true, message: 'আবেদনটি সফলভাবে ডিলিট করা হয়েছে।', type: 'success' });
-    } catch (err) {
-      setDebugError('ডিলিটে সমস্যা: ' + err.message);
-    }
+    } catch (err) { setDebugError('ডিলিটে সমস্যা: ' + err.message); }
   };
 
   const getImageAsBase64 = async (fileName) => {
@@ -133,115 +113,54 @@ export default function Admin() {
         reader.onerror = reject;
         reader.readAsDataURL(data);
       });
-    } catch (err) {
-      throw new Error(`ছবি (${fileName}) লোড করতে সমস্যা: ` + err.message);
-    }
-  };
-
-  const buildDocDefinition = (app, qrCodeUrl, barcodeUrl, logoDataUrl, watermarkDataUrl) => {
-    return {
-      pageSize: 'A4',
-      pageMargins: [40, 35, 40, 35],
-      content: [
-        {
-          columns: [
-            { width: 100, stack: [ qrCodeUrl ? { image: qrCodeUrl, width: 70, height: 70 } : { text: '' }, { text: 'ASERTR', fontSize: 9, margin: [0, 5, 0, 0], alignment: 'center' } ] },
-            {
-              width: '*',
-              stack: [
-                logoDataUrl ? { image: logoDataUrl, width: 50, alignment: 'center' } : { text: '' },
-                { text: "Government of the People's Republic of Bangladesh", fontSize: 14, bold: true, alignment: 'center', margin: [0, 5, 0, 0] },
-                { text: 'Office of the Register, Birth and Death Registration', fontSize: 9, alignment: 'center', margin: [0, 2, 0, 0] },
-                { text: `${safe(app.union_name)}, ${safe(app.city_corp)}, ${safe(app.district)}`, fontSize: 10, alignment: 'center', margin: [0, 10, 0, 0] },
-                { text: '(Rule 9, 10)', fontSize: 8, alignment: 'center', margin: [0, 2, 0, 0] },
-              ],
-            },
-            { width: 120, stack: [ barcodeUrl ? { image: barcodeUrl, width: 130, height: 45, alignment: 'right' } : { text: '' } ] },
-          ],
-          margin: [0, 0, 0, 10],
-        },
-        { text: 'জন্ম নিবন্ধন সনদ / Birth Registration Certificate', fontSize: 16, bold: true, alignment: 'center', margin: [0, 10, 0, 15] },
-        {
-          columns: [
-            { width: '30%', stack: [{ text: 'Date of Registration', fontSize: 9, bold: true }, { text: new Date().toLocaleDateString('en-GB'), fontSize: 10, margin: [0, 3, 0, 0] }] },
-            { width: '40%', stack: [{ text: 'Birth Registration Number', fontSize: 9, bold: true, alignment: 'center' }, { text: safe(app.tracking_id) || 'N/A', fontSize: 11, bold: true, alignment: 'center', margin: [0, 3, 0, 0] }] },
-            { width: '30%', stack: [{ text: 'Date of Issuance', fontSize: 9, bold: true, alignment: 'right' }, { text: new Date().toLocaleDateString('en-GB'), fontSize: 10, alignment: 'right', margin: [0, 3, 0, 0] }] },
-          ],
-          margin: [0, 0, 0, 20],
-        },
-        { columns: [{ text: 'Date of Birth', width: '20%', fontSize: 10 }, { text: `: ${safe(app.dob)}`, width: '35%', fontSize: 10 }, { text: 'Sex', width: '15%', fontSize: 10 }, { text: `: ${safe(app.gender) === 'পুরুষ' ? 'Male' : safe(app.gender) === 'মহিলা' ? 'Female' : 'Hijra'}`, width: '*', fontSize: 10 }], margin: [0, 0, 0, 8] },
-        { columns: [{ text: 'In Word', width: '20%', fontSize: 10 }, { text: `: ${dateToWords(safe(app.dob))}`, width: '*', fontSize: 10 }], margin: [0, 0, 0, 15] },
-        { columns: [{ text: 'নাম', width: '15%', fontSize: 11 }, { text: `: ${safe(app.first_name_bn)} ${safe(app.last_name_bn)}`, width: '35%', fontSize: 11 }, { text: 'Name', width: '15%', fontSize: 10 }, { text: `: ${safe(app.first_name_en)} ${safe(app.last_name_en)}`, width: '*', fontSize: 10 }], margin: [0, 0, 0, 5] },
-        { columns: [{ text: 'মাতা', width: '15%', fontSize: 11 }, { text: `: ${safe(app.mother_name_bn)}`, width: '35%', fontSize: 11 }, { text: 'Mother', width: '15%', fontSize: 10 }, { text: `: ${safe(app.mother_name_en)}`, width: '*', fontSize: 10 }], margin: [0, 0, 0, 5] },
-        { columns: [{ text: 'মাতার জাতীয়তা', width: '15%', fontSize: 11 }, { text: ': বাংলাদেশী', width: '35%', fontSize: 11 }, { text: 'Nationality', width: '15%', fontSize: 10 }, { text: ': Bangladeshi', width: '*', fontSize: 10 }], margin: [0, 0, 0, 5] },
-        { columns: [{ text: 'পিতা', width: '15%', fontSize: 11 }, { text: `: ${safe(app.father_name_bn)}`, width: '35%', fontSize: 11 }, { text: 'Father', width: '15%', fontSize: 10 }, { text: `: ${safe(app.father_name_en)}`, width: '*', fontSize: 10 }], margin: [0, 0, 0, 5] },
-        { columns: [{ text: 'পিতার জাতীয়তা', width: '15%', fontSize: 11 }, { text: ': বাংলাদেশী', width: '35%', fontSize: 11 }, { text: 'Nationality', width: '15%', fontSize: 10 }, { text: ': Bangladeshi', width: '*', fontSize: 10 }], margin: [0, 0, 0, 5] },
-        { columns: [{ text: 'জন্মস্থান', width: '15%', fontSize: 11 }, { text: `: ${safe(app.village_bn)}, ${safe(app.district)}, বাংলাদেশ`, width: '35%', fontSize: 11 }, { text: 'Place of Birth', width: '15%', fontSize: 10 }, { text: `: ${safe(app.village_en)}, ${safe(app.district_en) || safe(app.district)}, Bangladesh`, width: '*', fontSize: 10 }], margin: [0, 0, 0, 5] },
-        { columns: [{ text: 'স্থায়ী ঠিকানা', width: '15%', fontSize: 11 }, { text: `: ${safe(app.house_road_bn)}, ${safe(app.village_bn)}, ${safe(app.post_office_bn)}, ${safe(app.district)}।`, width: '35%', fontSize: 11 }, { text: 'Permanent\nAddress', width: '15%', fontSize: 10 }, { text: `: ${safe(app.house_road_en)}, ${safe(app.village_en)}, ${safe(app.post_office_en)}, ${safe(app.district_en) || safe(app.district)}.`, width: '*', fontSize: 10 }] },
-      ],
-      defaultStyle: { font: 'NotoSansBengali' },
-      footer: () => ({
-        columns: [
-          { width: '50%', stack: [{ text: 'Seal & Signature', fontSize: 12, bold: true }, { text: 'Assistant to Registrar', fontSize: 9, margin: [0, 3, 0, 0] }] },
-          { width: '50%', stack: [{ text: 'Seal & Signature', fontSize: 12, bold: true, alignment: 'right' }, { text: 'Registrar', fontSize: 9, alignment: 'right', margin: [0, 3, 0, 0] }] },
-        ],
-        margin: [40, 0, 40, 0],
-      }),
-      background: () => (watermarkDataUrl ? { image: watermarkDataUrl, width: 450, opacity: 0.1, absolutePosition: { x: 70, y: 150 } } : {}),
-    };
+    } catch (err) { throw new Error(`ছবি (${fileName}) লোড করতে সমস্যা: ` + err.message); }
   };
 
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
     setProcessingIds(prev => new Set(prev).add(app.id));
-    
-    // 🟢 প্রোগ্রেস ট্র্যাকিং শুরু
-    setDebugError('স্টেপ ১: QR ও বারকোড তৈরি হচ্ছে...');
-    await new Promise(r => setTimeout(r, 800));
 
     try {
-      let qrCodeUrl = null;
-      let barcodeUrl = null;
-      try {
-        qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
-        const canvas = document.createElement('canvas');
-        JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
-        barcodeUrl = canvas.toDataURL('image/png');
-      } catch (e) {
-        console.error('QR/Barcode failed', e);
-      }
+      setDebugError('স্টেপ ১: ডাটা প্রস্তুত হচ্ছে...');
+      setSelectedApp(app); // হিডেন কম্পোনেন্টে ডাটা সেট করা হলো
+      await new Promise(r => setTimeout(r, 800)); // UI আপডেট হওয়ার সময়
 
-      setDebugError('স্টেপ ২: লোগো ও ওয়াটারমার্ক ডাউনলোড হচ্ছে...');
-      await new Promise(r => setTimeout(r, 800));
+      setDebugError('স্টেপ ২: QR ও বারকোড তৈরি হচ্ছে...');
+      let qrCodeUrl = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
+      const canvas = document.createElement('canvas');
+      JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
+      let barcodeUrl = canvas.toDataURL('image/png');
+      await new Promise(r => setTimeout(r, 500));
 
-      let logoDataUrl = null;
-      let watermarkDataUrl = null;
-      
-      if (!LOGO_URL || LOGO_URL.includes('undefined')) {
-        throw new Error(`লোগো URL সেট করা নেই! Vercel Env Var চেক করুন।`);
-      }
+      setDebugError('স্টেপ ৩: লোগো ও ওয়াটারমার্ক লোড হচ্ছে...');
+      let logoDataUrl = await getImageAsBase64('logo.png');
+      let watermarkDataUrl = await getImageAsBase64('watermark.png');
+      await new Promise(r => setTimeout(r, 500));
 
-      try { logoDataUrl = await getImageAsBase64('logo.png'); } 
-      catch (e) { throw new Error(`লোগো ফাইল পাওয়া যায়নি: ` + e.message); }
-      
-      try { watermarkDataUrl = await getImageAsBase64('watermark.png'); } 
-      catch (e) { console.warn(e.message); }
+      setDebugError('স্টেপ ৪: সার্টিফিকেট তৈরি হচ্ছে (মোবাইল ফ্রেন্ডলি)...');
+      await new Promise(r => setTimeout(r, 500));
 
-      setDebugError('স্টেপ ৩: PDF ফাইল তৈরি হচ্ছে (এতে ১০-১৫ সেকেন্ড লাগতে পারে)...');
-      await new Promise(r => setTimeout(r, 800));
-      
-      const docDefinition = buildDocDefinition(app, qrCodeUrl, barcodeUrl, logoDataUrl, watermarkDataUrl);
-      
-      const pdfBlob = await new Promise((resolve, reject) => {
-        try {
-          pdfMake.createPdf(docDefinition).getBlob((blob) => resolve(blob));
-        } catch (e) {
-          reject(e);
-        }
+      // 🟢 HTML থেকে ছবি তৈরি করা (html2canvas)
+      const element = printRef.current;
+      const canvasImg = await html2canvas(element, {
+        scale: 2, // হাই কোয়ালিটি
+        useCORS: true,
+        allowTaint: true,
       });
+      
+      const imgData = canvasImg.toDataURL('image/jpeg', 0.95);
+      
+      setDebugError('স্টেপ ৫: PDF ফাইল তৈরি হচ্ছে...');
+      
+      // 🟢 ছবিকে A4 সাইজের PDF-এ রূপান্তর (jspdf)
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvasImg.height * pdfWidth) / canvasImg.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      
+      const pdfBlob = pdf.output('blob');
 
-      setDebugError('স্টেপ ৪: PDF Supabase Storage-এ আপলোড হচ্ছে...');
-
+      setDebugError('স্টেপ ৬: Supabase Storage-এ আপলোড হচ্ছে...');
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage
         .from('certificates')
@@ -249,7 +168,7 @@ export default function Admin() {
 
       if (uploadError) throw new Error('আপলোড ব্যর্থ: ' + uploadError.message);
 
-      setDebugError('স্টেপ ৫: ডাটাবেস আপডেট হচ্ছে...');
+      setDebugError('স্টেপ ৭: ডাটাবেস আপডেট হচ্ছে...');
       const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
       const pdfUrl = publicUrlData.publicUrl;
 
@@ -262,18 +181,13 @@ export default function Admin() {
 
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: pdfUrl } : a));
       setDebugError('সফলভাবে সার্টিফিকেট তৈরি হয়েছে!');
-      
       setTimeout(() => setDebugError(null), 3000);
 
     } catch (err) {
       console.error("Approve Flow Error:", err);
       setDebugError('এরর: ' + (err?.message || err.toString()));
     } finally {
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(app.id);
-        return next;
-      });
+      setProcessingIds(prev => { const next = new Set(prev); next.delete(app.id); return next; });
     }
   };
 
@@ -286,20 +200,13 @@ export default function Admin() {
       const a = document.createElement('a');
       a.href = url;
       a.download = `Certificate-${app.tracking_id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      window.open(app.pdf_url, '_blank');
-    }
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
   const handleAddLocation = async (e) => {
     e.preventDefault();
-    if (!newLoc.division_name || !newLoc.district_name) {
-      return setDebugError('বিভাগ ও জেলা অবশ্যই দিতে হবে।');
-    }
+    if (!newLoc.division_name || !newLoc.district_name) return setDebugError('বিভাগ ও জেলা অবশ্যই দিতে হবে।');
     setIsAddingLoc(true);
     const { error } = await supabase.from('locations').insert([newLoc]);
     setIsAddingLoc(false);
@@ -313,10 +220,7 @@ export default function Admin() {
     if (!window.confirm('লোকেশনটি ডিলিট করতে চান?')) return;
     const { error } = await supabase.from('locations').delete().eq('id', id);
     if (error) setDebugError('ডিলিটে সমস্যা: ' + error.message);
-    else {
-      setAlertState({ isOpen: true, message: 'লোকেশন ডিলিট করা হয়েছে।', type: 'success' });
-      fetchLocations();
-    }
+    else { setAlertState({ isOpen: true, message: 'লোকেশন ডিলিট করা হয়েছে।', type: 'success' }); fetchLocations(); }
   };
 
   const handleOpenEdit = (loc) => { setEditLocData(loc); setIsEditModalOpen(true); };
@@ -325,22 +229,15 @@ export default function Admin() {
     e.preventDefault();
     try {
       const { error } = await supabase.from('locations').update({
-        division_name: editLocData.division_name,
-        division_en: editLocData.division_en,
-        district_name: editLocData.district_name,
-        district_en: editLocData.district_en,
-        upazila_name: editLocData.upazila_name,
-        upazila_en: editLocData.upazila_en,
-        union_name: editLocData.union_name,
-        union_en: editLocData.union_en,
+        division_name: editLocData.division_name, division_en: editLocData.division_en,
+        district_name: editLocData.district_name, district_en: editLocData.district_en,
+        upazila_name: editLocData.upazila_name, upazila_en: editLocData.upazila_en,
+        union_name: editLocData.union_name, union_en: editLocData.union_en,
       }).eq('id', editLocData.id);
       if (error) throw error;
       setAlertState({ isOpen: true, message: 'লোকেশন সফলভাবে আপডেট হয়েছে!', type: 'success' });
-      setIsEditModalOpen(false);
-      fetchLocations();
-    } catch (err) {
-      setDebugError('আপডেটে সমস্যা: ' + err.message);
-    }
+      setIsEditModalOpen(false); fetchLocations();
+    } catch (err) { setDebugError('আপডেটে সমস্যা: ' + err.message); }
   };
 
   const filteredApps = applications.filter(app =>
@@ -352,24 +249,21 @@ export default function Admin() {
   const totalApps = applications.length;
   const pendingApps = applications.filter(a => a.status === 'Pending').length;
   const approvedApps = applications.filter(a => a.status === 'Approved').length;
-
-  const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
+  const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
 
   if (loading) return <div className="text-center mt-20 text-lg font-bold">লোড হচ্ছে...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans relative">
       
-      {/* 🟢 স্ক্রিনের উপরে লাল রঙের স্পেশাল এরর বক্স */}
+      {/* 🟢 লাইভ প্রোগ্রেস / এরর বক্স */}
       {debugError && (
         <div className="fixed top-0 left-0 w-full bg-red-600 text-white p-4 z-[9999] shadow-xl flex justify-between items-start">
           <div className="flex flex-col">
             <span className="font-bold text-lg mb-1">⏳ প্রোগ্রেস / এরর:</span>
             <span className="text-sm break-all font-semibold">{debugError}</span>
           </div>
-          <button onClick={() => setDebugError(null)} className="bg-red-800 hover:bg-red-900 text-white font-bold py-1 px-3 rounded ml-2 whitespace-nowrap">
-            বন্ধ করুন
-          </button>
+          <button onClick={() => setDebugError(null)} className="bg-red-800 hover:bg-red-900 text-white font-bold py-1 px-3 rounded ml-2 whitespace-nowrap">বন্ধ করুন</button>
         </div>
       )}
 
@@ -445,23 +339,19 @@ export default function Admin() {
                               </td>
                               <td className="px-4 py-3 flex flex-wrap justify-center gap-2">
                                 <button onClick={() => handleView(app)} className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-bold hover:bg-gray-700 transition">View</button>
-
                                 {app.status === 'Pending' ? (
                                   <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1 text-white rounded text-xs font-bold transition ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
                                     {busy ? 'তৈরি হচ্ছে...' : 'Approve'}
                                   </button>
                                 ) : (
-                                  <>
-                                    {app.pdf_url ? (
-                                      <button onClick={() => handleDownload(app)} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-700 transition">Download</button>
-                                    ) : (
-                                      <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1 text-white rounded text-xs font-bold transition ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                                        {busy ? 'তৈরি হচ্ছে...' : 'Regenerate'}
-                                      </button>
-                                    )}
-                                  </>
+                                  app.pdf_url ? (
+                                    <button onClick={() => handleDownload(app)} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold hover:bg-green-700 transition">Download</button>
+                                  ) : (
+                                    <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1 text-white rounded text-xs font-bold transition ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                                      {busy ? 'তৈরি হচ্ছে...' : 'Regenerate'}
+                                    </button>
+                                  )
                                 )}
-
                                 <button onClick={() => handleDeleteApp(app.id)} className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-700 transition">Delete</button>
                               </td>
                             </tr>
@@ -479,14 +369,14 @@ export default function Admin() {
                 <form onSubmit={handleAddLocation} className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                   <h3 className="font-bold text-lg mb-4 text-blue-800">নতুন লোকেশন যুক্ত করুন</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="text-sm font-medium">বিভাগ (বাংলা) *</label><input value={newLoc.division_name} onChange={(e) => setNewLoc({ ...newLoc, division_name: e.target.value })} placeholder="যেমন: ঢাকা" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">Division (English) *</label><input value={newLoc.division_en} onChange={(e) => setNewLoc({ ...newLoc, division_en: e.target.value })} placeholder="e.g. Dhaka" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">জেলা (বাংলা) *</label><input value={newLoc.district_name} onChange={(e) => setNewLoc({ ...newLoc, district_name: e.target.value })} placeholder="যেমন: ঢাকা" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">District (English) *</label><input value={newLoc.district_en} onChange={(e) => setNewLoc({ ...newLoc, district_en: e.target.value })} placeholder="e.g. Dhaka" className={inputClass} required /></div>
-                    <div><label className="text-sm font-medium">উপজেলা (বাংলা)</label><input value={newLoc.upazila_name} onChange={(e) => setNewLoc({ ...newLoc, upazila_name: e.target.value })} placeholder="যেমন: সাভার" className={inputClass} /></div>
-                    <div><label className="text-sm font-medium">Upazila (English)</label><input value={newLoc.upazila_en} onChange={(e) => setNewLoc({ ...newLoc, upazila_en: e.target.value })} placeholder="e.g. Savar" className={inputClass} /></div>
-                    <div><label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={newLoc.union_name} onChange={(e) => setNewLoc({ ...newLoc, union_name: e.target.value })} placeholder="যেমন: সাভার পৌরসভা" className={inputClass} /></div>
-                    <div><label className="text-sm font-medium">Union/Paurshava (English)</label><input value={newLoc.union_en} onChange={(e) => setNewLoc({ ...newLoc, union_en: e.target.value })} placeholder="e.g. Savar Paurashava" className={inputClass} /></div>
+                    <div><label className="text-sm font-medium">বিভাগ (বাংলা) *</label><input value={newLoc.division_name} onChange={(e) => setNewLoc({ ...newLoc, division_name: e.target.value })} className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">Division (English) *</label><input value={newLoc.division_en} onChange={(e) => setNewLoc({ ...newLoc, division_en: e.target.value })} className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">জেলা (বাংলা) *</label><input value={newLoc.district_name} onChange={(e) => setNewLoc({ ...newLoc, district_name: e.target.value })} className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">District (English) *</label><input value={newLoc.district_en} onChange={(e) => setNewLoc({ ...newLoc, district_en: e.target.value })} className={inputClass} required /></div>
+                    <div><label className="text-sm font-medium">উপজেলা (বাংলা)</label><input value={newLoc.upazila_name} onChange={(e) => setNewLoc({ ...newLoc, upazila_name: e.target.value })} className={inputClass} /></div>
+                    <div><label className="text-sm font-medium">Upazila (English)</label><input value={newLoc.upazila_en} onChange={(e) => setNewLoc({ ...newLoc, upazila_en: e.target.value })} className={inputClass} /></div>
+                    <div><label className="text-sm font-medium">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={newLoc.union_name} onChange={(e) => setNewLoc({ ...newLoc, union_name: e.target.value })} className={inputClass} /></div>
+                    <div><label className="text-sm font-medium">Union/Paurshava (English)</label><input value={newLoc.union_en} onChange={(e) => setNewLoc({ ...newLoc, union_en: e.target.value })} className={inputClass} /></div>
                   </div>
                   <button type="submit" disabled={isAddingLoc} className="mt-6 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow disabled:bg-gray-400">{isAddingLoc ? 'সেভ হচ্ছে...' : 'সেভ করুন'}</button>
                 </form>
@@ -506,8 +396,8 @@ export default function Admin() {
                             <td className="px-4 py-2">{loc.upazila_name} <span className="text-gray-400 text-xs">({loc.upazila_en})</span></td>
                             <td className="px-4 py-2">{loc.union_name} <span className="text-gray-400 text-xs">({loc.union_en})</span></td>
                             <td className="px-4 py-2 flex gap-3">
-                              <button onClick={() => handleOpenEdit(loc)} className="text-blue-600 font-bold hover:underline transition">এডিট</button>
-                              <button onClick={() => handleDeleteLocation(loc.id)} className="text-red-600 font-bold hover:underline transition">ডিলিট</button>
+                              <button onClick={() => handleOpenEdit(loc)} className="text-blue-600 font-bold hover:underline">এডিট</button>
+                              <button onClick={() => handleDeleteLocation(loc.id)} className="text-red-600 font-bold hover:underline">ডিলিট</button>
                             </td>
                           </tr>
                         ))}
@@ -521,6 +411,7 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* 🟢 মোডাল সেকশন */}
       {isViewOpen && selectedApp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -604,6 +495,106 @@ export default function Admin() {
       )}
 
       <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
+
+      {/* 🟢 হিডেন ডিভ (PDF রেন্ডারিং এর জন্য, স্ক্রিনে দেখা যাবে না) */}
+      {selectedApp && (
+        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+          <div ref={printRef} style={{ width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'sans-serif', position: 'relative' }}>
+            
+            {/* ওয়াটারমার্ক */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.1, zIndex: 0, pointerEvents: 'none' }}>
+              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '500px' }} crossOrigin="anonymous" />
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {/* হেডার */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                <div style={{ width: '120px', textAlign: 'center' }}>
+                  <img id="qr-img" src={selectedApp.qrCodeUrl || ''} alt="QR" style={{ width: '90px', height: '90px', margin: '0 auto' }} />
+                  <p style={{ fontSize: '12px', marginTop: '5px', fontWeight: 'bold' }}>ASERTR</p>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <img src={LOGO_URL} alt="Logo" style={{ width: '60px', margin: '0 auto 10px auto' }} crossOrigin="anonymous" />
+                  <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Government of the People's Republic of Bangladesh</h1>
+                  <p style={{ fontSize: '12px', margin: '5px 0' }}>Office of the Register, Birth and Death Registration</p>
+                  <p style={{ fontSize: '14px', margin: '10px 0' }}>{safe(selectedApp.union_name)}, {safe(selectedApp.city_corp)}, {safe(selectedApp.district)}</p>
+                  <p style={{ fontSize: '10px', margin: 0 }}>(Rule 9, 10)</p>
+                </div>
+                <div style={{ width: '150px', textAlign: 'right' }}>
+                  <img id="barcode-img" src={selectedApp.barcodeUrl || ''} alt="Barcode" style={{ width: '140px', height: '60px' }} />
+                </div>
+              </div>
+
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', margin: '30px 0', fontFamily: 'Noto Sans Bengali, sans-serif' }}>
+                জন্ম নিবন্ধন সনদ / Birth Registration Certificate
+              </h2>
+
+              {/* ৩ কলাম ডাটা */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '14px' }}>
+                <div><p style={{ fontWeight: 'bold' }}>Date of Registration</p><p>{new Date().toLocaleDateString('en-GB')}</p></div>
+                <div style={{ textAlign: 'center' }}><p style={{ fontWeight: 'bold' }}>Birth Registration Number</p><p style={{ fontWeight: 'bold', fontSize: '16px' }}>{selectedApp.tracking_id}</p></div>
+                <div style={{ textAlign: 'right' }}><p style={{ fontWeight: 'bold' }}>Date of Issuance</p><p>{new Date().toLocaleDateString('en-GB')}</p></div>
+              </div>
+
+              {/* মেইন ডাটা */}
+              <div style={{ fontSize: '14px', lineHeight: '2' }}>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%' }}>Date of Birth</div><div style={{ width: '30%' }}>: {selectedApp.dob}</div>
+                  <div style={{ width: '20%' }}>Sex</div><div style={{ width: '30%' }}>: {selectedApp.gender === 'পুরুষ' ? 'Male' : selectedApp.gender === 'মহিলা' ? 'Female' : 'Hijra'}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '20px' }}>
+                  <div style={{ width: '20%' }}>In Word</div><div style={{ width: '80%' }}>: {dateToWords(selectedApp.dob)}</div>
+                </div>
+
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>নাম</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.first_name_bn} {selectedApp.last_name_bn}</div>
+                  <div style={{ width: '20%' }}>Name</div><div style={{ width: '30%' }}>: {selectedApp.first_name_en} {selectedApp.last_name_en}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতা</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.mother_name_bn}</div>
+                  <div style={{ width: '20%' }}>Mother</div><div style={{ width: '30%' }}>: {selectedApp.mother_name_en}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতার জাতীয়তা</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
+                  <div style={{ width: '20%' }}>Nationality</div><div style={{ width: '30%' }}>: Bangladeshi</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতা</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.father_name_bn}</div>
+                  <div style={{ width: '20%' }}>Father</div><div style={{ width: '30%' }}>: {selectedApp.father_name_en}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতার জাতীয়তা</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
+                  <div style={{ width: '20%' }}>Nationality</div><div style={{ width: '30%' }}>: Bangladeshi</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
+                  <div style={{ width: '20%' }}>Place of Birth</div><div style={{ width: '30%' }}>: {selectedApp.village_en}, {selectedApp.district_en || selectedApp.district}, Bangladesh</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div><div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
+                  <div style={{ width: '20%' }}>Permanent<br/>Address</div><div style={{ width: '30%' }}>: {selectedApp.house_road_en}, {selectedApp.village_en}, {selectedApp.post_office_en}, {selectedApp.district_en || selectedApp.district}.</div>
+                </div>
+              </div>
+
+              {/* ফুটার */}
+              <div style={{ marginTop: '80px', display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                <div>
+                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '5px', display: 'inline-block' }}>Seal & Signature</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Assistant to Registrar</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '5px', display: 'inline-block' }}>Seal & Signature</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Registrar</p>
+                </div>
+              </div>
+              
+              <div style={{ textAlign: 'center', fontSize: '10px', marginTop: '40px', color: '#555' }}>
+                This certificate is generated from bdns.gov.bd, and to verify this certificate, please scan the above QR Code & Bar Code.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
