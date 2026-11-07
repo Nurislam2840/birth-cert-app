@@ -49,12 +49,14 @@ export default function Admin() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // 🟢 প্রোগ্রেস ও QR/বারকোড স্টেট
   const [debugError, setDebugError] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [barcodeUrl, setBarcodeUrl] = useState(null);
   
   const printRef = useRef(null);
 
+  // লোকেশন স্টেট
   const [locationList, setLocationList] = useState([]);
   const [newLoc, setNewLoc] = useState({ division_name: '', division_en: '', district_name: '', district_en: '', upazila_name: '', upazila_en: '', union_name: '', union_en: '' });
   const [isAddingLoc, setIsAddingLoc] = useState(false);
@@ -487,97 +489,108 @@ export default function Admin() {
               
               {/* হেডার সেকশন */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                
+                {/* QR CODE */}
                 <div style={{ width: '120px', textAlign: 'center', marginTop: '10px' }}>
                   {qrCodeUrl && <img id="qr-img" src={qrCodeUrl} alt="QR" style={{ width: '110px', height: '110px', margin: '0 auto', display: 'block' }} />}
-                  <p style={{ fontSize: '13px', marginTop: '8px', fontWeight: 'bold', letterSpacing: '1px' }}>ASERTR</p>
+                  <p style={{ fontSize: '13px', marginTop: '8px', fontWeight: 'bold', letterSpacing: '1px', color: '#555' }}>AEIZ</p>
                 </div>
                 
-                <div style={{ flex: 1, textAlign: 'center', padding: '0 20px' }}>
-                  <img src={LOGO_URL} alt="Logo" style={{ width: '70px', margin: '0 auto 15px auto', display: 'block' }} crossOrigin="anonymous" />
-                  <h1 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0' }}>Government of the People's Republic of Bangladesh</h1>
-                  <p style={{ fontSize: '12px', margin: '0 0 15px 0' }}>Office of the Register, Birth and Death Registration</p>
-                  <p style={{ fontSize: '14px', margin: '0 0 5px 0', fontWeight: '500' }}>
-                    {safe(selectedApp.union_en || selectedApp.union_name)}, {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
-                  </p>
-                  <p style={{ fontSize: '11px', margin: 0 }}>(Rule 9, 10)</p>
+                {/* সেন্টার লোগো ও নাম */}
+                <div style={{ flex: 1, textAlign: 'center', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <img src={LOGO_URL} alt="Logo" style={{ width: '75px', margin: '0 auto 10px auto', display: 'block' }} crossOrigin="anonymous" />
+                  <h1 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Government of the People's Republic of Bangladesh</h1>
+                  <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>Office of the Register, Birth and Death Registration</p>
+                  
+                  {/* ২ লাইনে ঠিকানা */}
+                  <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
+                    <p style={{ margin: 0 }}>
+                      {safe(selectedApp.union_en || selectedApp.union_name)}
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '11px', margin: '5px 0 0 0', color: '#555' }}>(Rule 9, 10)</p>
                 </div>
                 
-                <div style={{ width: '150px', textAlign: 'right', marginTop: '10px' }}>
-                  {barcodeUrl && <img id="barcode-img" src={barcodeUrl} alt="Barcode" style={{ width: '160px', height: '50px' }} />}
+                {/* বারকোড */}
+                <div style={{ width: '150px', textAlign: 'right', marginTop: '15px' }}>
+                  {barcodeUrl && <img id="barcode-img" src={barcodeUrl} alt="Barcode" style={{ width: '150px', height: '45px' }} />}
                 </div>
               </div>
 
               {/* টাইটেল */}
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', textAlign: 'center', margin: '25px 0 25px 0', fontFamily: 'Noto Sans Bengali, Arial, sans-serif' }}>
+              <h2 style={{ fontSize: '21px', fontWeight: 'bold', textAlign: 'center', margin: '20px 0 25px 0', fontFamily: 'Noto Sans Bengali, Arial, sans-serif', color: '#111' }}>
                 জন্ম নিবন্ধন সনদ / Birth Registration Certificate
               </h2>
 
               {/* রেজিস্ট্রেশন নম্বর সেকশন */}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', fontSize: '12px' }}>
                 <div style={{ width: '30%' }}>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>Date of Registration</p>
-                  <p style={{ margin: 0 }}>{new Date().toLocaleDateString('en-GB')}</p>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Registration</p>
+                  <p style={{ margin: 0, color: '#444' }}>{new Date().toLocaleDateString('en-GB')}</p>
                 </div>
                 <div style={{ width: '40%', textAlign: 'center' }}>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>Birth Registration Number</p>
-                  <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{selectedApp.tracking_id}</p>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Birth Registration Number</p>
+                  <p style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#111' }}>{selectedApp.tracking_id}</p>
                 </div>
                 <div style={{ width: '30%', textAlign: 'right' }}>
-                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>Date of Issuance</p>
-                  <p style={{ margin: 0 }}>{new Date().toLocaleDateString('en-GB')}</p>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Issuance</p>
+                  <p style={{ margin: 0, color: '#444' }}>{new Date().toLocaleDateString('en-GB')}</p>
                 </div>
               </div>
 
               {/* ডাটা টেবিল */}
-              <div style={{ fontSize: '13px', lineHeight: '1.8' }}>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+              <div style={{ fontSize: '13px', lineHeight: '2', color: '#222' }}>
+                <div style={{ display: 'flex', marginBottom: '5px' }}>
                   <div style={{ width: '18%' }}>Date of Birth</div>
                   <div style={{ width: '35%' }}>: {selectedApp.dob}</div>
                   <div style={{ width: '12%' }}>Sex</div>
                   <div style={{ width: '35%' }}>: {selectedApp.gender === 'পুরুষ' ? 'Male' : selectedApp.gender === 'মহিলা' ? 'Female' : 'Hijra'}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '25px' }}>
+                <div style={{ display: 'flex', marginBottom: '20px' }}>
                   <div style={{ width: '18%' }}>In Word</div>
                   <div style={{ width: '82%' }}>: {dateToWords(selectedApp.dob)}</div>
                 </div>
 
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>নাম</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.first_name_bn} {selectedApp.last_name_bn}</div>
                   <div style={{ width: '15%' }}>Name</div>
                   <div style={{ width: '35%' }}>: {selectedApp.first_name_en} {selectedApp.last_name_en}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতা</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.mother_name_bn}</div>
                   <div style={{ width: '15%' }}>Mother</div>
                   <div style={{ width: '35%' }}>: {selectedApp.mother_name_en}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতার জাতীয়তা</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
                   <div style={{ width: '15%' }}>Nationality</div>
                   <div style={{ width: '35%' }}>: Bangladeshi</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতা</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.father_name_bn}</div>
                   <div style={{ width: '15%' }}>Father</div>
                   <div style={{ width: '35%' }}>: {selectedApp.father_name_en}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতার জাতীয়তা</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
                   <div style={{ width: '15%' }}>Nationality</div>
                   <div style={{ width: '35%' }}>: Bangladeshi</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
                   <div style={{ width: '15%' }}>Place of Birth</div>
                   <div style={{ width: '35%' }}>: {selectedApp.village_en}, {selectedApp.district_en || selectedApp.district}, Bangladesh</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div>
                   <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
                   <div style={{ width: '15%' }}>Permanent<br/>Address</div>
@@ -586,20 +599,20 @@ export default function Admin() {
               </div>
 
               {/* সিল ও সিগনেচার সেকশন */}
-              <div style={{ marginTop: '120px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+              <div style={{ marginTop: '100px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                 <div style={{ width: '40%' }}>
-                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0 }}>Seal & Signature</p>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Assistant to Registrar</p>
+                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#444' }}>Assistant to Registrar</p>
                 </div>
                 <div style={{ width: '40%', textAlign: 'right' }}>
-                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0 }}>Seal & Signature</p>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Registrar</p>
+                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#444' }}>Registrar</p>
                 </div>
               </div>
               
               {/* ফুটার টেক্সট */}
-              <div style={{ textAlign: 'center', fontSize: '9px', marginTop: '40px', color: '#444' }}>
-                This certificate is generated from bdns.gov.bd, and to verify this certificate, please scan the above QR Code & Bar Code.
+              <div style={{ textAlign: 'center', fontSize: '10px', marginTop: '40px', color: '#555', letterSpacing: '0.5px' }}>
+                This certificate is generated from bdris.gov.bd and to verify this certificate. please scan the above QR Code & Bar Code
               </div>
 
             </div>
