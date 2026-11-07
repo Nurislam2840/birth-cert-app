@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { generateBRN, checkTrackingIdExists } from '../lib/generateBRN';
 import CustomAlert from '../components/CustomAlert';
 
-const inputClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white";
-const selectClass = "w-full mt-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-700 bg-gray-50 focus:bg-white disabled:bg-gray-200 appearance-none cursor-pointer";
+// প্রফেশনাল ইনপুট স্টাইল
+const inputClass = "w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-800 bg-gray-50 focus:bg-white shadow-sm";
+const selectClass = "w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-800 bg-gray-50 focus:bg-white disabled:bg-gray-200 appearance-none cursor-pointer shadow-sm";
+
+// কাস্টম ড্রপডাউন আইকন (অ্যান্ড্রয়েডের ডিফল্ট UI সরানোর জন্য)
+const DropdownIcon = () => (
+  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+  </div>
+);
 
 const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   const currentDiv = formData[prefix].division;
@@ -21,47 +28,62 @@ const AddressFields = ({ prefix, formData, handleChange, locations }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       <div><label className="text-sm font-semibold text-gray-700">দেশ</label><input name={`${prefix}.country`} value={formData[prefix].country} onChange={handleChange} className={`${inputClass} bg-gray-200 cursor-not-allowed`} readOnly /></div>
-
+      
       <div>
         <label className="text-sm font-semibold text-gray-700">বিভাগ *</label>
-        <select name={`${prefix}.division`} value={formData[prefix].division} onChange={handleChange} className={selectClass}>
-          <option value="">-- নির্বাচন করুন --</option>
-          {availableDivisions.map(div => <option key={div} value={div}>{div}</option>)}
-        </select>
+        <div className="relative">
+          <select name={`${prefix}.division`} value={formData[prefix].division} onChange={handleChange} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableDivisions.map(div => <option key={div} value={div}>{div}</option>)}
+          </select>
+          <DropdownIcon />
+        </div>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">জেলা *</label>
-        <select name={`${prefix}.district`} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} className={selectClass}>
-          <option value="">-- নির্বাচন করুন --</option>
-          {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
-        </select>
+        <div className="relative">
+          <select name={`${prefix}.district`} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableDistricts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+          </select>
+          <DropdownIcon />
+        </div>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">উপজেলা/থানা *</label>
-        <select name={`${prefix}.upazila`} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} className={selectClass}>
-          <option value="">-- নির্বাচন করুন --</option>
-          {availableUpazilas.map(up => <option key={up} value={up}>{up}</option>)}
-        </select>
+        <div className="relative">
+          <select name={`${prefix}.upazila`} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableUpazilas.map(up => <option key={up} value={up}>{up}</option>)}
+          </select>
+          <DropdownIcon />
+        </div>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">এলাকার ধরন</label>
-        <select name={`${prefix}.areaType`} value={formData[prefix].areaType} onChange={handleChange} className={selectClass}>
-          <option value="ইউনিয়ন পরিষদ">ইউনিয়ন পরিষদ</option>
-          <option value="পৌরসভা">পৌরসভা</option>
-          <option value="সিটি কর্পোরেশন">সিটি কর্পোরেশন</option>
-          <option value="ক্যান্টনমেন্ট বোর্ড">ক্যান্টনমেন্ট বোর্ড</option>
-        </select>
+        <div className="relative">
+          <select name={`${prefix}.areaType`} value={formData[prefix].areaType} onChange={handleChange} className={selectClass}>
+            <option value="ইউনিয়ন পরিষদ">ইউনিয়ন পরিষদ</option>
+            <option value="পৌরসভা">পৌরসভা</option>
+            <option value="সিটি কর্পোরেশন">সিটি কর্পোরেশন</option>
+            <option value="ক্যান্টনমেন্ট বোর্ড">ক্যান্টনমেন্ট বোর্ড</option>
+          </select>
+          <DropdownIcon />
+        </div>
       </div>
 
       <div>
         <label className="text-sm font-semibold text-gray-700">ইউনিয়ন/পৌরসভা *</label>
-        <select name={`${prefix}.union`} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} className={selectClass}>
-          <option value="">-- নির্বাচন করুন --</option>
-          {availableUnions.map(un => <option key={un} value={un}>{un}</option>)}
-        </select>
+        <div className="relative">
+          <select name={`${prefix}.union`} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} className={selectClass}>
+            <option value="">-- নির্বাচন করুন --</option>
+            {availableUnions.map(un => <option key={un} value={un}>{un}</option>)}
+          </select>
+          <DropdownIcon />
+        </div>
       </div>
 
       <div><label className="text-sm font-semibold text-gray-700">ওয়ার্ড নং</label><input name={`${prefix}.ward`} value={formData[prefix].ward} onChange={handleChange} className={inputClass} /></div>
@@ -76,19 +98,7 @@ const AddressFields = ({ prefix, formData, handleChange, locations }) => {
 };
 
 const defaultAddress = {
-  country: 'বাংলাদেশ',
-  division: '',
-  district: '',
-  areaType: 'ইউনিয়ন পরিষদ',
-  upazila: '',
-  union: '',
-  ward: '',
-  postOfficeBn: '',
-  postOfficeEn: '',
-  villageBn: '',
-  villageEn: '',
-  houseRoadBn: '',
-  houseRoadEn: '',
+  country: 'বাংলাদেশ', division: '', district: '', areaType: 'ইউনিয়ন পরিষদ', upazila: '', union: '', ward: '', postOfficeBn: '', postOfficeEn: '', villageBn: '', villageEn: '', houseRoadBn: '', houseRoadEn: '',
 };
 
 export default function Apply() {
@@ -97,30 +107,27 @@ export default function Apply() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState([]);
-  const [submittedBrn, setSubmittedBrn] = useState(null);
+  
+  const [age, setAge] = useState(null);
+  const [submittedTrackingId, setSubmittedTrackingId] = useState(null); // সাবমিট হওয়া ট্র্যাকিং আইডি
 
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data, error }) => {
-      if (error || !data.user) {
-        router.push('/login');
-      } else {
-        setUser(data.user);
-      }
+      if (error || !data.user) router.push('/login');
+      else setUser(data.user);
     });
 
     const fetchLocations = async () => {
-      const { data, error } = await supabase.from('locations').select('*');
-      if (error) console.error("Locations Fetch Error:", error);
-      else setLocations(data || []);
+      const { data } = await supabase.from('locations').select('*');
+      setLocations(data || []);
     };
     fetchLocations();
   }, [router]);
 
   const [formData, setFormData] = useState({
-    firstNameBn: '', lastNameBn: '', firstNameEn: '', lastNameEn: '',
-    dob: '', childOrder: '', gender: '',
+    firstNameBn: '', lastNameBn: '', firstNameEn: '', lastNameEn: '', dob: '', childOrder: '', gender: '',
     birthAddress: { ...defaultAddress },
     fatherBrn: '', fatherDob: '', fatherNameBn: '', fatherNameEn: '', fatherNationality: 'বাংলাদেশী',
     motherBrn: '', motherDob: '', motherNameBn: '', motherNameEn: '', motherNationality: 'বাংলাদেশী',
@@ -128,9 +135,33 @@ export default function Apply() {
     permanentAddress: { ...defaultAddress },
   });
 
+  // বয়স গণনা ফাংশন
+  const calculateAge = (dob) => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    let days = today.getDate() - birthDate.getDate();
+
+    if (days < 0) {
+      months--;
+      days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    return { years, months, days };
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const val = type === 'checkbox' ? checked : value;
+
+    if (name === 'dob') {
+      setAge(calculateAge(val));
+    }
 
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
@@ -162,49 +193,27 @@ export default function Apply() {
     return true;
   };
 
-  const handleNext = () => {
-    if (validateStep(step)) setStep(step + 1);
-  };
+  const handleNext = () => { if (validateStep(step)) setStep(step + 1); };
 
   const handleSubmit = async () => {
-    if (!user) {
-      setAlertState({ isOpen: true, message: 'আপনি লগইন করা নেই। আবার লগইন করুন।', type: 'error' });
-      return;
-    }
+    if (!user) return setAlertState({ isOpen: true, message: 'আবার লগইন করুন।', type: 'error' });
     if (!validateStep(1) || !validateStep(2)) return;
-    if (!formData.permanentSame) {
-      const p = formData.permanentAddress;
-      if (!p.division || !p.district || !p.upazila || !p.union) {
-        setAlertState({ isOpen: true, message: 'স্থায়ী ঠিকানার বিভাগ, জেলা, উপজেলা ও ইউনিয়ন পূরণ করুন।', type: 'error' });
-        return;
-      }
-    }
 
     setLoading(true);
+
+    // ৬ ডিজিটের ইউনিক ট্র্যাকিং আইডি জেনারেট
+    const trackingId = Math.floor(100000 + Math.random() * 900000).toString();
 
     const birth = formData.birthAddress;
     const perm = formData.permanentSame ? formData.birthAddress : formData.permanentAddress;
 
-    const matchedLoc = locations.find(loc =>
-      loc.division_name === birth.division &&
-      loc.district_name === birth.district &&
-      loc.upazila_name === birth.upazila &&
-      loc.union_name === birth.union
+    const matchedLoc = locations.find(loc => 
+      loc.division_name === birth.division && loc.district_name === birth.district && loc.upazila_name === birth.upazila && loc.union_name === birth.union
     );
-
-    // Retry loop for unique tracking id
-    let brnNumber = generateBRN(formData);
-    let duplicateChecked = 0;
-    while (duplicateChecked < 5) {
-      const { exists } = await checkTrackingIdExists(supabase, brnNumber);
-      if (!exists) break;
-      brnNumber = generateBRN(formData, 0, duplicateChecked + 1);
-      duplicateChecked++;
-    }
 
     const payload = {
       user_id: user.id,
-      tracking_id: brnNumber,
+      tracking_id: trackingId,
       first_name_bn: formData.firstNameBn || null,
       last_name_bn: formData.lastNameBn || null,
       first_name_en: formData.firstNameEn || null,
@@ -242,57 +251,56 @@ export default function Apply() {
       permanent_district: perm.district || null,
       permanent_village_bn: perm.villageBn || null,
       permanent_village_en: perm.villageEn || null,
-      status: 'Pending',
+      status: 'Pending'
     };
 
     try {
       const { error } = await supabase.from('birth_applications').insert([payload]);
+      if (error) throw error;
 
-      if (error) {
-        setAlertState({
-          isOpen: true,
-          message: `এরর: ${error.message}${error.details ? `\nDetails: ${error.details}` : ''}${error.hint ? `\nHint: ${error.hint}` : ''}`,
-          type: 'error',
-        });
-      } else {
-        setSubmittedBrn(brnNumber);
-        setAlertState({
-          isOpen: true,
-          message: `সফলভাবে জমা হয়েছে!\nআপনার জন্ম নিবন্ধন নম্বর:\n${brnNumber}\n\nএই নম্বরটি সংরক্ষণ করুন।`,
-          type: 'success',
-        });
-      }
+      setSubmittedTrackingId(trackingId);
+      setAlertState({ isOpen: true, message: `সফলভাবে আবেদন জমা হয়েছে!\n\nআপনার ট্র্যাকিং নম্বর: ${trackingId}\n\nএই নম্বরটি সংরক্ষণ করুন।`, type: 'success' });
+
     } catch (err) {
-      setAlertState({ isOpen: true, message: 'সিস্টেম এরর: ' + (err?.message || err.toString()), type: 'error' });
+      setAlertState({ isOpen: true, message: 'সিস্টেম এরর: ' + err.message, type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAlertClose = () => {
-    setAlertState({ ...alertState, isOpen: false });
-    if (alertState.type === 'success') {
-      if (submittedBrn) {
-        const a = document.createElement('a');
-        a.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
-          `জন্ম নিবন্ধন নম্বর: ${submittedBrn}\nনাম: ${formData.firstNameBn} ${formData.lastNameBn}\nজন্ম তারিখ: ${formData.dob}`
-        )}`;
-        a.download = `BRN-${submittedBrn}.txt`;
-        // do not auto-download; let user use dashboard
-      }
-      router.push('/dashboard');
-    }
-  };
+  // সাবমিট সফল হলে এই স্ক্রিনটি দেখাবে
+  if (submittedTrackingId) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full text-center">
+          <div className="text-green-500 text-6xl mb-4">✔</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">আবেদন সফল হয়েছে!</h2>
+          <p className="text-gray-600 mb-6">আপনার ট্র্যাকিং নম্বর:</p>
+          <div className="bg-gray-100 p-4 rounded-lg font-mono text-3xl font-bold text-green-700 tracking-widest mb-6">
+            {submittedTrackingId}
+          </div>
+          <p className="text-xs text-gray-500 mb-6">এই নম্বরটি সংরক্ষণ করুন। এই নম্বর দিয়েই আপনি আপনার আবেদন ট্র্যাক করতে পারবেন।</p>
+          <Link href="/dashboard" className="block w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition shadow">
+            ড্যাশবোর্ডে যান
+          </Link>
+        </div>
+        <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        
+        {/* হেডার */}
         <div className="bg-green-700 p-5 flex justify-between items-center text-white">
           <Link href="/dashboard" className="text-sm bg-green-800 px-4 py-2 rounded-lg hover:bg-green-900 transition">← ড্যাশবোর্ড</Link>
           <h2 className="text-xl font-bold">জন্ম নিবন্ধন আবেদন</h2>
           <div className="w-16"></div>
         </div>
 
+        {/* স্টেপ ইন্ডিকেটর */}
         <div className="flex bg-gray-50 border-b">
           {[1, 2, 3].map((s) => (
             <div key={s} className={`flex-1 text-center py-3 text-sm font-semibold transition-colors ${step === s ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>
@@ -310,16 +318,30 @@ export default function Apply() {
                 <div><label className="text-sm font-semibold text-gray-700">নামের শেষ অংশ (বাংলা)</label><input name="lastNameBn" value={formData.lastNameBn} onChange={handleChange} placeholder="যেমন: ইমন" className={inputClass} /></div>
                 <div><label className="text-sm font-semibold text-gray-700">First Name (English)</label><input name="firstNameEn" value={formData.firstNameEn} onChange={handleChange} placeholder="MD" className={inputClass} /></div>
                 <div><label className="text-sm font-semibold text-gray-700">Last Name (English)</label><input name="lastNameEn" value={formData.lastNameEn} onChange={handleChange} placeholder="EMON" className={inputClass} /></div>
-                <div><label className="text-sm font-semibold text-gray-700">জন্ম তারিখ</label><input type="date" name="dob" value={formData.dob} onChange={handleChange} className={inputClass} /></div>
+                
+                {/* জন্ম তারিখ ও বয়স */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">জন্ম তারিখ *</label>
+                  <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={inputClass} />
+                  {age && (
+                    <p className="text-xs text-green-600 font-semibold mt-1">
+                      বয়স: {age.years} বছর, {age.months} মাস, {age.days} দিন
+                    </p>
+                  )}
+                </div>
+                
                 <div><label className="text-sm font-semibold text-gray-700">পিতা-মাতার কততম সন্তান</label><input type="number" name="childOrder" value={formData.childOrder} onChange={handleChange} placeholder="যেমন: ১" className={inputClass} /></div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700">লিঙ্গ</label>
-                  <select name="gender" value={formData.gender} onChange={handleChange} className={selectClass}>
-                    <option value="">নির্বাচন করুন</option>
-                    <option value="পুরুষ">পুরুষ</option>
-                    <option value="মহিলা">মহিলা</option>
-                    <option value="হিজড়া">হিজড়া</option>
-                  </select>
+                  <div className="relative">
+                    <select name="gender" value={formData.gender} onChange={handleChange} className={selectClass}>
+                      <option value="">নির্বাচন করুন</option>
+                      <option value="পুরুষ">পুরুষ</option>
+                      <option value="মহিলা">মহিলা</option>
+                      <option value="হিজড়া">হিজড়া</option>
+                    </select>
+                    <DropdownIcon />
+                  </div>
                 </div>
               </div>
 
@@ -382,12 +404,7 @@ export default function Apply() {
         </div>
       </div>
 
-      <CustomAlert
-        isOpen={alertState.isOpen}
-        message={alertState.message}
-        type={alertState.type}
-        onClose={handleAlertClose}
-      />
+      <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
     </div>
   );
 }

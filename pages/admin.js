@@ -475,14 +475,14 @@ export default function Admin() {
 
       <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
 
-      {/* 🟢 হিডেন ডিভ (QR ও বারকোড সহ, ছবির মতো হুবহু ডিজাইন) */}
+      {/* 🟢 হিডেন ডিভ (QR ও বারকোড সহ) */}
       {selectedApp && (
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
           <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
             
-            {/* ওয়াটারমার্ক */}
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.15, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
-              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '650px' }} crossOrigin="anonymous" />
+            {/* ওয়াটারমার্ক (বড় এবং হালকা করা হয়েছে) */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.08, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
+              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '750px' }} crossOrigin="anonymous" />
             </div>
 
             <div style={{ position: 'relative', zIndex: 1 }}>
@@ -541,58 +541,58 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* ডাটা টেবিল */}
+              {/* ডাটা টেবিল (কলামের মাঝে বেশি গ্যাপ দেওয়া হয়েছে) */}
               <div style={{ fontSize: '13px', lineHeight: '2', color: '#222' }}>
-                <div style={{ display: 'flex', marginBottom: '5px' }}>
-                  <div style={{ width: '18%' }}>Date of Birth</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.dob}</div>
-                  <div style={{ width: '12%' }}>Sex</div>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
+                  <div style={{ width: '20%' }}>Date of Birth</div>
+                  <div style={{ width: '30%' }}>: {selectedApp.dob}</div>
+                  <div style={{ width: '15%' }}>Sex</div>
                   <div style={{ width: '35%' }}>: {selectedApp.gender === 'পুরুষ' ? 'Male' : selectedApp.gender === 'মহিলা' ? 'Female' : 'Hijra'}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '20px' }}>
-                  <div style={{ width: '18%' }}>In Word</div>
-                  <div style={{ width: '82%' }}>: {dateToWords(selectedApp.dob)}</div>
+                <div style={{ display: 'flex', marginBottom: '25px' }}>
+                  <div style={{ width: '20%' }}>In Word</div>
+                  <div style={{ width: '80%' }}>: {dateToWords(selectedApp.dob)}</div>
                 </div>
 
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>নাম</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.first_name_bn} {selectedApp.last_name_bn}</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>নাম</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.first_name_bn} {selectedApp.last_name_bn}</div>
                   <div style={{ width: '15%' }}>Name</div>
                   <div style={{ width: '35%' }}>: {selectedApp.first_name_en} {selectedApp.last_name_en}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতা</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.mother_name_bn}</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.mother_name_bn}</div>
                   <div style={{ width: '15%' }}>Mother</div>
                   <div style={{ width: '35%' }}>: {selectedApp.mother_name_en}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতার জাতীয়তা</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতার জাতীয়তা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
                   <div style={{ width: '15%' }}>Nationality</div>
                   <div style={{ width: '35%' }}>: Bangladeshi</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতা</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.father_name_bn}</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.father_name_bn}</div>
                   <div style={{ width: '15%' }}>Father</div>
                   <div style={{ width: '35%' }}>: {selectedApp.father_name_en}</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতার জাতীয়তা</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতার জাতীয়তা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
                   <div style={{ width: '15%' }}>Nationality</div>
                   <div style={{ width: '35%' }}>: Bangladeshi</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
                   <div style={{ width: '15%' }}>Place of Birth</div>
                   <div style={{ width: '35%' }}>: {selectedApp.village_en}, {selectedApp.district_en || selectedApp.district}, Bangladesh</div>
                 </div>
-                <div style={{ display: 'flex', marginBottom: '8px' }}>
-                  <div style={{ width: '18%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div>
-                  <div style={{ width: '32%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
                   <div style={{ width: '15%' }}>Permanent<br/>Address</div>
                   <div style={{ width: '35%' }}>: {selectedApp.house_road_en}, {selectedApp.village_en}, {selectedApp.post_office_en}, {selectedApp.district_en || selectedApp.district}.</div>
                 </div>
