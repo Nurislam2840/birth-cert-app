@@ -65,14 +65,14 @@ export default function Admin() {
   const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '' });
   const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
+  // এডিট ও ডিলিট স্টেট
+  const [isEditLocOpen, setIsEditLocOpen] = useState(false);
+  const [editLocType, setEditLocType] = useState('');
+  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '' });
+
   // সার্টিফিকেট সেটিংস স্টেট
   const [certSettings, setCertSettings] = useState({
-    id: 1,
-    govt_name: '',
-    office_name: '',
-    rule_text: '',
-    qr_prefix: '',
-    footer_text: ''
+    id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: ''
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
@@ -131,7 +131,7 @@ export default function Admin() {
     } catch (err) { setDebugError('ডেটা লোডে সমস্যা: ' + err.message); }
   };
 
-  // লোকেশন অ্যাড ফাংশন
+  // লোকেশন অ্যাড
   const handleAddDivision = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('divisions').insert([newDiv]);
@@ -165,6 +165,37 @@ export default function Admin() {
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'ইউনিয়ন সেভ হয়েছে!', type: 'success' });
     setNewUni({ ...newUni, name_bn: '', name_en: '' });
+    fetchAllLocations();
+  };
+
+  // এডিট ও ডিলিট
+  const openEditLoc = (type, data) => {
+    setEditLocType(type);
+    setEditLocData(data);
+    setIsEditLocOpen(true);
+  };
+
+  const handleUpdateLoc = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase
+      .from(editLocType)
+      .update({ name_bn: editLocData.name_bn, name_en: editLocData.name_en })
+      .eq('id', editLocData.id);
+
+    if (error) return setDebugError('আপডেট ব্যর্থ: ' + error.message);
+    
+    setAlertState({ isOpen: true, message: 'সফলভাবে আপডেট হয়েছে!', type: 'success' });
+    setIsEditLocOpen(false);
+    fetchAllLocations();
+  };
+
+  const handleDeleteLoc = async (type, id) => {
+    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান? এর অধীনে থাকা জেলা/উপজেলা/ইউনিয়নগুলোও ডিলিট হয়ে যেতে পারে।')) return;
+    
+    const { error } = await supabase.from(type).delete().eq('id', id);
+    if (error) return setDebugError('ডিলিট ব্যর্থ: ' + error.message);
+    
+    setAlertState({ isOpen: true, message: 'ডিলিট করা হয়েছে!', type: 'success' });
     fetchAllLocations();
   };
 
@@ -344,8 +375,16 @@ export default function Admin() {
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Division (English)</label><input value={newDiv.name_en} onChange={e => setNewDiv({...newDiv, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
-                  <ul className="divide-y border rounded-lg">
-                    {divisions.map(d => <li key={d.id} className="p-3 flex justify-between"><span>{d.name_bn} ({d.name_en})</span></li>)}
+                  <ul className="divide-y border rounded-lg bg-white">
+                    {divisions.map(d => (
+                      <li key={d.id} className="p-3 flex justify-between items-center">
+                        <span>{d.name_bn} ({d.name_en})</span>
+                        <div className="flex gap-3">
+                          <button onClick={() => openEditLoc('divisions', d)} className="text-blue-600 text-sm font-bold hover:underline">এডিট</button>
+                          <button onClick={() => handleDeleteLoc('divisions', d.id)} className="text-red-600 text-sm font-bold hover:underline">ডিলিট</button>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -362,8 +401,16 @@ export default function Admin() {
                     <div className="flex-1 w-full"><label className="text-sm font-bold">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
-                  <ul className="divide-y border rounded-lg">
-                    {districts.map(d => <li key={d.id} className="p-3 flex justify-between"><span>{d.name_bn} ({d.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">বিভাগ ID: {d.division_id}</span></li>)}
+                  <ul className="divide-y border rounded-lg bg-white">
+                    {districts.map(d => (
+                      <li key={d.id} className="p-3 flex justify-between items-center">
+                        <span>{d.name_bn} ({d.name_en}) <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded ml-2">বিভাগ ID: {d.division_id}</span></span>
+                        <div className="flex gap-3">
+                          <button onClick={() => openEditLoc('districts', d)} className="text-blue-600 text-sm font-bold hover:underline">এডিট</button>
+                          <button onClick={() => handleDeleteLoc('districts', d.id)} className="text-red-600 text-sm font-bold hover:underline">ডিলিট</button>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -380,8 +427,16 @@ export default function Admin() {
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
-                  <ul className="divide-y border rounded-lg">
-                    {upazilas.map(u => <li key={u.id} className="p-3 flex justify-between"><span>{u.name_bn} ({u.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">জেলা ID: {u.district_id}</span></li>)}
+                  <ul className="divide-y border rounded-lg bg-white">
+                    {upazilas.map(u => (
+                      <li key={u.id} className="p-3 flex justify-between items-center">
+                        <span>{u.name_bn} ({u.name_en}) <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded ml-2">জেলা ID: {u.district_id}</span></span>
+                        <div className="flex gap-3">
+                          <button onClick={() => openEditLoc('upazilas', u)} className="text-blue-600 text-sm font-bold hover:underline">এডিট</button>
+                          <button onClick={() => handleDeleteLoc('upazilas', u.id)} className="text-red-600 text-sm font-bold hover:underline">ডিলিট</button>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -398,8 +453,16 @@ export default function Admin() {
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Union (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
-                  <ul className="divide-y border rounded-lg">
-                    {unions.map(u => <li key={u.id} className="p-3 flex justify-between"><span>{u.name_bn} ({u.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">উপজেলা ID: {u.upazila_id}</span></li>)}
+                  <ul className="divide-y border rounded-lg bg-white">
+                    {unions.map(u => (
+                      <li key={u.id} className="p-3 flex justify-between items-center">
+                        <span>{u.name_bn} ({u.name_en}) <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded ml-2">উপজেলা ID: {u.upazila_id}</span></span>
+                        <div className="flex gap-3">
+                          <button onClick={() => openEditLoc('unions', u)} className="text-blue-600 text-sm font-bold hover:underline">এডিট</button>
+                          <button onClick={() => handleDeleteLoc('unions', u.id)} className="text-red-600 text-sm font-bold hover:underline">ডিলিট</button>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -420,7 +483,7 @@ export default function Admin() {
                   <input value={certSettings.office_name || ''} onChange={(e) => setCertSettings({...certSettings, office_name: e.target.value})} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-sm font-bold">নিয়মাবলী (যেমন: Rule 9, 10)</label>
+                  <label className="text-sm font-bold">নিয়মাবলী (যেমন: Rule 9, 10)</label>
                   <input value={certSettings.rule_text || ''} onChange={(e) => setCertSettings({...certSettings, rule_text: e.target.value})} className={inputClass} />
                 </div>
                 <div>
@@ -441,6 +504,39 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* Location Edit Modal */}
+      {isEditLocOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[90] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">লোকেশন আপডেট করুন</h3>
+            <form onSubmit={handleUpdateLoc} className="space-y-4">
+              <div>
+                <label className="text-sm font-bold">নাম (বাংলা)</label>
+                <input 
+                  value={editLocData.name_bn || ''} 
+                  onChange={(e) => setEditLocData({ ...editLocData, name_bn: e.target.value })} 
+                  className={inputClass} 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold">Name (English)</label>
+                <input 
+                  value={editLocData.name_en || ''} 
+                  onChange={(e) => setEditLocData({ ...editLocData, name_en: e.target.value })} 
+                  className={inputClass} 
+                  required 
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button type="button" onClick={() => setIsEditLocOpen(false)} className="px-4 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500">বাতিল</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">আপডেট করুন</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* View Modal */}
       {isViewOpen && selectedApp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
@@ -459,29 +555,24 @@ export default function Admin() {
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
           <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
             
-            {/* ওয়াটারমার্ক */}
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.08, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
               <img src={WATERMARK_URL} alt="Watermark" style={{ width: '750px' }} crossOrigin="anonymous" />
             </div>
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               
-              {/* হেডার সেকশন */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 
-                {/* QR CODE */}
                 <div style={{ width: '120px', textAlign: 'center', marginTop: '10px' }}>
                   {qrCodeUrl && <img id="qr-img" src={qrCodeUrl} alt="QR" style={{ width: '110px', height: '110px', margin: '0 auto', display: 'block' }} />}
                   <p style={{ fontSize: '13px', marginTop: '8px', fontWeight: 'bold', letterSpacing: '1px', color: '#555' }}>{certSettings.qr_prefix}</p>
                 </div>
                 
-                {/* সেন্টার লোগো ও নাম */}
                 <div style={{ flex: 1, textAlign: 'center', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <img src={LOGO_URL} alt="Logo" style={{ width: '75px', margin: '0 auto 10px auto', display: 'block' }} crossOrigin="anonymous" />
                   <h1 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>{certSettings.govt_name}</h1>
                   <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>{certSettings.office_name}</p>
                   
-                  {/* ২ লাইনে ঠিকানা */}
                   <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
                     <p style={{ margin: 0 }}>
                       {safe(selectedApp.union_en || selectedApp.union_name)}
@@ -493,18 +584,15 @@ export default function Admin() {
                   <p style={{ fontSize: '11px', margin: '5px 0 0 0', color: '#555' }}>{certSettings.rule_text}</p>
                 </div>
                 
-                {/* বারকোড */}
                 <div style={{ width: '150px', textAlign: 'right', marginTop: '15px' }}>
                   {barcodeUrl && <img id="barcode-img" src={barcodeUrl} alt="Barcode" style={{ width: '150px', height: '45px' }} />}
                 </div>
               </div>
 
-              {/* টাইটেল */}
               <h2 style={{ fontSize: '21px', fontWeight: 'bold', textAlign: 'center', margin: '20px 0 25px 0', fontFamily: 'Noto Sans Bengali, Arial, sans-serif', color: '#111' }}>
                 জন্ম নিবন্ধন সনদ / Birth Registration Certificate
               </h2>
 
-              {/* রেজিস্ট্রেশন নম্বর সেকশন */}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', fontSize: '12px' }}>
                 <div style={{ width: '30%' }}>
                   <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Registration</p>
@@ -520,7 +608,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* ডাটা টেবিল */}
               <div style={{ fontSize: '13px', lineHeight: '2', color: '#222' }}>
                 <div style={{ display: 'flex', marginBottom: '8px' }}>
                   <div style={{ width: '20%' }}>Date of Birth</div>
@@ -577,7 +664,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* সিল ও সিগনেচার সেকশন */}
               <div style={{ marginTop: '100px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                 <div style={{ width: '40%' }}>
                   <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
@@ -589,7 +675,6 @@ export default function Admin() {
                 </div>
               </div>
               
-              {/* ফুটার টেক্সট */}
               <div style={{ textAlign: 'center', fontSize: '10px', marginTop: '40px', color: '#555', letterSpacing: '0.5px' }}>
                 {certSettings.footer_text}
               </div>
