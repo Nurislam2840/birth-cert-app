@@ -3,6 +3,7 @@ import { supabase, isAdmin, ASSETS_BUCKET_URL } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
+import CustomSelect from '../components/CustomSelect'; // 🟢 কাস্টম সিলেক্ট ইমপোর্ট
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import html2canvas from 'html2canvas';
@@ -143,6 +144,7 @@ export default function Admin() {
 
   const handleAddDistrict = async (e) => {
     e.preventDefault();
+    if (!newDist.division_id) return setDebugError('বিভাগ নির্বাচন করুন');
     const { error } = await supabase.from('districts').insert([{ ...newDist, division_id: parseInt(newDist.division_id) }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'জেলা সেভ হয়েছে!', type: 'success' });
@@ -152,6 +154,7 @@ export default function Admin() {
 
   const handleAddUpazila = async (e) => {
     e.preventDefault();
+    if (!newUpa.district_id) return setDebugError('জেলা নির্বাচন করুন');
     const { error } = await supabase.from('upazilas').insert([{ ...newUpa, district_id: parseInt(newUpa.district_id) }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'উপজেলা সেভ হয়েছে!', type: 'success' });
@@ -161,6 +164,7 @@ export default function Admin() {
 
   const handleAddUnion = async (e) => {
     e.preventDefault();
+    if (!newUni.upazila_id) return setDebugError('উপজেলা নির্বাচন করুন');
     const { error } = await supabase.from('unions').insert([{ ...newUni, upazila_id: parseInt(newUni.upazila_id) }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'ইউনিয়ন সেভ হয়েছে!', type: 'success' });
@@ -190,7 +194,7 @@ export default function Admin() {
   };
 
   const handleDeleteLoc = async (type, id) => {
-    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান? এর অধীনে থাকা জেলা/উপজেলা/ইউনিয়নগুলোও ডিলিট হয়ে যেতে পারে।')) return;
+    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান? এর অধীনে থাকা জেলা/উপজেলা/ইউনিয়নগুলোও ডিলিট হয়ে যেতে পারে।')) return;
     
     const { error } = await supabase.from(type).delete().eq('id', id);
     if (error) return setDebugError('ডিলিট ব্যর্থ: ' + error.message);
@@ -392,11 +396,16 @@ export default function Admin() {
               {locTab === 'districts' && (
                 <div>
                   <form onSubmit={handleAddDistrict} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
-                    <div className="flex-1 w-full"><label className="text-sm font-bold">বিভাগ</label>
-                    <select value={newDist.division_id} onChange={e => setNewDist({...newDist, division_id: e.target.value})} className={inputClass} required>
-                      <option value="">নির্বাচন করুন</option>
-                      {divisions.map(d => <option key={d.id} value={d.id}>{d.name_bn}</option>)}
-                    </select></div>
+                    <div className="flex-1 w-full">
+                      <label className="text-sm font-bold">বিভাগ</label>
+                      <CustomSelect 
+                        name="division_id"
+                        options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))}
+                        value={newDist.division_id}
+                        onChange={(e) => setNewDist({...newDist, division_id: e.target.value})}
+                        placeholder="বিভাগ নির্বাচন করুন"
+                      />
+                    </div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">জেলা (বাংলা)</label><input value={newDist.name_bn} onChange={e => setNewDist({...newDist, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
@@ -418,11 +427,16 @@ export default function Admin() {
               {locTab === 'upazilas' && (
                 <div>
                   <form onSubmit={handleAddUpazila} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
-                    <div className="flex-1 w-full"><label className="text-sm font-bold">জেলা</label>
-                    <select value={newUpa.district_id} onChange={e => setNewUpa({...newUpa, district_id: e.target.value})} className={inputClass} required>
-                      <option value="">নির্বাচন করুন</option>
-                      {districts.map(d => <option key={d.id} value={d.id}>{d.name_bn}</option>)}
-                    </select></div>
+                    <div className="flex-1 w-full">
+                      <label className="text-sm font-bold">জেলা</label>
+                      <CustomSelect 
+                        name="district_id"
+                        options={districts.map(d => ({ value: d.id.toString(), label: d.name_bn }))}
+                        value={newUpa.district_id}
+                        onChange={(e) => setNewUpa({...newUpa, district_id: e.target.value})}
+                        placeholder="জেলা নির্বাচন করুন"
+                      />
+                    </div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">উপজেলা (বাংলা)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
@@ -444,11 +458,16 @@ export default function Admin() {
               {locTab === 'unions' && (
                 <div>
                   <form onSubmit={handleAddUnion} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
-                    <div className="flex-1 w-full"><label className="text-sm font-bold">উপজেলা</label>
-                    <select value={newUni.upazila_id} onChange={e => setNewUni({...newUni, upazila_id: e.target.value})} className={inputClass} required>
-                      <option value="">নির্বাচন করুন</option>
-                      {upazilas.map(u => <option key={u.id} value={u.id}>{u.name_bn}</option>)}
-                    </select></div>
+                    <div className="flex-1 w-full">
+                      <label className="text-sm font-bold">উপজেলা</label>
+                      <CustomSelect 
+                        name="upazila_id"
+                        options={upazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))}
+                        value={newUni.upazila_id}
+                        onChange={(e) => setNewUni({...newUni, upazila_id: e.target.value})}
+                        placeholder="উপজেলা নির্বাচন করুন"
+                      />
+                    </div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={newUni.name_bn} onChange={e => setNewUni({...newUni, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Union (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
