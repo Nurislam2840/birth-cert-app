@@ -73,7 +73,7 @@ export default function Admin() {
 
   // সার্টিফিকেট সেটিংস স্টেট
   const [certSettings, setCertSettings] = useState({
-    id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: ''
+    id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: ''
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
@@ -103,7 +103,8 @@ export default function Admin() {
       office_name: certSettings.office_name,
       rule_text: certSettings.rule_text,
       qr_prefix: certSettings.qr_prefix,
-      footer_text: certSettings.footer_text
+      footer_text: certSettings.footer_text,
+      custom_union_name: certSettings.custom_union_name // 🟢 নতুন ফিল্ড আপডেট
     }).eq('id', 1);
 
     setIsSavingSettings(false);
@@ -509,6 +510,19 @@ export default function Admin() {
                   <label className="text-sm font-bold">QR কোডের নিচের লেখা (যেমন: AEIZ)</label>
                   <input value={certSettings.qr_prefix || ''} onChange={(e) => setCertSettings({...certSettings, qr_prefix: e.target.value})} className={inputClass} />
                 </div>
+                
+                {/* 🟢 কাস্টম ইউনিয়ন নাম ফিল্ড */}
+                <div className="md:col-span-2">
+                  <label className="text-sm font-bold">ইউনিয়ন/পৌরসভার কাস্টম নাম (ঐচ্ছিক)</label>
+                  <input 
+                    value={certSettings.custom_union_name || ''} 
+                    onChange={(e) => setCertSettings({...certSettings, custom_union_name: e.target.value})} 
+                    placeholder="যেমন: Sunamganj Pourashava (ফাঁকা রাখলে অটোমেটিক ডেটা আসবে)"
+                    className={inputClass} 
+                  />
+                  <p className="text-xs text-gray-500 mt-1">আপনি যদি এখানে নাম লেখেন, তবে সার্টিফিকেটে অ্যাপ্লিকেশন ডেটার বদলে এই নামটি দেখাবে।</p>
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="text-sm font-bold">ফুটার টেক্সট (সার্টিফিকেটের নিচে)</label>
                   <textarea rows="3" value={certSettings.footer_text || ''} onChange={(e) => setCertSettings({...certSettings, footer_text: e.target.value})} className={inputClass} />
@@ -593,8 +607,9 @@ export default function Admin() {
                   <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>{certSettings.office_name}</p>
                   
                   <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
+                    {/* 🟢 কাস্টম নাম থাকলে সেটি দেখাবে, নাহলে অটোমেটিক নাম */}
                     <p style={{ margin: 0 }}>
-                      {safe(selectedApp.union_en || selectedApp.union_name)}
+                      {certSettings.custom_union_name ? certSettings.custom_union_name : safe(selectedApp.union_en || selectedApp.union_name)}
                     </p>
                     <p style={{ margin: 0 }}>
                       {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
