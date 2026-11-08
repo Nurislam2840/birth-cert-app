@@ -577,9 +577,9 @@ export default function Admin() {
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
           <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
             
-            {/* ওয়াটারমার্ক (কম অপাসিটি, কিন্তু স্পষ্ট) */}
+            {/* 🟢 ওয়াটারমার্ক (আরও বড় করা হয়েছে) */}
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.12, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
-              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '750px' }} crossOrigin="anonymous" />
+              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '850px' }} crossOrigin="anonymous" />
             </div>
 
             <div style={{ position: 'relative', zIndex: 1 }}>
@@ -598,11 +598,11 @@ export default function Admin() {
                   <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>{certSettings.office_name}</p>
                   
                   <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
-                    {/* 🟢 কাস্টম নাম থাকলে কমা (,) এর আগের অংশটুকু দেখাবে */}
+                    {/* 🟢 কাস্টম নাম থাকলে সেটি দেখাবে, নাহলে ডেটাবেসের নাম থেকে কমা (,) এর আগের অংশটুকু দেখাবে */}
                     <p style={{ margin: 0 }}>
                       {certSettings.custom_union_name 
                         ? certSettings.custom_union_name.split(',')[0].trim() 
-                        : safe(selectedApp.union_en || selectedApp.union_name)}
+                        : (selectedApp.union_en || selectedApp.union_name || '').split(',')[0].trim()}
                     </p>
                     <p style={{ margin: 0 }}>
                       {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
@@ -679,15 +679,17 @@ export default function Admin() {
                 </div>
                 <div style={{ display: 'flex', marginBottom: '12px' }}>
                   <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
+                  {/* 🟢 village_bn এর ক্ষেত্রেও কমা চেক করা হচ্ছে */}
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {(selectedApp.village_bn || '').split(',')[0].trim()}, {safe(selectedApp.district)}, বাংলাদেশ</div>
                   <div style={{ width: '15%' }}>Place of Birth</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.village_en}, {selectedApp.district_en || selectedApp.district}, Bangladesh</div>
+                  <div style={{ width: '35%' }}>: {(selectedApp.village_en || '').split(',')[0].trim()}, {safe(selectedApp.district_en || selectedApp.district)}, Bangladesh</div>
                 </div>
                 <div style={{ display: 'flex', marginBottom: '12px' }}>
                   <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div>
-                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
+                  {/* 🟢 স্থায়ী ঠিকানার ক্ষেত্রেও কমা চেক করা হচ্ছে */}
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {(selectedApp.house_road_bn || '').split(',')[0].trim()}, {(selectedApp.village_bn || '').split(',')[0].trim()}, {safe(selectedApp.post_office_bn)}, {safe(selectedApp.district)}।</div>
                   <div style={{ width: '15%' }}>Permanent<br/>Address</div>
-                  <div style={{ width: '35%' }}>: {selectedApp.house_road_en}, {selectedApp.village_en}, {selectedApp.post_office_en}, {selectedApp.district_en || selectedApp.district}.</div>
+                  <div style={{ width: '35%' }}>: {(selectedApp.house_road_en || '').split(',')[0].trim()}, {(selectedApp.village_en || '').split(',')[0].trim()}, {safe(selectedApp.post_office_en)}, {safe(selectedApp.district_en || selectedApp.district)}.</div>
                 </div>
               </div>
 
