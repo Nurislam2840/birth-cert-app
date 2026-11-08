@@ -65,6 +65,17 @@ export default function Admin() {
   const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '' });
   const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
+  // সার্টিফিকেট সেটিংস স্টেট
+  const [certSettings, setCertSettings] = useState({
+    id: 1,
+    govt_name: '',
+    office_name: '',
+    rule_text: '',
+    qr_prefix: '',
+    footer_text: ''
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -72,10 +83,32 @@ export default function Admin() {
       setUser(user);
       await fetchApplications();
       await fetchAllLocations();
+      await fetchCertSettings();
       setLoading(false);
     };
     checkAdmin();
   }, []);
+
+  const fetchCertSettings = async () => {
+    const { data } = await supabase.from('certificate_settings').select('*').eq('id', 1).single();
+    if (data) setCertSettings(data);
+  };
+
+  const handleUpdateSettings = async (e) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    const { error } = await supabase.from('certificate_settings').update({
+      govt_name: certSettings.govt_name,
+      office_name: certSettings.office_name,
+      rule_text: certSettings.rule_text,
+      qr_prefix: certSettings.qr_prefix,
+      footer_text: certSettings.footer_text
+    }).eq('id', 1);
+
+    setIsSavingSettings(false);
+    if (error) return setDebugError('আপডেট ব্যর্থ: ' + error.message);
+    setAlertState({ isOpen: true, message: 'সেটিংস সফলভাবে আপডেট হয়েছে!', type: 'success' });
+  };
 
   const fetchAllLocations = async () => {
     const [divRes, distRes, upaRes, uniRes] = await Promise.all([
@@ -135,7 +168,7 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // PDF জেনারেশন (আগের মতোই)
+  // PDF জেনারেশন
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
     setProcessingIds(prev => new Set(prev).add(app.id));
@@ -203,7 +236,7 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  const inputClass = "w-full p-2 border border-gray-300 rounded-lg text-sm";
+  const inputClass = "w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white";
 
   if (loading) return <div className="text-center mt-20 text-lg font-bold">লোড হচ্ছে...</div>;
 
@@ -235,9 +268,10 @@ export default function Admin() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex border-b bg-white rounded-t-xl overflow-hidden mb-6">
-          <button onClick={() => setActiveTab('applications')} className={`px-6 py-4 font-bold text-sm ${activeTab === 'applications' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>আবেদনসমূহ</button>
-          <button onClick={() => setActiveTab('locations')} className={`px-6 py-4 font-bold text-sm ${activeTab === 'locations' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>লোকেশন ম্যানেজার</button>
+        <div className="flex border-b bg-white rounded-t-xl overflow-hidden mb-6 overflow-x-auto">
+          <button onClick={() => setActiveTab('applications')} className={`px-6 py-4 font-bold text-sm whitespace-nowrap ${activeTab === 'applications' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>আবেদনসমূহ</button>
+          <button onClick={() => setActiveTab('locations')} className={`px-6 py-4 font-bold text-sm whitespace-nowrap ${activeTab === 'locations' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>লোকেশন ম্যানেজার</button>
+          <button onClick={() => setActiveTab('settings')} className={`px-6 py-4 font-bold text-sm whitespace-nowrap ${activeTab === 'settings' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>সার্টিফিকেট সেটিংস</button>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -308,7 +342,7 @@ export default function Admin() {
                   <form onSubmit={handleAddDivision} className="flex flex-col md:flex-row gap-4 mb-6 items-end bg-gray-50 p-4 rounded-lg border">
                     <div className="flex-1 w-full"><label className="text-sm font-bold">বিভাগ (বাংলা)</label><input value={newDiv.name_bn} onChange={e => setNewDiv({...newDiv, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Division (English)</label><input value={newDiv.name_en} onChange={e => setNewDiv({...newDiv, name_en: e.target.value})} className={inputClass} required/></div>
-                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
                   <ul className="divide-y border rounded-lg">
                     {divisions.map(d => <li key={d.id} className="p-3 flex justify-between"><span>{d.name_bn} ({d.name_en})</span></li>)}
@@ -326,7 +360,7 @@ export default function Admin() {
                     </select></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">জেলা (বাংলা)</label><input value={newDist.name_bn} onChange={e => setNewDist({...newDist, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
-                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
                   <ul className="divide-y border rounded-lg">
                     {districts.map(d => <li key={d.id} className="p-3 flex justify-between"><span>{d.name_bn} ({d.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">বিভাগ ID: {d.division_id}</span></li>)}
@@ -344,7 +378,7 @@ export default function Admin() {
                     </select></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">উপজেলা (বাংলা)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
-                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
                   <ul className="divide-y border rounded-lg">
                     {upazilas.map(u => <li key={u.id} className="p-3 flex justify-between"><span>{u.name_bn} ({u.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">জেলা ID: {u.district_id}</span></li>)}
@@ -362,7 +396,7 @@ export default function Admin() {
                     </select></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">ইউনিয়ন/পৌরসভা (বাংলা)</label><input value={newUni.name_bn} onChange={e => setNewUni({...newUni, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold">Union (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} className={inputClass} required/></div>
-                    <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">যোগ করুন</button>
+                    <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700">যোগ করুন</button>
                   </form>
                   <ul className="divide-y border rounded-lg">
                     {unions.map(u => <li key={u.id} className="p-3 flex justify-between"><span>{u.name_bn} ({u.name_en})</span> <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">উপজেলা ID: {u.upazila_id}</span></li>)}
@@ -370,6 +404,39 @@ export default function Admin() {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <form onSubmit={handleUpdateSettings} className="space-y-6 bg-gray-50 p-6 rounded-lg border">
+              <h3 className="text-lg font-bold text-blue-800 border-b pb-2">সার্টিফিকেটের টেক্সট কাস্টমাইজ করুন</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold">সরকারি নাম (ইংরেজি)</label>
+                  <input value={certSettings.govt_name || ''} onChange={(e) => setCertSettings({...certSettings, govt_name: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-sm font-bold">অফিসের নাম (ইংরেজি)</label>
+                  <input value={certSettings.office_name || ''} onChange={(e) => setCertSettings({...certSettings, office_name: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-sm font-bold">নিয়মাবলী (যেমন: Rule 9, 10)</label>
+                  <input value={certSettings.rule_text || ''} onChange={(e) => setCertSettings({...certSettings, rule_text: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-sm font-bold">QR কোডের নিচের লেখা (যেমন: AEIZ)</label>
+                  <input value={certSettings.qr_prefix || ''} onChange={(e) => setCertSettings({...certSettings, qr_prefix: e.target.value})} className={inputClass} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-bold">ফুটার টেক্সট (সার্টিফিকেটের নিচে)</label>
+                  <textarea rows="3" value={certSettings.footer_text || ''} onChange={(e) => setCertSettings({...certSettings, footer_text: e.target.value})} className={inputClass} />
+                </div>
+              </div>
+              
+              <button type="submit" disabled={isSavingSettings} className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow disabled:bg-gray-400">
+                {isSavingSettings ? 'সেভ হচ্ছে...' : 'সেটিংস সেভ করুন'}
+              </button>
+            </form>
           )}
         </div>
       </div>
@@ -390,12 +457,144 @@ export default function Admin() {
       {/* Hidden PDF Template */}
       {selectedApp && (
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
-           {/* এখানে আপনার আগের দেওয়া সার্টিফিকেট ডিজাইনটি থাকবে (আমি নিচে শুধু একটি ডামি দিলাম, আপনি আগের ডিজাইনটি এখানে পেস্ট করবেন) */}
-          <div ref={printRef} style={{ width: '800px', padding: '50px', backgroundColor: '#fff' }}>
-            <h1>জন্ম নিবন্ধন সনদ</h1>
-            <p>নাম: {selectedApp.first_name_bn}</p>
-            <img src={qrCodeUrl} width="100" />
-            <img src={barcodeUrl} width="150" />
+          <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
+            
+            {/* ওয়াটারমার্ক */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.08, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
+              <img src={WATERMARK_URL} alt="Watermark" style={{ width: '750px' }} crossOrigin="anonymous" />
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              
+              {/* হেডার সেকশন */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                
+                {/* QR CODE */}
+                <div style={{ width: '120px', textAlign: 'center', marginTop: '10px' }}>
+                  {qrCodeUrl && <img id="qr-img" src={qrCodeUrl} alt="QR" style={{ width: '110px', height: '110px', margin: '0 auto', display: 'block' }} />}
+                  <p style={{ fontSize: '13px', marginTop: '8px', fontWeight: 'bold', letterSpacing: '1px', color: '#555' }}>{certSettings.qr_prefix}</p>
+                </div>
+                
+                {/* সেন্টার লোগো ও নাম */}
+                <div style={{ flex: 1, textAlign: 'center', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <img src={LOGO_URL} alt="Logo" style={{ width: '75px', margin: '0 auto 10px auto', display: 'block' }} crossOrigin="anonymous" />
+                  <h1 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>{certSettings.govt_name}</h1>
+                  <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>{certSettings.office_name}</p>
+                  
+                  {/* ২ লাইনে ঠিকানা */}
+                  <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
+                    <p style={{ margin: 0 }}>
+                      {safe(selectedApp.union_en || selectedApp.union_name)}
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '11px', margin: '5px 0 0 0', color: '#555' }}>{certSettings.rule_text}</p>
+                </div>
+                
+                {/* বারকোড */}
+                <div style={{ width: '150px', textAlign: 'right', marginTop: '15px' }}>
+                  {barcodeUrl && <img id="barcode-img" src={barcodeUrl} alt="Barcode" style={{ width: '150px', height: '45px' }} />}
+                </div>
+              </div>
+
+              {/* টাইটেল */}
+              <h2 style={{ fontSize: '21px', fontWeight: 'bold', textAlign: 'center', margin: '20px 0 25px 0', fontFamily: 'Noto Sans Bengali, Arial, sans-serif', color: '#111' }}>
+                জন্ম নিবন্ধন সনদ / Birth Registration Certificate
+              </h2>
+
+              {/* রেজিস্ট্রেশন নম্বর সেকশন */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', fontSize: '12px' }}>
+                <div style={{ width: '30%' }}>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Registration</p>
+                  <p style={{ margin: 0, color: '#444' }}>{new Date().toLocaleDateString('en-GB')}</p>
+                </div>
+                <div style={{ width: '40%', textAlign: 'center' }}>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Birth Registration Number</p>
+                  <p style={{ fontWeight: 'bold', fontSize: '16px', margin: 0, color: '#111' }}>{selectedApp.tracking_id}</p>
+                </div>
+                <div style={{ width: '30%', textAlign: 'right' }}>
+                  <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>Date of Issuance</p>
+                  <p style={{ margin: 0, color: '#444' }}>{new Date().toLocaleDateString('en-GB')}</p>
+                </div>
+              </div>
+
+              {/* ডাটা টেবিল */}
+              <div style={{ fontSize: '13px', lineHeight: '2', color: '#222' }}>
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
+                  <div style={{ width: '20%' }}>Date of Birth</div>
+                  <div style={{ width: '30%' }}>: {selectedApp.dob}</div>
+                  <div style={{ width: '15%' }}>Sex</div>
+                  <div style={{ width: '35%' }}>: {selectedApp.gender === 'পুরুষ' ? 'Male' : selectedApp.gender === 'মহিলা' ? 'Female' : 'Hijra'}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '25px' }}>
+                  <div style={{ width: '20%' }}>In Word</div>
+                  <div style={{ width: '80%' }}>: {dateToWords(selectedApp.dob)}</div>
+                </div>
+
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>নাম</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.first_name_bn} {selectedApp.last_name_bn}</div>
+                  <div style={{ width: '15%' }}>Name</div>
+                  <div style={{ width: '35%' }}>: {selectedApp.first_name_en} {selectedApp.last_name_en}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.mother_name_bn}</div>
+                  <div style={{ width: '15%' }}>Mother</div>
+                  <div style={{ width: '35%' }}>: {selectedApp.mother_name_en}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>মাতার জাতীয়তা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
+                  <div style={{ width: '15%' }}>Nationality</div>
+                  <div style={{ width: '35%' }}>: Bangladeshi</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.father_name_bn}</div>
+                  <div style={{ width: '15%' }}>Father</div>
+                  <div style={{ width: '35%' }}>: {selectedApp.father_name_en}</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>পিতার জাতীয়তা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: বাংলাদেশী</div>
+                  <div style={{ width: '15%' }}>Nationality</div>
+                  <div style={{ width: '35%' }}>: Bangladeshi</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>জন্মস্থান</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.village_bn}, {selectedApp.district}, বাংলাদেশ</div>
+                  <div style={{ width: '15%' }}>Place of Birth</div>
+                  <div style={{ width: '35%' }}>: {selectedApp.village_en}, {selectedApp.district_en || selectedApp.district}, Bangladesh</div>
+                </div>
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                  <div style={{ width: '20%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>স্থায়ী ঠিকানা</div>
+                  <div style={{ width: '30%', fontFamily: 'Noto Sans Bengali, sans-serif' }}>: {selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.district}।</div>
+                  <div style={{ width: '15%' }}>Permanent<br/>Address</div>
+                  <div style={{ width: '35%' }}>: {selectedApp.house_road_en}, {selectedApp.village_en}, {selectedApp.post_office_en}, {selectedApp.district_en || selectedApp.district}.</div>
+                </div>
+              </div>
+
+              {/* সিল ও সিগনেচার সেকশন */}
+              <div style={{ marginTop: '100px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <div style={{ width: '40%' }}>
+                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#444' }}>Assistant to Registrar</p>
+                </div>
+                <div style={{ width: '40%', textAlign: 'right' }}>
+                  <p style={{ fontWeight: 'bold', borderTop: '1px solid #000', paddingTop: '8px', display: 'inline-block', margin: 0, color: '#111' }}>Seal & Signature</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#444' }}>Registrar</p>
+                </div>
+              </div>
+              
+              {/* ফুটার টেক্সট */}
+              <div style={{ textAlign: 'center', fontSize: '10px', marginTop: '40px', color: '#555', letterSpacing: '0.5px' }}>
+                {certSettings.footer_text}
+              </div>
+
+            </div>
           </div>
         </div>
       )}
