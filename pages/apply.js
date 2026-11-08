@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
-import CustomSelect from '../components/CustomSelect'; // 🟢 কাস্টম সিলেক্ট ইমপোর্ট
+import CustomSelect from '../components/CustomSelect'; 
 
 const inputClass = "w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-800 bg-gray-50 focus:bg-white shadow-sm";
 const Req = () => <span className="text-red-500 ml-1">*</span>;
@@ -13,7 +13,6 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
   const currentDist = formData[prefix].district;
   const currentUpazila = formData[prefix].upazila;
 
-  // ফিল্টার করা ডাটা
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   const availableUnions = currentUpazila ? unions.filter(un => un.upazila_id.toString() === currentUpazila) : [];
@@ -88,6 +87,8 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
       <div><label className="text-sm font-bold text-black">গ্রাম/পাড়া/মহল্লা <Req /></label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn} onChange={handleChange} className={inputClass} /></div>
       <div><label className="text-sm font-bold text-black">গ্রাম/পাড়া/মহল্লা (ইংরেজি) <Req /></label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn} onChange={handleChange} className={inputClass} /></div>
       <div><label className="text-sm font-bold text-black">বাসা ও সড়ক (নাম, নম্বর)</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn} onChange={handleChange} className={inputClass} /></div>
+      {/* 🟢 নতুন ইংরেজি বাসা ও সড়ক বক্স */}
+      <div><label className="text-sm font-bold text-black">বাসা ও সড়ক (ইংরেজি)</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn} onChange={handleChange} className={inputClass} /></div>
     </div>
   );
 };
@@ -102,7 +103,6 @@ export default function Apply() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   
-  // লোকেশন ডাটা
   const [divisions, setDivisions] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
@@ -201,7 +201,6 @@ export default function Apply() {
     const birth = formData.birthAddress;
     const perm = formData.permanentSame ? formData.birthAddress : formData.permanentAddress;
 
-    // লোকেশন আইডি থেকে নাম বের করা
     const selDiv = divisions.find(d => d.id.toString() === birth.division);
     const selDist = districts.find(d => d.id.toString() === birth.district);
     const selUpa = upazilas.find(u => u.id.toString() === birth.upazila);

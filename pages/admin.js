@@ -3,7 +3,7 @@ import { supabase, isAdmin, ASSETS_BUCKET_URL } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
-import CustomSelect from '../components/CustomSelect'; // 🟢 কাস্টম সিলেক্ট ইমপোর্ট
+import CustomSelect from '../components/CustomSelect'; 
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import html2canvas from 'html2canvas';
@@ -104,7 +104,7 @@ export default function Admin() {
       rule_text: certSettings.rule_text,
       qr_prefix: certSettings.qr_prefix,
       footer_text: certSettings.footer_text,
-      custom_union_name: certSettings.custom_union_name // 🟢 নতুন ফিল্ড আপডেট
+      custom_union_name: certSettings.custom_union_name
     }).eq('id', 1);
 
     setIsSavingSettings(false);
@@ -511,13 +511,12 @@ export default function Admin() {
                   <input value={certSettings.qr_prefix || ''} onChange={(e) => setCertSettings({...certSettings, qr_prefix: e.target.value})} className={inputClass} />
                 </div>
                 
-                {/* 🟢 কাস্টম ইউনিয়ন নাম ফিল্ড */}
                 <div className="md:col-span-2">
                   <label className="text-sm font-bold">ইউনিয়ন/পৌরসভার কাস্টম নাম (ঐচ্ছিক)</label>
                   <input 
                     value={certSettings.custom_union_name || ''} 
                     onChange={(e) => setCertSettings({...certSettings, custom_union_name: e.target.value})} 
-                    placeholder="যেমন: Sunamganj Pourashava (ফাঁকা রাখলে অটোমেটিক ডেটা আসবে)"
+                    placeholder="যেমন: Sunamganj Paurashava (ফাঁকা রাখলে অটোমেটিক ডেটা আসবে)"
                     className={inputClass} 
                   />
                   <p className="text-xs text-gray-500 mt-1">আপনি যদি এখানে নাম লেখেন, তবে সার্টিফিকেটে অ্যাপ্লিকেশন ডেটার বদলে এই নামটি দেখাবে।</p>
@@ -545,21 +544,11 @@ export default function Admin() {
             <form onSubmit={handleUpdateLoc} className="space-y-4">
               <div>
                 <label className="text-sm font-bold">নাম (বাংলা)</label>
-                <input 
-                  value={editLocData.name_bn || ''} 
-                  onChange={(e) => setEditLocData({ ...editLocData, name_bn: e.target.value })} 
-                  className={inputClass} 
-                  required 
-                />
+                <input value={editLocData.name_bn || ''} onChange={(e) => setEditLocData({ ...editLocData, name_bn: e.target.value })} className={inputClass} required />
               </div>
               <div>
                 <label className="text-sm font-bold">Name (English)</label>
-                <input 
-                  value={editLocData.name_en || ''} 
-                  onChange={(e) => setEditLocData({ ...editLocData, name_en: e.target.value })} 
-                  className={inputClass} 
-                  required 
-                />
+                <input value={editLocData.name_en || ''} onChange={(e) => setEditLocData({ ...editLocData, name_en: e.target.value })} className={inputClass} required />
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsEditLocOpen(false)} className="px-4 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500">বাতিল</button>
@@ -588,7 +577,8 @@ export default function Admin() {
         <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
           <div ref={printRef} style={{ width: '800px', minHeight: '1130px', padding: '50px 60px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'Arial, sans-serif', position: 'relative', boxSizing: 'border-box' }}>
             
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.08, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
+            {/* ওয়াটারমার্ক (কম অপাসিটি, কিন্তু স্পষ্ট) */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', opacity: 0.12, zIndex: 0, pointerEvents: 'none', textAlign: 'center' }}>
               <img src={WATERMARK_URL} alt="Watermark" style={{ width: '750px' }} crossOrigin="anonymous" />
             </div>
 
@@ -603,13 +593,16 @@ export default function Admin() {
                 
                 <div style={{ flex: 1, textAlign: 'center', padding: '0 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <img src={LOGO_URL} alt="Logo" style={{ width: '75px', margin: '0 auto 10px auto', display: 'block' }} crossOrigin="anonymous" />
-                  <h1 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#333' }}>{certSettings.govt_name}</h1>
+                  {/* 🟢 সরকারি নাম এক লাইনে */}
+                  <h1 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#333', whiteSpace: 'nowrap' }}>{certSettings.govt_name}</h1>
                   <p style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#444' }}>{certSettings.office_name}</p>
                   
                   <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
-                    {/* 🟢 কাস্টম নাম থাকলে সেটি দেখাবে, নাহলে অটোমেটিক নাম */}
+                    {/* 🟢 কাস্টম নাম থাকলে কমা (,) এর আগের অংশটুকু দেখাবে */}
                     <p style={{ margin: 0 }}>
-                      {certSettings.custom_union_name ? certSettings.custom_union_name : safe(selectedApp.union_en || selectedApp.union_name)}
+                      {certSettings.custom_union_name 
+                        ? certSettings.custom_union_name.split(',')[0].trim() 
+                        : safe(selectedApp.union_en || selectedApp.union_name)}
                     </p>
                     <p style={{ margin: 0 }}>
                       {safe(selectedApp.upazila_en || selectedApp.city_corp)}, {safe(selectedApp.district_en || selectedApp.district)}
