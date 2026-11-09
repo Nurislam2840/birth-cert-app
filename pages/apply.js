@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
 import CustomSelect from '../components/CustomSelect'; 
+import { generate17DigitBRN } from '../lib/generateBRN'; // 🟢 ১৭ ডিজিট জেনারেটর ইমপোর্ট
 
 const inputClass = "w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-800 bg-gray-50 focus:bg-white shadow-sm";
 const Req = () => <span className="text-red-500 ml-1">*</span>;
@@ -87,7 +88,6 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
       <div><label className="text-sm font-bold text-black">গ্রাম/পাড়া/মহল্লা <Req /></label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn} onChange={handleChange} className={inputClass} /></div>
       <div><label className="text-sm font-bold text-black">গ্রাম/পাড়া/মহল্লা (ইংরেজি) <Req /></label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn} onChange={handleChange} className={inputClass} /></div>
       <div><label className="text-sm font-bold text-black">বাসা ও সড়ক (নাম, নম্বর)</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn} onChange={handleChange} className={inputClass} /></div>
-      {/* 🟢 নতুন ইংরেজি বাসা ও সড়ক বক্স */}
       <div><label className="text-sm font-bold text-black">বাসা ও সড়ক (ইংরেজি)</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn} onChange={handleChange} className={inputClass} /></div>
     </div>
   );
@@ -197,18 +197,23 @@ export default function Apply() {
     if (!validateStep(1) || !validateStep(2)) return;
 
     setLoading(true);
-    const trackingId = Math.floor(100000 + Math.random() * 900000).toString();
+    
     const birth = formData.birthAddress;
     const perm = formData.permanentSame ? formData.birthAddress : formData.permanentAddress;
 
-    const selDiv = divisions.find(d => d.id.toString() === birth.division);
+    // 🟢 ১৭ ডিজিটের নম্বর জেনারেট করা
     const selDist = districts.find(d => d.id.toString() === birth.district);
     const selUpa = upazilas.find(u => u.id.toString() === birth.upazila);
     const selUni = unions.find(u => u.id.toString() === birth.union);
+    
+    const birthYear = formData.dob ? formData.dob.split('-')[0] : '';
+    const trackingId = generate17DigitBRN(birthYear, selDist?.name_bn, selUpa?.name_bn, selUni?.name_bn);
+
+    const selDiv = divisions.find(d => d.id.toString() === birth.division);
 
     const payload = {
       user_id: user.id,
-      tracking_id: trackingId,
+      tracking_id: trackingId, // 🟢 ১৭ ডিজিটের নম্বর সেভ হচ্ছে
       first_name_bn: formData.firstNameBn || null,
       last_name_bn: formData.lastNameBn || null,
       first_name_en: formData.firstNameEn || null,
@@ -254,7 +259,7 @@ export default function Apply() {
       if (error) throw error;
 
       setSubmittedTrackingId(trackingId);
-      setAlertState({ isOpen: true, message: `সফলভাবে আবেদন জমা হয়েছে!\n\nআপনার ট্র্যাকিং নম্বর: ${trackingId}\n\nএই নম্বরটি সংরক্ষণ করুন।`, type: 'success' });
+      setAlertState({ isOpen: true, message: `সফলভাবে আবেদন জমা হয়েছে!\n\nআপনার জন্ম নিবন্ধন নম্বর:\n${trackingId}\n\nএই নম্বরটি সংরক্ষণ করুন।`, type: 'success' });
 
     } catch (err) {
       setAlertState({ isOpen: true, message: 'সিস্টেম এরর: ' + err.message, type: 'error' });
@@ -269,8 +274,8 @@ export default function Apply() {
         <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full text-center">
           <div className="text-green-500 text-6xl mb-4">✔</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">আবেদন সফল হয়েছে!</h2>
-          <p className="text-gray-600 mb-6">আপনার ট্র্যাকিং নম্বর:</p>
-          <div className="bg-gray-100 p-4 rounded-lg font-mono text-3xl font-bold text-green-700 tracking-widest mb-6">
+          <p className="text-gray-600 mb-6">আপনার জন্ম নিবন্ধন নম্বর:</p>
+          <div className="bg-gray-100 p-4 rounded-lg font-mono text-2xl font-bold text-green-700 tracking-widest mb-6 break-all">
             {submittedTrackingId}
           </div>
           <p className="text-xs text-gray-500 mb-6">এই নম্বরটি সংরক্ষণ করুন। এই নম্বর দিয়েই আপনি আপনার আবেদন ট্র্যাক করতে পারবেন।</p>
