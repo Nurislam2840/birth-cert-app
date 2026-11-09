@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
 import CustomSelect from '../components/CustomSelect'; 
-import { generate17DigitBRN } from '../lib/generateBRN'; // 🟢 ১৭ ডিজিট জেনারেটর ইমপোর্ট
+import { generate17DigitBRN } from '../lib/generateBRN';
 
 const inputClass = "w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-800 bg-gray-50 focus:bg-white shadow-sm";
 const Req = () => <span className="text-red-500 ml-1">*</span>;
@@ -197,23 +197,28 @@ export default function Apply() {
     if (!validateStep(1) || !validateStep(2)) return;
 
     setLoading(true);
-    
     const birth = formData.birthAddress;
     const perm = formData.permanentSame ? formData.birthAddress : formData.permanentAddress;
 
-    // 🟢 ১৭ ডিজিটের নম্বর জেনারেট করা
+    const selDiv = divisions.find(d => d.id.toString() === birth.division);
     const selDist = districts.find(d => d.id.toString() === birth.district);
     const selUpa = upazilas.find(u => u.id.toString() === birth.upazila);
     const selUni = unions.find(u => u.id.toString() === birth.union);
     
     const birthYear = formData.dob ? formData.dob.split('-')[0] : '';
-    const trackingId = generate17DigitBRN(birthYear, selDist?.name_bn, selUpa?.name_bn, selUni?.name_bn);
-
-    const selDiv = divisions.find(d => d.id.toString() === birth.division);
+    
+    // 🟢 ১৭ ডিজিটের নম্বর জেনারেট (ডেটাবেস থেকে কোড সহ)
+    const trackingId = generate17DigitBRN(
+      birthYear, 
+      selDist?.code, 
+      selUpa?.code, 
+      selUni?.name_bn, 
+      birth.ward
+    );
 
     const payload = {
       user_id: user.id,
-      tracking_id: trackingId, // 🟢 ১৭ ডিজিটের নম্বর সেভ হচ্ছে
+      tracking_id: trackingId,
       first_name_bn: formData.firstNameBn || null,
       last_name_bn: formData.lastNameBn || null,
       first_name_en: formData.firstNameEn || null,

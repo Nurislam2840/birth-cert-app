@@ -62,14 +62,14 @@ export default function Admin() {
   const [unions, setUnions] = useState([]);
 
   const [newDiv, setNewDiv] = useState({ name_bn: '', name_en: '' });
-  const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '' });
-  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '' });
+  const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '', code: '' }); // 🟢 code যোগ করা হয়েছে
+  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '' }); // 🟢 code যোগ করা হয়েছে
   const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
   // এডিট ও ডিলিট স্টেট
   const [isEditLocOpen, setIsEditLocOpen] = useState(false);
   const [editLocType, setEditLocType] = useState('');
-  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '' });
+  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' }); // 🟢 code যোগ করা হয়েছে
 
   // সার্টিফিকেট সেটিংস স্টেট
   const [certSettings, setCertSettings] = useState({
@@ -133,7 +133,6 @@ export default function Admin() {
     } catch (err) { setDebugError('ডেটা লোডে সমস্যা: ' + err.message); }
   };
 
-  // 🟢 নতুন: আবেদন ডিলিট করার ফাংশন
   const handleDeleteApplication = async (id) => {
     if (!window.confirm('আপনি কি নিশ্চিতভাবে এই আবেদনটি চিরতরে ডিলিট করতে চান? এর সাথে সম্পর্কিত সার্টিফিকেটও মুছে যেতে পারে।')) return;
     
@@ -142,7 +141,7 @@ export default function Admin() {
       if (error) throw error;
       
       setApplications(prev => prev.filter(app => app.id !== id));
-      setIsViewOpen(false); // মোডাল বন্ধ করা হলো
+      setIsViewOpen(false);
       setAlertState({ isOpen: true, message: 'আবেদনটি সফলভাবে ডিলিট করা হয়েছে!', type: 'success' });
     } catch (err) {
       setDebugError('ডিলিট ব্যর্থ: ' + err.message);
@@ -165,7 +164,7 @@ export default function Admin() {
     const { error } = await supabase.from('districts').insert([{ ...newDist, division_id: parseInt(newDist.division_id) }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'জেলা সেভ হয়েছে!', type: 'success' });
-    setNewDist({ ...newDist, name_bn: '', name_en: '' });
+    setNewDist({ ...newDist, name_bn: '', name_en: '', code: '' });
     fetchAllLocations();
   };
 
@@ -175,7 +174,7 @@ export default function Admin() {
     const { error } = await supabase.from('upazilas').insert([{ ...newUpa, district_id: parseInt(newUpa.district_id) }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'উপজেলা সেভ হয়েছে!', type: 'success' });
-    setNewUpa({ ...newUpa, name_bn: '', name_en: '' });
+    setNewUpa({ ...newUpa, name_bn: '', name_en: '', code: '' });
     fetchAllLocations();
   };
 
@@ -198,9 +197,14 @@ export default function Admin() {
 
   const handleUpdateLoc = async (e) => {
     e.preventDefault();
+    const updateData = { name_bn: editLocData.name_bn, name_en: editLocData.name_en };
+    if (editLocType === 'districts' || editLocType === 'upazilas') {
+      updateData.code = editLocData.code; // 🟢 কোড আপডেট করা হচ্ছে
+    }
+
     const { error } = await supabase
       .from(editLocType)
-      .update({ name_bn: editLocData.name_bn, name_en: editLocData.name_en })
+      .update(updateData)
       .eq('id', editLocData.id);
 
     if (error) return setDebugError('আপডেট ব্যর্থ: ' + error.message);
@@ -305,7 +309,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 🟢 প্রফেশনাল নেভবার */}
       <nav className="bg-gray-900 text-white shadow-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -325,7 +328,6 @@ export default function Admin() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         
-        {/* 🟢 প্রফেশনাল ট্যাব মেনু */}
         <div className="flex bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-200">
           <button onClick={() => setActiveTab('applications')} className={`flex-1 md:flex-none px-6 py-4 font-bold text-sm transition-all ${activeTab === 'applications' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Applications</button>
           <button onClick={() => setActiveTab('locations')} className={`flex-1 md:flex-none px-6 py-4 font-bold text-sm transition-all ${activeTab === 'locations' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Location Manager</button>
@@ -435,12 +437,13 @@ export default function Admin() {
                     </div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">District (Bangla)</label><input value={newDist.name_bn} onChange={e => setNewDist({...newDist, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">District Code (2 Digits)</label><input value={newDist.code || ''} onChange={e => setNewDist({...newDist, code: e.target.value})} placeholder="e.g. 90" className={inputClass} /></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">Add District</button>
                   </form>
                   <ul className="divide-y border rounded-xl bg-white shadow-sm">
                     {districts.map(d => (
                       <li key={d.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                        <span className="font-medium text-gray-800">{d.name_bn} <span className="text-gray-400 text-sm">({d.name_en})</span> <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2">Div ID: {d.division_id}</span></span>
+                        <span className="font-medium text-gray-800">{d.name_bn} <span className="text-gray-400 text-sm">({d.name_en})</span> <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2">Code: {d.code || 'N/A'}</span></span>
                         <div className="flex gap-3">
                           <button onClick={() => openEditLoc('districts', d)} className="text-blue-600 text-sm font-bold hover:underline">Edit</button>
                           <button onClick={() => handleDeleteLoc('districts', d.id)} className="text-red-600 text-sm font-bold hover:underline">Delete</button>
@@ -466,12 +469,13 @@ export default function Admin() {
                     </div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Upazila (Bangla)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Upazila Code (2 Digits)</label><input value={newUpa.code || ''} onChange={e => setNewUpa({...newUpa, code: e.target.value})} placeholder="e.g. 89" className={inputClass} /></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">Add Upazila</button>
                   </form>
                   <ul className="divide-y border rounded-xl bg-white shadow-sm">
                     {upazilas.map(u => (
                       <li key={u.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                        <span className="font-medium text-gray-800">{u.name_bn} <span className="text-gray-400 text-sm">({u.name_en})</span> <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2">Dist ID: {u.district_id}</span></span>
+                        <span className="font-medium text-gray-800">{u.name_bn} <span className="text-gray-400 text-sm">({u.name_en})</span> <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded ml-2">Code: {u.code || 'N/A'}</span></span>
                         <div className="flex gap-3">
                           <button onClick={() => openEditLoc('upazilas', u)} className="text-blue-600 text-sm font-bold hover:underline">Edit</button>
                           <button onClick={() => handleDeleteLoc('upazilas', u.id)} className="text-red-600 text-sm font-bold hover:underline">Delete</button>
@@ -576,6 +580,12 @@ export default function Admin() {
                 <label className="text-sm font-bold text-gray-700">Name (English)</label>
                 <input value={editLocData.name_en || ''} onChange={(e) => setEditLocData({ ...editLocData, name_en: e.target.value })} className={inputClass} required />
               </div>
+              {(editLocType === 'districts' || editLocType === 'upazilas') && (
+                <div>
+                  <label className="text-sm font-bold text-gray-700">Code (2 Digits)</label>
+                  <input value={editLocData.code || ''} onChange={(e) => setEditLocData({ ...editLocData, code: e.target.value })} className={inputClass} />
+                </div>
+              )}
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsEditLocOpen(false)} className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition">Cancel</button>
                 <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-md">Update</button>
@@ -585,12 +595,11 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 🟢 প্রফেশনাল View Modal */}
+      {/* View Modal */}
       {isViewOpen && selectedApp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             
-            {/* Modal Header */}
             <div className="flex justify-between items-center p-5 border-b bg-gray-50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
@@ -606,11 +615,9 @@ export default function Admin() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                {/* Personal Info */}
                 <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                   <h4 className="text-sm font-bold text-blue-700 border-b pb-2 mb-3 uppercase tracking-wide">Applicant Information</h4>
                   <div className="space-y-2 text-sm">
@@ -622,7 +629,6 @@ export default function Admin() {
                   </div>
                 </div>
 
-                {/* Parents Info */}
                 <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                   <h4 className="text-sm font-bold text-blue-700 border-b pb-2 mb-3 uppercase tracking-wide">Parent's Information</h4>
                   <div className="space-y-2 text-sm">
@@ -633,7 +639,6 @@ export default function Admin() {
                   </div>
                 </div>
 
-                {/* Address Info */}
                 <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 md:col-span-2">
                   <h4 className="text-sm font-bold text-blue-700 border-b pb-2 mb-3 uppercase tracking-wide">Address Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -652,7 +657,6 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Modal Footer / Actions */}
             <div className="p-5 border-t bg-gray-50 flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-gray-600">Status:</span>
