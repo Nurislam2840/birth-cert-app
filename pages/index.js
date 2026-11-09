@@ -17,19 +17,42 @@ export default function Home() {
     };
     checkUser();
 
-    // Load real stats from DB
+    // 🟢 লাইভ কাউন্ট ডেটা লোড
     const loadStats = async () => {
       try {
-        const [totalRes, approvedRes] = await Promise.all([
+        const [appsRes, approvedRes, divRes, distRes, upaRes, uniRes] = await Promise.all([
           supabase.from('birth_applications').select('id', { count: 'exact', head: true }),
           supabase.from('birth_applications').select('id', { count: 'exact', head: true }).eq('status', 'Approved'),
+          supabase.from('divisions').select('id', { count: 'exact', head: true }),
+          supabase.from('districts').select('id', { count: 'exact', head: true }),
+          supabase.from('upazilas').select('id', { count: 'exact', head: true }),
+          supabase.from('unions').select('name_bn, name_en'), // পুরো লিস্ট আনছি ফিল্টার করার জন্য
         ]);
+
+        const allUnions = uniRes.data || [];
+
+        // 🟢 পৌরসভা এবং সিটি কর্পোরেশন আলাদা করা
+        const paurashavas = allUnions.filter(u => (u.name_bn || '').includes('পৌরসভা') || (u.name_en || '').toLowerCase().includes('paurashava'));
+        const cityCorps = allUnions.filter(u => (u.name_bn || '').includes('সিটি কর্পোরেশন') || (u.name_en || '').toLowerCase().includes('city corporation'));
+        const pureUnions = allUnions.filter(u => 
+          !(u.name_bn || '').includes('পৌরসভা') && 
+          !(u.name_en || '').toLowerCase().includes('paurashava') &&
+          !(u.name_bn || '').includes('সিটি কর্পোরেশন') && 
+          !(u.name_en || '').toLowerCase().includes('city corporation')
+        );
+
         setStats({
-          total: totalRes.count || 0,
-          approved: approvedRes.count || 0,
+          totalApps: appsRes.count || 0,
+          approvedApps: approvedRes.count || 0,
+          divisions: divRes.count || 0,
+          districts: distRes.count || 0,
+          upazilas: upaRes.count || 0,
+          unions: pureUnions.length,       // শুধু ইউনিয়ন
+          paurashavas: paurashavas.length, // শুধু পৌরসভা
+          cityCorps: cityCorps.length,     // শুধু সিটি কর্পোরেশন
         });
       } catch (e) {
-        // ignore
+        console.error("Stats load error:", e);
       }
     };
     loadStats();
@@ -38,7 +61,7 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    router.push('/');
+    router.reload();
   };
 
   return (
@@ -118,6 +141,7 @@ export default function Home() {
           </div>
         </section>
 
+        {/* 🟢 লাইভ স্ট্যাটস সেকশন (৮টি কার্ড) */}
         <StatsSection liveStats={stats} />
 
         <section className="max-w-6xl mx-auto px-4 py-16">
