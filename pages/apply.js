@@ -22,65 +22,32 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       <div>
         <label className="text-sm font-bold text-black">দেশ <Req /></label>
-        <CustomSelect 
-          name={`${prefix}.country`}
-          options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]}
-          value={formData[prefix].country}
-          onChange={handleChange}
-        />
+        <CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} />
       </div>
       
       <div>
         <label className="text-sm font-bold text-black">বিভাগ <Req /></label>
-        <CustomSelect 
-          name={`${prefix}.division`}
-          options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))}
-          value={formData[prefix].division}
-          onChange={handleChange}
-        />
+        <CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} />
       </div>
 
       <div>
         <label className="text-sm font-bold text-black">জেলা <Req /></label>
-        <CustomSelect 
-          name={`${prefix}.district`}
-          options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))}
-          value={formData[prefix].district}
-          onChange={handleChange}
-          disabled={!currentDiv}
-        />
+        <CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} />
       </div>
 
       <div>
         <label className="text-sm font-bold text-black">সিটি কর্পোরেশন, ক্যান্টনমেন্ট/উপজেলা <Req /></label>
-        <CustomSelect 
-          name={`${prefix}.upazila`}
-          options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))}
-          value={formData[prefix].upazila}
-          onChange={handleChange}
-          disabled={!currentDist}
-        />
+        <CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} />
       </div>
 
       <div>
         <label className="text-sm font-bold text-black">পৌরসভা/ইউনিয়ন <Req /></label>
-        <CustomSelect 
-          name={`${prefix}.union`}
-          options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))}
-          value={formData[prefix].union}
-          onChange={handleChange}
-          disabled={!currentUpazila}
-        />
+        <CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} />
       </div>
 
       <div>
         <label className="text-sm font-bold text-black">ওয়ার্ড <Req /></label>
-        <CustomSelect 
-          name={`${prefix}.ward`}
-          options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))}
-          value={formData[prefix].ward}
-          onChange={handleChange}
-        />
+        <CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} />
       </div>
 
       <div><label className="text-sm font-bold text-black">ডাকঘর (বাংলায়) <Req /></label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn} onChange={handleChange} className={inputClass} /></div>
@@ -207,12 +174,11 @@ export default function Apply() {
     
     const birthYear = formData.dob ? formData.dob.split('-')[0] : '';
     
-    // 🟢 ১৭ ডিজিটের নম্বর জেনারেট (ডেটাবেস থেকে কোড সহ)
     const trackingId = generate17DigitBRN(
       birthYear, 
       selDist?.code, 
       selUpa?.code, 
-      selUni?.name_bn, 
+      selUni?.name_en, 
       birth.ward
     );
 
@@ -342,26 +308,12 @@ export default function Apply() {
 
                 <div>
                   <label className="text-sm font-bold text-black">পিতা ও মাতার কততম সন্তান <Req /></label>
-                  <CustomSelect 
-                    name="childOrder"
-                    options={[1,2,3,4,5,6,7,8,9,10].map(n => ({ value: n.toString(), label: n.toString() }))}
-                    value={formData.childOrder}
-                    onChange={handleChange}
-                  />
+                  <CustomSelect name="childOrder" options={[1,2,3,4,5,6,7,8,9,10].map(n => ({ value: n.toString(), label: n.toString() }))} value={formData.childOrder} onChange={handleChange} />
                 </div>
 
                 <div>
                   <label className="text-sm font-bold text-black">লিঙ্গ <Req /></label>
-                  <CustomSelect 
-                    name="gender"
-                    options={[
-                      { value: 'পুরুষ', label: 'পুরুষ' },
-                      { value: 'মহিলা', label: 'মহিলা' },
-                      { value: 'হিজড়া', label: 'হিজড়া' }
-                    ]}
-                    value={formData.gender}
-                    onChange={handleChange}
-                  />
+                  <CustomSelect name="gender" options={[{ value: 'পুরুষ', label: 'পুরুষ' }, { value: 'মহিলা', label: 'মহিলা' }, { value: 'হিজড়া', label: 'হিজড়া' }]} value={formData.gender} onChange={handleChange} />
                 </div>
               </div>
 
@@ -380,12 +332,7 @@ export default function Apply() {
                 <div><label className="text-sm font-bold text-black">পিতার নাম ইংরেজিতে <Req /></label><input name="fatherNameEn" value={formData.fatherNameEn} onChange={handleChange} placeholder="Father's Name in English" className={inputClass} /></div>
                 <div>
                   <label className="text-sm font-bold text-black">পিতার জাতীয়তা <Req /></label>
-                  <CustomSelect 
-                    name="fatherNationality"
-                    options={[{ value: 'বাংলাদেশী', label: 'বাংলাদেশী' }, { value: 'অন্যান্য', label: 'অন্যান্য' }]}
-                    value={formData.fatherNationality}
-                    onChange={handleChange}
-                  />
+                  <CustomSelect name="fatherNationality" options={[{ value: 'বাংলাদেশী', label: 'বাংলাদেশী' }, { value: 'অন্যান্য', label: 'অন্যান্য' }]} value={formData.fatherNationality} onChange={handleChange} />
                 </div>
               </div>
 
@@ -397,12 +344,7 @@ export default function Apply() {
                 <div><label className="text-sm font-bold text-black">মাতার নাম ইংরেজিতে <Req /></label><input name="motherNameEn" value={formData.motherNameEn} onChange={handleChange} placeholder="Mother's Name in English" className={inputClass} /></div>
                 <div>
                   <label className="text-sm font-bold text-black">মাতার জাতীয়তা <Req /></label>
-                  <CustomSelect 
-                    name="motherNationality"
-                    options={[{ value: 'বাংলাদেশী', label: 'বাংলাদেশী' }, { value: 'অন্যান্য', label: 'অন্যান্য' }]}
-                    value={formData.motherNationality}
-                    onChange={handleChange}
-                  />
+                  <CustomSelect name="motherNationality" options={[{ value: 'বাংলাদেশী', label: 'বাংলাদেশী' }, { value: 'অন্যান্য', label: 'অন্যান্য' }]} value={formData.motherNationality} onChange={handleChange} />
                 </div>
               </div>
             </div>

@@ -44,7 +44,6 @@ export default function Admin() {
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
   const [debugError, setDebugError] = useState(null);
 
-  // অ্যাপ্লিকেশন স্টেট
   const [applications, setApplications] = useState([]);
   const [processingIds, setProcessingIds] = useState(new Set());
   const [selectedApp, setSelectedApp] = useState(null);
@@ -54,7 +53,6 @@ export default function Admin() {
   const [barcodeUrl, setBarcodeUrl] = useState(null);
   const printRef = useRef(null);
 
-  // লোকেশন স্টেট
   const [locTab, setLocTab] = useState('divisions');
   const [divisions, setDivisions] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -62,16 +60,14 @@ export default function Admin() {
   const [unions, setUnions] = useState([]);
 
   const [newDiv, setNewDiv] = useState({ name_bn: '', name_en: '' });
-  const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '', code: '' }); // 🟢 code যোগ করা হয়েছে
-  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '' }); // 🟢 code যোগ করা হয়েছে
+  const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '', code: '' }); 
+  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '' }); 
   const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
-  // এডিট ও ডিলিট স্টেট
   const [isEditLocOpen, setIsEditLocOpen] = useState(false);
   const [editLocType, setEditLocType] = useState('');
-  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' }); // 🟢 code যোগ করা হয়েছে
+  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' });
 
-  // সার্টিফিকেট সেটিংস স্টেট
   const [certSettings, setCertSettings] = useState({
     id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: ''
   });
@@ -134,7 +130,7 @@ export default function Admin() {
   };
 
   const handleDeleteApplication = async (id) => {
-    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই আবেদনটি চিরতরে ডিলিট করতে চান? এর সাথে সম্পর্কিত সার্টিফিকেটও মুছে যেতে পারে।')) return;
+    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই আবেদনটি চিরতরে ডিলিট করতে চান?')) return;
     
     try {
       const { error } = await supabase.from('birth_applications').delete().eq('id', id);
@@ -148,7 +144,6 @@ export default function Admin() {
     }
   };
 
-  // লোকেশন অ্যাড
   const handleAddDivision = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('divisions').insert([newDiv]);
@@ -188,7 +183,6 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // এডিট ও ডিলিট
   const openEditLoc = (type, data) => {
     setEditLocType(type);
     setEditLocData(data);
@@ -199,7 +193,7 @@ export default function Admin() {
     e.preventDefault();
     const updateData = { name_bn: editLocData.name_bn, name_en: editLocData.name_en };
     if (editLocType === 'districts' || editLocType === 'upazilas') {
-      updateData.code = editLocData.code; // 🟢 কোড আপডেট করা হচ্ছে
+      updateData.code = editLocData.code;
     }
 
     const { error } = await supabase
@@ -215,7 +209,7 @@ export default function Admin() {
   };
 
   const handleDeleteLoc = async (type, id) => {
-    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান? এর অধীনে থাকা জেলা/উপজেলা/ইউনিয়নগুলোও ডিলিট হয়ে যেতে পারে।')) return;
+    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান?')) return;
     
     const { error } = await supabase.from(type).delete().eq('id', id);
     if (error) return setDebugError('ডিলিট ব্যর্থ: ' + error.message);
@@ -224,7 +218,6 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // PDF জেনারেশন
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
     setProcessingIds(prev => new Set(prev).add(app.id));
@@ -500,7 +493,7 @@ export default function Admin() {
                       />
                     </div>
                     <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Union/Paurshava (Bangla)</label><input value={newUni.name_bn} onChange={e => setNewUni({...newUni, name_bn: e.target.value})} className={inputClass} required/></div>
-                    <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Union/Paurshava (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} className={inputClass} required/></div>
+                    <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Union/Paurshava (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} placeholder="e.g. Badaghat Dakshin Union Parishad" className={inputClass} required/></div>
                     <button type="submit" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md transition">Add Union</button>
                   </form>
                   <ul className="divide-y border rounded-xl bg-white shadow-sm">
@@ -702,6 +695,7 @@ export default function Admin() {
                   
                   <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: '500', color: '#222', lineHeight: '1.4' }}>
                     <p style={{ margin: 0 }}>
+                      {/* 🟢 এখানে সরাসরি ডেটাবেসের নাম আসবে (Union Parishad সহ) */}
                       {certSettings.custom_union_name 
                         ? certSettings.custom_union_name.split(',')[0].trim() 
                         : (selectedApp.union_en || selectedApp.union_name || '').split(',')[0].trim()}
