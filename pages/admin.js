@@ -12,6 +12,23 @@ import { jsPDF } from 'jspdf';
 const LOGO_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/logo.png` : 'https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png';
 const WATERMARK_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/watermark.png` : 'https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png';
 
+// 🟢 আইকন কম্পোনেন্ট
+const Icons = {
+  Dashboard: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>,
+  Location: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
+  Settings: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
+  Users: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>,
+  Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>,
+  Download: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>,
+  Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>,
+  Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>,
+  Plus: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>,
+  ChevronRight: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>,
+  Search: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>,
+  Close: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>,
+  Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
+};
+
 const numberToWords = (num) => {
   const a = ['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
   const b = ['', '', 'Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
@@ -60,12 +77,10 @@ export default function Admin() {
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
 
-  // ট্রি ভিউ এক্সপ্যান্ড স্টেট
   const [expandedDivs, setExpandedDivs] = useState(new Set());
   const [expandedDists, setExpandedDists] = useState(new Set());
   const [expandedUpas, setExpandedUpas] = useState(new Set());
 
-  // অ্যাড ফর্ম স্টেট
   const [showAddDiv, setShowAddDiv] = useState(false);
   const [showAddDist, setShowAddDist] = useState(false);
   const [showAddUpa, setShowAddUpa] = useState(false);
@@ -76,15 +91,11 @@ export default function Admin() {
   const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '' }); 
   const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
-  // এডিট স্টেট
   const [isEditLocOpen, setIsEditLocOpen] = useState(false);
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' });
 
-  // সার্টিফিকেট সেটিংস স্টেট
-  const [certSettings, setCertSettings] = useState({
-    id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: ''
-  });
+  const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   useEffect(() => {
@@ -143,26 +154,10 @@ export default function Admin() {
     } catch (err) { setDebugError('ডেটা লোডে সমস্যা: ' + err.message); }
   };
 
-  // ট্রি এক্সপ্যান্ড টগল
-  const toggleDiv = (id) => {
-    const newSet = new Set(expandedDivs);
-    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-    setExpandedDivs(newSet);
-  };
+  const toggleDiv = (id) => { const s = new Set(expandedDivs); s.has(id) ? s.delete(id) : s.add(id); setExpandedDivs(s); };
+  const toggleDist = (id) => { const s = new Set(expandedDists); s.has(id) ? s.delete(id) : s.add(id); setExpandedDists(s); };
+  const toggleUpa = (id) => { const s = new Set(expandedUpas); s.has(id) ? s.delete(id) : s.add(id); setExpandedUpas(s); };
 
-  const toggleDist = (id) => {
-    const newSet = new Set(expandedDists);
-    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-    setExpandedDists(newSet);
-  };
-
-  const toggleUpa = (id) => {
-    const newSet = new Set(expandedUpas);
-    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-    setExpandedUpas(newSet);
-  };
-
-  // অ্যাড ফাংশনসমূহ
   const handleAddDivision = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('divisions').insert([newDiv]);
@@ -198,11 +193,7 @@ export default function Admin() {
   const handleAddUnion = async (e) => {
     e.preventDefault();
     if (!newUni.upazila_id) return setDebugError('উপজেলা নির্বাচন করুন');
-    const { error } = await supabase.from('unions').insert([{ 
-      upazila_id: parseInt(newUni.upazila_id), 
-      name_bn: newUni.name_bn, 
-      name_en: newUni.name_en 
-    }]);
+    const { error } = await supabase.from('unions').insert([{ upazila_id: parseInt(newUni.upazila_id), name_bn: newUni.name_bn, name_en: newUni.name_en }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'ইউনিয়ন/পৌরসভা সেভ হয়েছে!', type: 'success' });
     setNewUni({ ...newUni, name_bn: '', name_en: '' });
@@ -210,27 +201,14 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // এডিট ও ডিলিট
-  const openEditLoc = (type, data) => {
-    setEditLocType(type);
-    setEditLocData(data);
-    setIsEditLocOpen(true);
-  };
+  const openEditLoc = (type, data) => { setEditLocType(type); setEditLocData(data); setIsEditLocOpen(true); };
 
   const handleUpdateLoc = async (e) => {
     e.preventDefault();
     const updateData = { name_bn: editLocData.name_bn, name_en: editLocData.name_en };
-    if (editLocType === 'districts' || editLocType === 'upazilas') {
-      updateData.code = editLocData.code;
-    }
-
-    const { error } = await supabase
-      .from(editLocType)
-      .update(updateData)
-      .eq('id', editLocData.id);
-
+    if (editLocType === 'districts' || editLocType === 'upazilas') updateData.code = editLocData.code;
+    const { error } = await supabase.from(editLocType).update(updateData).eq('id', editLocData.id);
     if (error) return setDebugError('আপডেট ব্যর্থ: ' + error.message);
-    
     setAlertState({ isOpen: true, message: 'সফলভাবে আপডেট হয়েছে!', type: 'success' });
     setIsEditLocOpen(false);
     fetchAllLocations();
@@ -238,10 +216,8 @@ export default function Admin() {
 
   const handleDeleteLoc = async (type, id) => {
     if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান? এর অধীনে থাকা সব ডেটাও ডিলিট হয়ে যাবে।')) return;
-    
     const { error } = await supabase.from(type).delete().eq('id', id);
     if (error) return setDebugError('ডিলিট ব্যর্থ: ' + error.message);
-    
     setAlertState({ isOpen: true, message: 'ডিলিট করা হয়েছে!', type: 'success' });
     fetchAllLocations();
   };
@@ -254,65 +230,36 @@ export default function Admin() {
       setApplications(prev => prev.filter(app => app.id !== id));
       setIsViewOpen(false);
       setAlertState({ isOpen: true, message: 'আবেদনটি সফলভাবে ডিলিট করা হয়েছে!', type: 'success' });
-    } catch (err) {
-      setDebugError('ডিলিট ব্যর্থ: ' + err.message);
-    }
+    } catch (err) { setDebugError('ডিলিট ব্যর্থ: ' + err.message); }
   };
 
-  // PDF জেনারেশন
   const handleApprove = async (app) => {
     if (processingIds.has(app.id)) return;
     setProcessingIds(prev => new Set(prev).add(app.id));
-
     try {
-      setDebugError('স্টেপ ১: ডাটা প্রস্তুত হচ্ছে...');
-      setQrCodeUrl(null);
-      setBarcodeUrl(null);
-      setSelectedApp(app);
+      setDebugError('PDF তৈরি হচ্ছে...');
+      setQrCodeUrl(null); setBarcodeUrl(null); setSelectedApp(app);
       await new Promise(r => setTimeout(r, 800));
-
-      setDebugError('স্টেপ ২: QR ও বারকোড তৈরি হচ্ছে...');
       const qr = await QRCode.toDataURL(`https://verify.com/${app.tracking_id}`, { width: 256, margin: 1 });
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, app.tracking_id, { format: 'CODE128', displayValue: false, width: 2, height: 80, margin: 0 });
-      const bar = canvas.toDataURL('image/png');
-      
-      setQrCodeUrl(qr);
-      setBarcodeUrl(bar);
+      setQrCodeUrl(qr); setBarcodeUrl(canvas.toDataURL('image/png'));
       await new Promise(r => setTimeout(r, 800));
-
-      setDebugError('স্টেপ ৩: সার্টিফিকেট তৈরি হচ্ছে...');
-      const element = printRef.current;
-      const canvasImg = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true });
-      const imgData = canvasImg.toDataURL('image/jpeg', 0.95);
-      
-      setDebugError('স্টেপ ৪: PDF ফাইল তৈরি হচ্ছে...');
+      const canvasImg = await html2canvas(printRef.current, { scale: 2, useCORS: true, allowTaint: true });
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvasImg.height * pdfWidth) / canvasImg.width;
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(canvasImg.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), (canvasImg.height * pdf.internal.pageSize.getWidth()) / canvasImg.width);
       const pdfBlob = pdf.output('blob');
-
-      setDebugError('স্টেপ ৫: Supabase Storage-এ আপলোড হচ্ছে...');
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage.from('certificates').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
       if (uploadError) throw new Error('আপলোড ব্যর্থ: ' + uploadError.message);
-
       const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
-      const pdfUrl = publicUrlData.publicUrl;
-
-      const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved', pdf_url: pdfUrl }).eq('id', app.id);
+      const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved', pdf_url: publicUrlData.publicUrl }).eq('id', app.id);
       if (updateError) throw new Error('ডাটাবেস ব্যর্থ: ' + updateError.message);
-
-      setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: pdfUrl } : a));
-      setDebugError('সফলভাবে সার্টিফিকেট তৈরি হয়েছে!');
-      setTimeout(() => setDebugError(null), 3000);
-
-    } catch (err) {
-      setDebugError('এরর: ' + (err?.message || err.toString()));
-    } finally {
-      setProcessingIds(prev => { const next = new Set(prev); next.delete(app.id); return next; });
-    }
+      setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: publicUrlData.publicUrl } : a));
+      setDebugError(null);
+      setAlertState({ isOpen: true, message: 'সার্টিফিকেট তৈরি হয়েছে!', type: 'success' });
+    } catch (err) { setDebugError('এরর: ' + (err?.message || err.toString())); }
+    finally { setProcessingIds(prev => { const next = new Set(prev); next.delete(app.id); return next; }); }
   };
 
   const handleDownload = async (app) => {
@@ -321,276 +268,273 @@ export default function Admin() {
       const res = await fetch(app.pdf_url);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `Certificate-${app.tracking_id}.pdf`;
+      const a = document.createElement('a'); a.href = url; a.download = `Certificate-${app.tracking_id}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  const inputClass = "w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white";
+  const inputClass = "w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-all";
 
-  if (loading) return <div className="text-center mt-20 text-lg font-bold">লোড হচ্ছে...</div>;
+  if (loading) return <div className="text-center mt-20 text-lg font-bold text-gray-600">Loading Dashboard...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans relative overflow-x-hidden">
       
-      {debugError && (
-        <div className="fixed top-0 left-0 w-full bg-red-600 text-white p-4 z-[9999] shadow-xl flex justify-between items-start">
-          <div className="flex flex-col">
-            <span className="font-bold text-lg mb-1">⏳ প্রোগ্রেস / এরর:</span>
-            <span className="text-sm break-all font-semibold">{debugError}</span>
-          </div>
-          <button onClick={() => setDebugError(null)} className="bg-red-800 hover:bg-red-900 text-white font-bold py-1 px-3 rounded ml-2 whitespace-nowrap">বন্ধ করুন</button>
-        </div>
-      )}
-
-      <nav className="bg-gray-900 text-white shadow-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src={LOGO_URL} alt="Logo" className="w-9 h-9 bg-white rounded-full p-1 shadow-md" />
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold tracking-wide">Admin Dashboard</h1>
-              <p className="text-xs text-gray-400">Birth Registration System</p>
-            </div>
-            <div className="sm:hidden">
-              <h1 className="text-sm font-bold tracking-wide">Admin</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm">
-            <span className="hidden md:inline text-gray-300 bg-gray-800 px-3 py-1.5 rounded-full">{user?.email}</span>
-            <Link href="/" className="bg-blue-600 px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg hover:bg-blue-700 transition shadow">Main Site</Link>
-            <button onClick={async () => { await supabase.auth.signOut(); router.push('/admin/login'); }} className="bg-red-600 px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg hover:bg-red-700 transition shadow">Logout</button>
+      {/* 🟢 প্রফেশনাল সাইডবার */}
+      <aside className="w-full md:w-64 bg-gray-900 text-white md:min-h-screen flex flex-col shadow-2xl z-50 sticky top-0 md:relative">
+        <div className="p-4 flex items-center gap-3 border-b border-gray-800">
+          <img src={LOGO_URL} alt="Logo" className="w-10 h-10 bg-white rounded-full p-1" />
+          <div>
+            <h1 className="text-sm font-bold tracking-wide">Admin Panel</h1>
+            <p className="text-[10px] text-gray-400">Birth Registration</p>
           </div>
         </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8">
         
-        <div className="flex bg-white rounded-xl shadow-md overflow-x-auto mb-6 md:mb-8 border border-gray-200 hide-scrollbar">
-          <button onClick={() => setActiveTab('applications')} className={`flex-none px-4 py-3 md:px-6 md:py-4 font-bold text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'applications' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Applications</button>
-          <button onClick={() => setActiveTab('locations')} className={`flex-none px-4 py-3 md:px-6 md:py-4 font-bold text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'locations' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Location Manager</button>
-          <button onClick={() => setActiveTab('settings')} className={`flex-none px-4 py-3 md:px-6 md:py-4 font-bold text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Certificate Settings</button>
+        <nav className="flex-1 flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:p-4 gap-2 md:gap-2 hide-scrollbar">
+          <button onClick={() => setActiveTab('applications')} className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'applications' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+            <Icons.Dashboard /> <span className="hidden md:inline">Applications</span>
+          </button>
+          <button onClick={() => setActiveTab('locations')} className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'locations' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+            <Icons.Location /> <span className="hidden md:inline">Location Manager</span>
+          </button>
+          <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+            <Icons.Settings /> <span className="hidden md:inline">Certificate Settings</span>
+          </button>
+        </nav>
+
+        <div className="p-4 border-t border-gray-800 hidden md:block">
+          <div className="text-xs text-gray-400 mb-2 truncate">{user?.email}</div>
+          <button onClick={async () => { await supabase.auth.signOut(); router.push('/admin/login'); }} className="w-full bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2"><Icons.Logout /> Logout</button>
+        </div>
+      </aside>
+
+      {/* 🟢 মেইন কনটেন্ট */}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        
+        {/* টপ বার (মোবাইল) */}
+        <div className="flex justify-between items-center md:hidden mb-6 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+          <div className="font-bold text-gray-800">Dashboard</div>
+          <div className="flex gap-2">
+            <Link href="/" className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold">Site</Link>
+            <button onClick={async () => { await supabase.auth.signOut(); router.push('/admin/login'); }} className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold">Logout</button>
+          </div>
         </div>
 
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-gray-200">
-          
-          {activeTab === 'applications' && (
-            <>
-              <div className="mb-4 md:mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h2 className="text-lg md:text-xl font-bold text-gray-800">All Applications</h2>
-                <input type="text" placeholder="Search by Tracking ID or Name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={inputClass + ' md:w-1/2 lg:w-1/3'} />
+        {debugError && (
+          <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex justify-between items-start shadow-sm">
+            <div className="flex gap-3">
+              <div className="text-red-500"><Icons.Trash /></div>
+              <div>
+                <p className="text-sm font-bold text-red-800">Error</p>
+                <p className="text-xs text-red-600">{debugError}</p>
               </div>
-              
-              <div className="overflow-x-auto w-full pb-4">
-                <table className="w-full text-xs md:text-sm text-left min-w-[700px] border">
-                  <thead className="bg-gray-50 text-gray-700 uppercase text-[10px] md:text-xs">
-                    <tr>
-                      <th className="px-2 md:px-4 py-3 border-b">Tracking ID</th>
-                      <th className="px-2 md:px-4 py-3 border-b">Applicant Name</th>
-                      <th className="px-2 md:px-4 py-3 border-b">Date</th>
-                      <th className="px-2 md:px-4 py-3 border-b">Status</th>
-                      <th className="px-2 md:px-4 py-3 border-b text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {applications.filter(app => (app.tracking_id || '').includes(searchQuery) || (app.first_name_bn || '').includes(searchQuery)).map(app => {
-                      const busy = processingIds.has(app.id);
-                      return (
-                        <tr key={app.id} className="border-b hover:bg-gray-50 transition-colors">
-                          <td className="px-2 md:px-4 py-2 md:py-3 font-mono font-bold text-blue-600">{app.tracking_id}</td>
-                          <td className="px-2 md:px-4 py-2 md:py-3">
-                            <p className="font-semibold text-gray-800">{app.first_name_bn} {app.last_name_bn}</p>
-                            <p className="text-[10px] md:text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
-                          </td>
-                          <td className="px-2 md:px-4 py-2 md:py-3 text-gray-600">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
-                          <td className="px-2 md:px-4 py-2 md:py-3">
-                            <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-bold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                              {app.status}
-                            </span>
-                          </td>
-                          <td className="px-2 md:px-4 py-2 md:py-3 flex flex-wrap justify-center gap-1 md:gap-2">
-                            <button onClick={() => { setSelectedApp(app); setIsViewOpen(true); }} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-[10px] md:text-xs font-bold hover:bg-gray-200 transition">View</button>
-                            {app.status === 'Pending' ? (
-                              <button onClick={() => handleApprove(app)} disabled={busy} className={`px-2 py-1 text-white rounded text-[10px] md:text-xs font-bold transition ${busy ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700 shadow-sm'}`}>
-                                {busy ? '...' : 'Approve'}
-                              </button>
-                            ) : (
-                              app.pdf_url && (
-                                <button onClick={() => handleDownload(app)} className="px-2 py-1 bg-green-600 text-white rounded text-[10px] md:text-xs font-bold hover:bg-green-700 shadow-sm transition">Download</button>
-                              )
-                            )}
-                            <button onClick={() => handleDeleteApplication(app.id)} className="px-2 py-1 bg-red-100 text-red-700 rounded text-[10px] md:text-xs font-bold hover:bg-red-200 transition">Delete</button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+            </div>
+            <button onClick={() => setDebugError(null)} className="text-gray-400 hover:text-red-600"><Icons.Close /></button>
+          </div>
+        )}
 
-          {activeTab === 'locations' && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-50 p-4 rounded-xl border border-gray-200 gap-4">
+        {/* 🟢 ড্যাশবোর্ড স্ট্যাটস */}
+        {activeTab === 'applications' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><Icons.Users /></div>
+              <div><p className="text-xs text-gray-500 font-semibold">Total Apps</p><h3 className="text-xl font-bold text-gray-800">{applications.length}</h3></div>
+            </div>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center"><Icons.Settings /></div>
+              <div><p className="text-xs text-gray-500 font-semibold">Pending</p><h3 className="text-xl font-bold text-gray-800">{applications.filter(a => a.status === 'Pending').length}</h3></div>
+            </div>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><Icons.Check /></div>
+              <div><p className="text-xs text-gray-500 font-semibold">Approved</p><h3 className="text-xl font-bold text-gray-800">{applications.filter(a => a.status === 'Approved').length}</h3></div>
+            </div>
+          </div>
+        )}
+
+        {/* 🟢 অ্যাপ্লিকেশন টেবিল */}
+        {activeTab === 'applications' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+              <h2 className="text-lg font-bold text-gray-800">Recent Applications</h2>
+              <div className="relative w-full md:w-72">
+                <input type="text" placeholder="Search ID or Name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" />
+                <div className="absolute left-3 top-2.5 text-gray-400"><Icons.Search /></div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[700px]">
+                <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="px-4 py-4 font-bold">Tracking ID</th>
+                    <th className="px-4 py-4 font-bold">Applicant</th>
+                    <th className="px-4 py-4 font-bold">Date</th>
+                    <th className="px-4 py-4 font-bold">Status</th>
+                    <th className="px-4 py-4 font-bold text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {applications.filter(app => (app.tracking_id || '').includes(searchQuery) || (app.first_name_bn || '').includes(searchQuery)).map(app => {
+                    const busy = processingIds.has(app.id);
+                    return (
+                      <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-4 font-mono font-bold text-blue-600">{app.tracking_id}</td>
+                        <td className="px-4 py-4">
+                          <p className="font-bold text-gray-800">{app.first_name_bn} {app.last_name_bn}</p>
+                          <p className="text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
+                        </td>
+                        <td className="px-4 py-4 text-gray-600">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                            {app.status === 'Pending' ? 'Pending' : 'Approved'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 flex justify-center gap-2">
+                          <button onClick={() => { setSelectedApp(app); setIsViewOpen(true); }} className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition" title="View"><Icons.Search /></button>
+                          {app.status === 'Pending' ? (
+                            <button onClick={() => handleApprove(app)} disabled={busy} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${busy ? 'bg-gray-200 text-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                              {busy ? 'Wait...' : <><Icons.Check /> Approve</>}
+                            </button>
+                          ) : (
+                            app.pdf_url && <button onClick={() => handleDownload(app)} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 flex items-center gap-1"><Icons.Download /> Download</button>
+                          )}
+                          <button onClick={() => handleDeleteApplication(app.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition" title="Delete"><Icons.Trash /></button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 🟢 লোকেশন ম্যানেজার */}
+        {activeTab === 'locations' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-800">Location Hierarchy</h3>
-                  <p className="text-xs md:text-sm text-gray-500">এডিট, ডিলিট বা নতুন লোকেশন যোগ করতে ট্রি ভিউ ব্যবহার করুন।</p>
+                  <h2 className="text-lg font-bold text-gray-800">Location Hierarchy</h2>
+                  <p className="text-sm text-gray-500">Manage divisions, districts, upazilas, and unions.</p>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                  <button onClick={() => setShowAddDiv(!showAddDiv)} className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                    <span>+</span> Add Division
-                  </button>
-                </div>
+                <button onClick={() => setShowAddDiv(!showAddDiv)} className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-blue-700 transition flex items-center gap-2">
+                  <Icons.Plus /> Add Division
+                </button>
               </div>
 
-              {/* অ্যাড বিভাগ ফর্ম */}
+              {/* অ্যাড ফর্মসমূহ */}
               {showAddDiv && (
-                <form onSubmit={handleAddDivision} className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col md:flex-row gap-4 items-end mb-4">
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Division (Bangla)</label><input value={newDiv.name_bn} onChange={e => setNewDiv({...newDiv, name_bn: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Division (English)</label><input value={newDiv.name_en} onChange={e => setNewDiv({...newDiv, name_en: e.target.value})} className={inputClass} required/></div>
+                <form onSubmit={handleAddDivision} className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col md:flex-row gap-4 items-end mb-6">
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Division (Bangla)</label><input value={newDiv.name_bn} onChange={e => setNewDiv({...newDiv, name_bn: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Division (English)</label><input value={newDiv.name_en} onChange={e => setNewDiv({...newDiv, name_en: e.target.value})} className={inputClass} required/></div>
                   <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md">Save</button>
                 </form>
               )}
-
-              {/* অ্যাড জেলা ফর্ম */}
               {showAddDist && (
-                <form onSubmit={handleAddDistrict} className="bg-green-50 p-4 rounded-xl border border-green-200 flex flex-col md:flex-row gap-4 items-end mb-4">
-                  <div className="flex-1 w-full">
-                    <label className="text-sm font-bold text-gray-700">Division</label>
-                    <CustomSelect name="division_id" options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={newDist.division_id} onChange={(e) => setNewDist({...newDist, division_id: e.target.value})} placeholder="Select Division" />
-                  </div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">District (Bangla)</label><input value={newDist.name_bn} onChange={e => setNewDist({...newDist, name_bn: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Code (2 Digits)</label><input value={newDist.code || ''} onChange={e => setNewDist({...newDist, code: e.target.value})} placeholder="e.g. 90" className={inputClass} /></div>
+                <form onSubmit={handleAddDistrict} className="bg-green-50 p-4 rounded-xl border border-green-200 flex flex-col md:flex-row gap-4 items-end mb-6">
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Division</label><CustomSelect name="division_id" options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={newDist.division_id} onChange={(e) => setNewDist({...newDist, division_id: e.target.value})} placeholder="Select Division" /></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">District (Bangla)</label><input value={newDist.name_bn} onChange={e => setNewDist({...newDist, name_bn: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">District (English)</label><input value={newDist.name_en} onChange={e => setNewDist({...newDist, name_en: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Code</label><input value={newDist.code || ''} onChange={e => setNewDist({...newDist, code: e.target.value})} placeholder="90" className={inputClass} /></div>
                   <button type="submit" className="w-full md:w-auto bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-700 shadow-md">Save</button>
                 </form>
               )}
-
-              {/* অ্যাড উপজেলা ফর্ম */}
               {showAddUpa && (
-                <form onSubmit={handleAddUpazila} className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex flex-col md:flex-row gap-4 items-end mb-4">
-                  <div className="flex-1 w-full">
-                    <label className="text-sm font-bold text-gray-700">District</label>
-                    <CustomSelect name="district_id" options={districts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={newUpa.district_id} onChange={(e) => setNewUpa({...newUpa, district_id: e.target.value})} placeholder="Select District" />
-                  </div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Upazila (Bangla)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Code (2 Digits)</label><input value={newUpa.code || ''} onChange={e => setNewUpa({...newUpa, code: e.target.value})} placeholder="e.g. 89" className={inputClass} /></div>
+                <form onSubmit={handleAddUpazila} className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex flex-col md:flex-row gap-4 items-end mb-6">
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">District</label><CustomSelect name="district_id" options={districts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={newUpa.district_id} onChange={(e) => setNewUpa({...newUpa, district_id: e.target.value})} placeholder="Select District" /></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Upazila (Bangla)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Code</label><input value={newUpa.code || ''} onChange={e => setNewUpa({...newUpa, code: e.target.value})} placeholder="89" className={inputClass} /></div>
                   <button type="submit" className="w-full md:w-auto bg-yellow-500 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-yellow-600 shadow-md">Save</button>
                 </form>
               )}
-
-              {/* অ্যাড ইউনিয়ন ফর্ম */}
               {showAddUnion && (
-                <form onSubmit={handleAddUnion} className="bg-purple-50 p-4 rounded-xl border border-purple-200 flex flex-col md:flex-row gap-4 items-end mb-4">
-                  <div className="flex-1 w-full">
-                    <label className="text-sm font-bold text-gray-700">Upazila</label>
-                    <CustomSelect name="upazila_id" options={upazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={newUni.upazila_id} onChange={(e) => setNewUni({...newUni, upazila_id: e.target.value})} placeholder="Select Upazila" />
-                  </div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Union/Paurshava (Bangla)</label><input value={newUni.name_bn} onChange={e => setNewUni({...newUni, name_bn: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-sm font-bold text-gray-700">Union/Paurshava (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} placeholder="e.g. Union Parishad" className={inputClass} required/></div>
+                <form onSubmit={handleAddUnion} className="bg-purple-50 p-4 rounded-xl border border-purple-200 flex flex-col md:flex-row gap-4 items-end mb-6">
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Upazila</label><CustomSelect name="upazila_id" options={upazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={newUni.upazila_id} onChange={(e) => setNewUni({...newUni, upazila_id: e.target.value})} placeholder="Select Upazila" /></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Union (Bangla)</label><input value={newUni.name_bn} onChange={e => setNewUni({...newUni, name_bn: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase">Union (English)</label><input value={newUni.name_en} onChange={e => setNewUni({...newUni, name_en: e.target.value})} placeholder="e.g. Union Parishad" className={inputClass} required/></div>
                   <button type="submit" className="w-full md:w-auto bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-purple-700 shadow-md">Save</button>
                 </form>
               )}
 
-              {/* ট্রি ভিউ রেন্ডারিং */}
+              {/* ট্রি ভিউ */}
               <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
                 {divisions.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">কোনো ডেটা নেই। নতুন বিভাগ যোগ করুন।</div>
+                  <div className="p-8 text-center text-gray-500">No data found. Add a division to start.</div>
                 ) : (
                   divisions.map(div => (
                     <div key={div.id} className="border-b last:border-b-0">
                       <div className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer gap-2" onClick={() => toggleDiv(div.id)}>
                         <div className="flex items-center gap-2 md:gap-3">
-                          <span className={`transform transition-transform ${expandedDivs.has(div.id) ? 'rotate-90' : ''}`}>
-                            <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                          </span>
+                          <span className={`transform transition-transform text-gray-400 ${expandedDivs.has(div.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
                           <span className="font-bold text-gray-800 text-sm md:text-lg">{div.name_bn}</span>
                           <span className="text-xs md:text-sm text-gray-500 hidden sm:inline">({div.name_en})</span>
                         </div>
                         <div className="flex gap-2 md:gap-3 ml-6 md:ml-0" onClick={e => e.stopPropagation()}>
-                          <button onClick={() => { setShowAddDist(true); setNewDist({...newDist, division_id: div.id.toString()}); }} className="text-green-600 text-xs md:text-sm font-bold hover:underline">+ District</button>
-                          <button onClick={() => openEditLoc('divisions', div)} className="text-blue-600 text-xs md:text-sm font-bold hover:underline">Edit</button>
-                          <button onClick={() => handleDeleteLoc('divisions', div.id)} className="text-red-600 text-xs md:text-sm font-bold hover:underline">Delete</button>
+                          <button onClick={() => { setShowAddDist(true); setNewDist({...newDist, division_id: div.id.toString()}); }} className="text-green-600 text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> District</button>
+                          <button onClick={() => openEditLoc('divisions', div)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
+                          <button onClick={() => handleDeleteLoc('divisions', div.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
                         </div>
                       </div>
 
                       {expandedDivs.has(div.id) && (
                         <div className="pl-4 md:pl-8 bg-white">
-                          {districts.filter(d => d.division_id === div.id).length === 0 ? (
-                            <div className="p-4 text-xs md:text-sm text-gray-400 italic">কোনো জেলা নেই।</div>
-                          ) : (
-                            districts.filter(d => d.division_id === div.id).map(dist => (
-                              <div key={dist.id} className="border-t">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between p-3 hover:bg-gray-50 cursor-pointer gap-2" onClick={() => toggleDist(dist.id)}>
-                                  <div className="flex items-center gap-2 md:gap-3">
-                                    <span className={`transform transition-transform ${expandedDists.has(dist.id) ? 'rotate-90' : ''}`}>
-                                      <svg className="w-3 h-3 md:w-4 md:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                                    </span>
-                                    <span className="font-semibold text-gray-700 text-sm md:text-base">{dist.name_bn}</span>
-                                    <span className="text-[10px] md:text-xs text-gray-500 hidden sm:inline">({dist.name_en})</span>
-                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Code: {dist.code || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex gap-2 md:gap-3 ml-5 md:ml-0" onClick={e => e.stopPropagation()}>
-                                    <button onClick={() => { setShowAddUpa(true); setNewUpa({...newUpa, district_id: dist.id.toString()}); }} className="text-yellow-600 text-xs md:text-sm font-bold hover:underline">+ Upazila</button>
-                                    <button onClick={() => openEditLoc('districts', dist)} className="text-blue-600 text-xs md:text-sm font-bold hover:underline">Edit</button>
-                                    <button onClick={() => handleDeleteLoc('districts', dist.id)} className="text-red-600 text-xs md:text-sm font-bold hover:underline">Delete</button>
-                                  </div>
+                          {districts.filter(d => d.division_id === div.id).map(dist => (
+                            <div key={dist.id} className="border-t">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between p-3 hover:bg-gray-50 cursor-pointer gap-2" onClick={() => toggleDist(dist.id)}>
+                                <div className="flex items-center gap-2 md:gap-3">
+                                  <span className={`transform transition-transform text-gray-400 ${expandedDists.has(dist.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
+                                  <span className="font-semibold text-gray-700 text-sm">{dist.name_bn}</span>
+                                  <span className="text-[10px] text-gray-500 hidden sm:inline">({dist.name_en})</span>
+                                  <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Code: {dist.code || 'N/A'}</span>
                                 </div>
-
-                                {expandedDists.has(dist.id) && (
-                                  <div className="pl-4 md:pl-8 bg-gray-50/50">
-                                    {upazilas.filter(u => u.district_id === dist.id).length === 0 ? (
-                                      <div className="p-4 text-xs md:text-sm text-gray-400 italic">কোনো উপজেলা নেই।</div>
-                                    ) : (
-                                      upazilas.filter(u => u.district_id === dist.id).map(upa => (
-                                        <div key={upa.id} className="border-t">
-                                          <div className="flex flex-col md:flex-row md:items-center justify-between p-3 hover:bg-gray-100 cursor-pointer gap-2" onClick={() => toggleUpa(upa.id)}>
-                                            <div className="flex items-center gap-2 md:gap-3">
-                                              <span className={`transform transition-transform ${expandedUpas.has(upa.id) ? 'rotate-90' : ''}`}>
-                                                <svg className="w-3 h-3 md:w-4 md:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                                              </span>
-                                              <span className="font-medium text-gray-700 text-xs md:text-base">{upa.name_bn}</span>
-                                              <span className="text-[10px] md:text-xs text-gray-500 hidden sm:inline">({upa.name_en})</span>
-                                              <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">Code: {upa.code || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex gap-2 md:gap-3 ml-5 md:ml-0" onClick={e => e.stopPropagation()}>
-                                              <button onClick={() => { setShowAddUnion(true); setNewUni({...newUni, upazila_id: upa.id.toString()}); }} className="text-purple-600 text-xs md:text-sm font-bold hover:underline">+ Union</button>
-                                              <button onClick={() => openEditLoc('upazilas', upa)} className="text-blue-600 text-xs md:text-sm font-bold hover:underline">Edit</button>
-                                              <button onClick={() => handleDeleteLoc('upazilas', upa.id)} className="text-red-600 text-xs md:text-sm font-bold hover:underline">Delete</button>
-                                            </div>
-                                          </div>
-
-                                          {expandedUpas.has(upa.id) && (
-                                            <div className="pl-4 md:pl-8 bg-white">
-                                              {unions.filter(un => un.upazila_id === upa.id).length === 0 ? (
-                                                <div className="p-4 text-xs md:text-sm text-gray-400 italic">কোনো ইউনিয়ন/পৌরসভা নেই।</div>
-                                              ) : (
-                                                unions.filter(un => un.upazila_id === upa.id).map(union => (
-                                                  <div key={union.id} className="flex flex-col md:flex-row md:items-center justify-between p-2.5 md:p-3 border-t hover:bg-gray-50 gap-2">
-                                                    <div className="flex items-center gap-2 md:gap-3">
-                                                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gray-300"></div>
-                                                      <span className="text-gray-700 text-xs md:text-base">{union.name_bn}</span>
-                                                      <span className="text-[10px] md:text-xs text-gray-500 hidden sm:inline">({union.name_en})</span>
-                                                    </div>
-                                                    <div className="flex gap-2 md:gap-3 ml-4 md:ml-0">
-                                                      <button onClick={() => openEditLoc('unions', union)} className="text-blue-600 text-xs md:text-sm font-bold hover:underline">Edit</button>
-                                                      <button onClick={() => handleDeleteLoc('unions', union.id)} className="text-red-600 text-xs md:text-sm font-bold hover:underline">Delete</button>
-                                                    </div>
-                                                  </div>
-                                                ))
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-                                )}
+                                <div className="flex gap-2 md:gap-3 ml-5 md:ml-0" onClick={e => e.stopPropagation()}>
+                                  <button onClick={() => { setShowAddUpa(true); setNewUpa({...newUpa, district_id: dist.id.toString()}); }} className="text-yellow-600 text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> Upazila</button>
+                                  <button onClick={() => openEditLoc('districts', dist)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
+                                  <button onClick={() => handleDeleteLoc('districts', dist.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
+                                </div>
                               </div>
-                            ))
-                          )}
+
+                              {expandedDists.has(dist.id) && (
+                                <div className="pl-4 md:pl-8 bg-gray-50/50">
+                                  {upazilas.filter(u => u.district_id === dist.id).map(upa => (
+                                    <div key={upa.id} className="border-t">
+                                      <div className="flex flex-col md:flex-row md:items-center justify-between p-3 hover:bg-gray-100 cursor-pointer gap-2" onClick={() => toggleUpa(upa.id)}>
+                                        <div className="flex items-center gap-2 md:gap-3">
+                                          <span className={`transform transition-transform text-gray-400 ${expandedUpas.has(upa.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
+                                          <span className="font-medium text-gray-700 text-xs md:text-sm">{upa.name_bn}</span>
+                                          <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">Code: {upa.code || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex gap-2 md:gap-3 ml-5 md:ml-0" onClick={e => e.stopPropagation()}>
+                                          <button onClick={() => { setShowAddUnion(true); setNewUni({...newUni, upazila_id: upa.id.toString()}); }} className="text-purple-600 text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> Union</button>
+                                          <button onClick={() => openEditLoc('upazilas', upa)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
+                                          <button onClick={() => handleDeleteLoc('upazilas', upa.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
+                                        </div>
+                                      </div>
+
+                                      {expandedUpas.has(upa.id) && (
+                                        <div className="pl-4 md:pl-8 bg-white">
+                                          {unions.filter(un => un.upazila_id === upa.id).map(union => (
+                                            <div key={union.id} className="flex flex-col md:flex-row md:items-center justify-between p-2.5 border-t hover:bg-gray-50 gap-2">
+                                              <div className="flex items-center gap-2 md:gap-3 ml-5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                                                <span className="text-gray-700 text-xs">{union.name_bn}</span>
+                                                <span className="text-[10px] text-gray-500 hidden sm:inline">({union.name_en})</span>
+                                              </div>
+                                              <div className="flex gap-3 ml-8 md:ml-0">
+                                                <button onClick={() => openEditLoc('unions', union)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
+                                                <button onClick={() => handleDeleteLoc('unions', union.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -598,78 +542,76 @@ export default function Admin() {
                 )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'settings' && (
-            <form onSubmit={handleUpdateSettings} className="space-y-6 bg-white p-2">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800 border-b pb-3">Certificate Customization</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        {/* 🟢 সেটিংস */}
+        {activeTab === 'settings' && (
+          <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2"><Icons.Settings /> Certificate Settings</h2>
+            <form onSubmit={handleUpdateSettings} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="text-sm font-bold text-gray-700">Govt. Name (English)</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Govt. Name (English)</label>
                   <input value={certSettings.govt_name || ''} onChange={(e) => setCertSettings({...certSettings, govt_name: e.target.value})} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-gray-700">Office Name (English)</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Office Name (English)</label>
                   <input value={certSettings.office_name || ''} onChange={(e) => setCertSettings({...certSettings, office_name: e.target.value})} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-gray-700">Rule Text</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Rule Text</label>
                   <input value={certSettings.rule_text || ''} onChange={(e) => setCertSettings({...certSettings, rule_text: e.target.value})} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-gray-700">QR Code Prefix</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">QR Code Prefix</label>
                   <input value={certSettings.qr_prefix || ''} onChange={(e) => setCertSettings({...certSettings, qr_prefix: e.target.value})} className={inputClass} />
                 </div>
-                
                 <div className="md:col-span-2">
-                  <label className="text-sm font-bold text-gray-700">Custom Union Name (Optional)</label>
-                  <input 
-                    value={certSettings.custom_union_name || ''} 
-                    onChange={(e) => setCertSettings({...certSettings, custom_union_name: e.target.value})} 
-                    placeholder="e.g. Sunamganj Paurashava (Leave blank for automatic)"
-                    className={inputClass} 
-                  />
-                  <p className="text-xs text-gray-500 mt-1">If you write a name here, it will override the application data in the certificate.</p>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Custom Union Name (Optional)</label>
+                  <input value={certSettings.custom_union_name || ''} onChange={(e) => setCertSettings({...certSettings, custom_union_name: e.target.value})} placeholder="e.g. Sunamganj Paurashava" className={inputClass} />
                 </div>
-
                 <div className="md:col-span-2">
-                  <label className="text-sm font-bold text-gray-700">Footer Text</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Footer Text</label>
                   <textarea rows="3" value={certSettings.footer_text || ''} onChange={(e) => setCertSettings({...certSettings, footer_text: e.target.value})} className={inputClass} />
                 </div>
               </div>
-              
-              <button type="submit" disabled={isSavingSettings} className="bg-blue-600 text-white px-6 md:px-8 py-2.5 md:py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-lg disabled:bg-gray-400 w-full md:w-auto">
-                {isSavingSettings ? 'Saving...' : 'Save Settings'}
-              </button>
+              <div className="flex justify-end pt-4 border-t">
+                <button type="submit" disabled={isSavingSettings} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg disabled:bg-gray-400 flex items-center gap-2">
+                  {isSavingSettings ? 'Saving...' : <><Icons.Check /> Save Changes</>}
+                </button>
+              </div>
             </form>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </main>
 
       {/* Location Edit Modal */}
       {isEditLocOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Edit Location</h3>
-            <form onSubmit={handleUpdateLoc} className="space-y-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800">Edit Location</h3>
+              <button onClick={() => setIsEditLocOpen(false)} className="text-gray-400 hover:text-red-500"><Icons.Close /></button>
+            </div>
+            <form onSubmit={handleUpdateLoc} className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-bold text-gray-700">Name (Bangla)</label>
+                <label className="text-xs font-bold text-gray-700 uppercase">Name (Bangla)</label>
                 <input value={editLocData.name_bn || ''} onChange={(e) => setEditLocData({ ...editLocData, name_bn: e.target.value })} className={inputClass} required />
               </div>
               <div>
-                <label className="text-sm font-bold text-gray-700">Name (English)</label>
+                <label className="text-xs font-bold text-gray-700 uppercase">Name (English)</label>
                 <input value={editLocData.name_en || ''} onChange={(e) => setEditLocData({ ...editLocData, name_en: e.target.value })} className={inputClass} required />
               </div>
               {(editLocType === 'districts' || editLocType === 'upazilas') && (
                 <div>
-                  <label className="text-sm font-bold text-gray-700">Code (2 Digits)</label>
+                  <label className="text-xs font-bold text-gray-700 uppercase">Code (2 Digits)</label>
                   <input value={editLocData.code || ''} onChange={(e) => setEditLocData({ ...editLocData, code: e.target.value })} className={inputClass} />
                 </div>
               )}
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsEditLocOpen(false)} className="px-4 md:px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition">Cancel</button>
-                <button type="submit" className="px-4 md:px-5 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-md">Update</button>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setIsEditLocOpen(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">Update</button>
               </div>
             </form>
           </div>
@@ -678,69 +620,63 @@ export default function Admin() {
 
       {/* View Modal */}
       {isViewOpen && selectedApp && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 md:p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col">
-            
-            <div className="flex justify-between items-center p-4 md:p-5 border-b bg-gray-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b bg-gray-50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-base md:text-lg">
-                  {selectedApp.first_name_en?.charAt(0) || 'A'}
-                </div>
+                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">{selectedApp.first_name_en?.charAt(0) || 'A'}</div>
                 <div>
-                  <h3 className="text-base md:text-lg font-bold text-gray-800">Application Details</h3>
-                  <p className="text-[10px] md:text-xs text-gray-500 font-mono">ID: {selectedApp.tracking_id}</p>
+                  <h3 className="text-lg font-bold text-gray-800">Application Details</h3>
+                  <p className="text-xs text-gray-500 font-mono">ID: {selectedApp.tracking_id}</p>
                 </div>
               </div>
-              <button onClick={() => setIsViewOpen(false)} className="text-gray-400 hover:text-red-600 transition">
-                <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
+              <button onClick={() => setIsViewOpen(false)} className="text-gray-400 hover:text-red-600 bg-gray-100 p-2 rounded-full"><Icons.Close /></button>
             </div>
 
-            <div className="p-4 md:p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                
-                <div className="bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-100">
-                  <h4 className="text-xs md:text-sm font-bold text-blue-700 border-b pb-2 mb-3 uppercase tracking-wide">Applicant Information</h4>
-                  <div className="space-y-2 text-xs md:text-sm">
-                    <p className="flex justify-between"><span className="text-gray-500">Name (Bangla):</span> <span className="font-semibold text-gray-800 text-right">{selectedApp.first_name_bn} {selectedApp.last_name_bn}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Name (English):</span> <span className="font-semibold text-gray-800 text-right">{selectedApp.first_name_en} {selectedApp.last_name_en}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Date of Birth:</span> <span className="font-semibold text-gray-800">{selectedApp.dob}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Gender:</span> <span className="font-semibold text-gray-800">{selectedApp.gender}</span></p>
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                  <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-4 border-b pb-2 flex items-center gap-2"><Icons.Users /> Applicant Info</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between"><span className="text-gray-500">Name (BN):</span> <span className="font-bold text-gray-800">{selectedApp.first_name_bn} {selectedApp.last_name_bn}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Name (EN):</span> <span className="font-bold text-gray-800">{selectedApp.first_name_en} {selectedApp.last_name_en}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">DOB:</span> <span className="font-bold text-gray-800">{selectedApp.dob}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Gender:</span> <span className="font-bold text-gray-800">{selectedApp.gender}</span></div>
                   </div>
                 </div>
-
-                <div className="bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-100">
-                  <h4 className="text-xs md:text-sm font-bold text-blue-700 border-b pb-2 mb-3 uppercase tracking-wide">Parent's Information</h4>
-                  <div className="space-y-2 text-xs md:text-sm">
-                    <p className="flex justify-between"><span className="text-gray-500">Father:</span> <span className="font-semibold text-gray-800 text-right">{selectedApp.father_name_bn}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Mother:</span> <span className="font-semibold text-gray-800 text-right">{selectedApp.mother_name_bn}</span></p>
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                  <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-4 border-b pb-2 flex items-center gap-2"><Icons.Users /> Parent's Info</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between"><span className="text-gray-500">Father:</span> <span className="font-bold text-gray-800">{selectedApp.father_name_bn}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Father (EN):</span> <span className="font-bold text-gray-800">{selectedApp.father_name_en}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Mother:</span> <span className="font-bold text-gray-800">{selectedApp.mother_name_bn}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Mother (EN):</span> <span className="font-bold text-gray-800">{selectedApp.mother_name_en}</span></div>
                   </div>
                 </div>
-
-                <div className="bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-100 md:col-span-2">
-                  <h4 className="text-xs md:text-sm font-bold text-blue-700 border-b pb-2 mb-3 uppercase tracking-wide">Address Details</h4>
-                  <div className="text-xs md:text-sm">
-                    <p className="text-gray-500 mb-1">Present Address:</p>
-                    <p className="font-medium text-gray-800 bg-white p-2 rounded border">{selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.union_name}, {selectedApp.city_corp}, {selectedApp.district}</p>
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 md:col-span-2">
+                  <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-4 border-b pb-2 flex items-center gap-2"><Icons.Location /> Address Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 mb-1">Present:</p>
+                      <p className="font-medium text-gray-800 bg-white p-3 rounded-lg border border-gray-200">{selectedApp.house_road_bn}, {selectedApp.village_bn}, {selectedApp.post_office_bn}, {selectedApp.union_name}, {selectedApp.city_corp}, {selectedApp.district}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 mb-1">Permanent:</p>
+                      <p className="font-medium text-gray-800 bg-white p-3 rounded-lg border border-gray-200">{selectedApp.permanent_same ? 'Same as Present' : `${selectedApp.permanent_village_bn || ''}, ${selectedApp.permanent_district || ''}`}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 md:p-5 border-t bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-3">
-              <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
-                <span className="text-xs md:text-sm font-semibold text-gray-600">Status:</span>
-                <span className={`px-3 py-1 rounded-full text-[10px] md:text-xs font-bold ${selectedApp.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                  {selectedApp.status}
-                </span>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
-                <button onClick={() => handleDeleteApplication(selectedApp.id)} className="px-3 md:px-5 py-2 md:py-2.5 bg-red-100 text-red-700 rounded-lg font-bold text-xs md:text-base hover:bg-red-200 transition shadow-sm">Delete</button>
+            <div className="px-6 py-4 border-t bg-gray-50 flex justify-between items-center">
+              <div className={`px-3 py-1 rounded-full text-xs font-bold ${selectedApp.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{selectedApp.status}</div>
+              <div className="flex gap-3">
+                <button onClick={() => handleDeleteApplication(selectedApp.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-bold text-sm hover:bg-red-200 transition">Delete</button>
                 {selectedApp.pdf_url && (
-                  <button onClick={() => handleDownload(selectedApp)} className="px-3 md:px-5 py-2 md:py-2.5 bg-green-600 text-white rounded-lg font-bold text-xs md:text-base hover:bg-green-700 transition shadow-md">Download</button>
+                  <button onClick={() => handleDownload(selectedApp)} className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-md flex items-center gap-2"><Icons.Download /> Download</button>
                 )}
-                <button onClick={() => setIsViewOpen(false)} className="px-3 md:px-5 py-2 md:py-2.5 bg-gray-800 text-white rounded-lg font-bold text-xs md:text-base hover:bg-gray-900 transition shadow-md">Close</button>
+                <button onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-gray-800 text-white rounded-lg font-bold text-sm hover:bg-gray-900 transition">Close</button>
               </div>
             </div>
           </div>
