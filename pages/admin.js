@@ -27,6 +27,7 @@ const Icons = {
   Search: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>,
   Close: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>,
   Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
+  Import: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>,
 };
 
 const numberToWords = (num) => {
@@ -97,6 +98,11 @@ export default function Admin() {
 
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // 🟢 CSV ইমপোর্ট স্টেট
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -273,6 +279,103 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
+  // 🟢 CSV ইমপোর্ট হ্যান্ডলার
+  const handleCSVImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    setDebugError('CSV ফাইল প্রসেস হচ্ছে...');
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result;
+        const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+        
+        if (rows.length < 2) throw new Error('ফাইলটি খালি বা ভুল ফরম্যাটে আছে।');
+        
+        const dataRows = rows.slice(1); // হেডার বাদ
+        let importCount = 0;
+        let errorCount = 0;
+
+        for (const row of dataRows) {
+          const values = row.split(',');
+          if (values.length < 9) { errorCount++; continue; }
+
+          const divBn = values[0].trim();
+          const divEn = values[1].trim();
+          const distBn = values[2].trim();
+          const distEn = values[3].trim();
+          const distCode = values[4].trim();
+          const upaBn = values[5].trim();
+          const upaEn = values[6].trim();
+          const upaCode = values[7].trim();
+          const uniBn = values[8].trim();
+          const uniEn = values[9] ? values[9].trim() : uniBn;
+
+          if (!divBn || !distBn || !upaBn || !uniBn) { errorCount++; continue; }
+
+          try {
+            // ১. বিভাগ চেক
+            let divId;
+            const { data: existingDiv } = await supabase.from('divisions').select('id').eq('name_bn', divBn).maybeSingle();
+            if (existingDiv) {
+              divId = existingDiv.id;
+            } else {
+              const { data: newDiv } = await supabase.from('divisions').insert({ name_bn: divBn, name_en: divEn }).select().single();
+              if (newDiv) divId = newDiv.id;
+            }
+            if (!divId) { errorCount++; continue; }
+
+            // ২. জেলা চেক
+            let distId;
+            const { data: existingDist } = await supabase.from('districts').select('id').eq('name_bn', distBn).eq('division_id', divId).maybeSingle();
+            if (existingDist) {
+              distId = existingDist.id;
+            } else {
+              const { data: newDist } = await supabase.from('districts').insert({ division_id: divId, name_bn: distBn, name_en: distEn, code: distCode }).select().single();
+              if (newDist) distId = newDist.id;
+            }
+            if (!distId) { errorCount++; continue; }
+
+            // ৩. উপজেলা চেক
+            let upaId;
+            const { data: existingUpa } = await supabase.from('upazilas').select('id').eq('name_bn', upaBn).eq('district_id', distId).maybeSingle();
+            if (existingUpa) {
+              upaId = existingUpa.id;
+            } else {
+              const { data: newUpa } = await supabase.from('upazilas').insert({ district_id: distId, name_bn: upaBn, name_en: upaEn, code: upaCode }).select().single();
+              if (newUpa) upaId = newUpa.id;
+            }
+            if (!upaId) { errorCount++; continue; }
+
+            // ৪. ইউনিয়ন চেক
+            const { data: existingUni } = await supabase.from('unions').select('id').eq('name_bn', uniBn).eq('upazila_id', upaId).maybeSingle();
+            if (!existingUni) {
+              await supabase.from('unions').insert({ upazila_id: upaId, name_bn: uniBn, name_en: uniEn });
+            }
+            importCount++;
+          } catch (err) {
+            console.error('Row error:', err);
+            errorCount++;
+          }
+        }
+
+        await fetchAllLocations();
+        setDebugError(null);
+        setAlertState({ isOpen: true, message: `ইমপোর্ট সম্পন্ন!\nসফল: ${importCount} টি\nএরর: ${errorCount} টি`, type: 'success' });
+        setIsImportOpen(false);
+      } catch (err) {
+        setDebugError('CSV প্রসেসিং এরর: ' + err.message);
+      } finally {
+        setIsImporting(false);
+        if(fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const inputClass = "w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-all";
 
   if (loading) return <div className="text-center mt-20 text-lg font-bold text-gray-600">Loading Dashboard...</div>;
@@ -280,7 +383,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans relative overflow-x-hidden">
       
-      {/* 🟢 প্রফেশনাল সাইডবার */}
+      {/* 🟢 সাইডবার */}
       <aside className="w-full md:w-64 bg-gray-900 text-white md:min-h-screen flex flex-col shadow-2xl z-50 sticky top-0 md:relative">
         <div className="p-4 flex items-center gap-3 border-b border-gray-800">
           <img src={LOGO_URL} alt="Logo" className="w-10 h-10 bg-white rounded-full p-1" />
@@ -417,9 +520,14 @@ export default function Admin() {
                   <h2 className="text-lg font-bold text-gray-800">Location Hierarchy</h2>
                   <p className="text-sm text-gray-500">Manage divisions, districts, upazilas, and unions.</p>
                 </div>
-                <button onClick={() => setShowAddDiv(!showAddDiv)} className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-blue-700 transition flex items-center gap-2">
-                  <Icons.Plus /> Add Division
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setIsImportOpen(true)} className="bg-teal-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-teal-700 transition flex items-center gap-2">
+                    <Icons.Import /> CSV Import
+                  </button>
+                  <button onClick={() => setShowAddDiv(!showAddDiv)} className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-blue-700 transition flex items-center gap-2">
+                    <Icons.Plus /> Add Division
+                  </button>
+                </div>
               </div>
 
               {/* অ্যাড ফর্মসমূহ */}
@@ -585,6 +693,36 @@ export default function Admin() {
           </div>
         )}
       </main>
+
+      {/* CSV Import Modal */}
+      {isImportOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Icons.Import /> Import CSV Data</h3>
+              <button onClick={() => setIsImportOpen(false)} className="text-gray-400 hover:text-red-500"><Icons.Close /></button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4">আপনার CSV ফাইলে নিচের কলামগুলো থাকতে হবে (হেডার সহ):</p>
+              <div className="bg-gray-100 p-3 rounded text-xs font-mono mb-6 overflow-x-auto whitespace-nowrap border border-gray-200">
+                division_bn, division_en, district_bn, district_en, district_code, upazila_bn, upazila_en, upazila_code, union_bn, union_en
+              </div>
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={fileInputRef} 
+                onChange={handleCSVImport} 
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 transition-all border border-gray-300 rounded-lg"
+                disabled={isImporting}
+              />
+              {isImporting && <p className="text-sm text-blue-600 mt-4 animate-pulse font-bold">ফাইল প্রসেস হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</p>}
+            </div>
+            <div className="px-6 py-4 border-t bg-gray-50 text-right">
+              <button onClick={() => setIsImportOpen(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-lg transition" disabled={isImporting}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Location Edit Modal */}
       {isEditLocOpen && (
