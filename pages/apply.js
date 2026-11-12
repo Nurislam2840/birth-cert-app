@@ -13,10 +13,20 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
   const currentDiv = formData[prefix].division;
   const currentDist = formData[prefix].district;
   const currentUpazila = formData[prefix].upazila;
+  const currentUnion = formData[prefix].union;
 
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   const availableUnions = currentUpazila ? unions.filter(un => un.upazila_id.toString() === currentUpazila) : [];
+
+  // 🟢 সিটি কর্পোরেশন বা ক্যান্টনমেন্ট চেক
+  const selectedUnionObj = availableUnions.find(u => u.id.toString() === currentUnion);
+  const isCityOrCantonment = selectedUnionObj 
+    ? ((selectedUnionObj.name_bn || '').includes('সিটি কর্পোরেশন') || 
+       (selectedUnionObj.name_bn || '').includes('ক্যান্টনমেন্ট') || 
+       (selectedUnionObj.name_en || '').toLowerCase().includes('city corporation') || 
+       (selectedUnionObj.name_en || '').toLowerCase().includes('cantonment'))
+    : false;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -45,10 +55,35 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
         <CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} />
       </div>
 
-      <div>
-        <label className="text-sm font-bold text-black">ওয়ার্ড <Req /></label>
-        <CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} />
-      </div>
+      {/* 🟢 সিটি কর্পোরেশন বা ক্যান্টনমেন্ট সিলেক্ট করলে এই ৩টি বক্স দেখাবে */}
+      {isCityOrCantonment ? (
+        <>
+          <div>
+            <label className="text-sm font-bold text-black">অঞ্চল (Zone) <span className="text-xs text-gray-500">(ঐচ্ছিক)</span></label>
+            <input name={`${prefix}.zone`} value={formData[prefix].zone || ''} onChange={handleChange} placeholder="যেমন: অঞ্চল-১" className={inputClass} />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-black">এরিয়া (Area) <span className="text-xs text-gray-500">(ঐচ্ছিক)</span></label>
+            <input name={`${prefix}.area`} value={formData[prefix].area || ''} onChange={handleChange} placeholder="যেমন: মিরপুর" className={inputClass} />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-black">ওয়ার্ড নং <Req /></label>
+            <CustomSelect 
+              name={`${prefix}.ward`}
+              options={Array.from({length: 30}, (_, i) => ({ value: (i + 1).toString(), label: (i + 1).toString() }))}
+              value={formData[prefix].ward}
+              onChange={handleChange}
+              allowCustom={true}
+              placeholder="ওয়ার্ড নির্বাচন করুন"
+            />
+          </div>
+        </>
+      ) : (
+        <div>
+          <label className="text-sm font-bold text-black">ওয়ার্ড <Req /></label>
+          <CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} />
+        </div>
+      )}
 
       <div><label className="text-sm font-bold text-black">ডাকঘর (বাংলায়) <Req /></label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn} onChange={handleChange} className={inputClass} /></div>
       <div><label className="text-sm font-bold text-black">ডাকঘর (ইংরেজিতে) <Req /></label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn} onChange={handleChange} className={inputClass} /></div>
@@ -61,7 +96,7 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
 };
 
 const defaultAddress = {
-  country: 'বাংলাদেশ', division: '', district: '', upazila: '', union: '', ward: '', postOfficeBn: '', postOfficeEn: '', villageBn: '', villageEn: '', houseRoadBn: '', houseRoadEn: '',
+  country: 'বাংলাদেশ', division: '', district: '', upazila: '', union: '', zone: '', area: '', ward: '', postOfficeBn: '', postOfficeEn: '', villageBn: '', villageEn: '', houseRoadBn: '', houseRoadEn: '',
 };
 
 export default function Apply() {
@@ -147,6 +182,13 @@ export default function Apply() {
         setAlertState({ isOpen: true, message: 'অনুগ্রহ করে নাম, জন্ম তারিখ, বিভাগ, জেলা, উপজেলা ও ইউনিয়ন পূরণ করুন।', type: 'error' });
         return false;
       }
+      // 🟢 সিটি বা ক্যান্টনমেন্ট হলে ওয়ার্ড চেক
+      const selectedUni = unions.find(u => u.id.toString() === formData.birthAddress.union);
+      const isCityOrCant = selectedUni && ((selectedUni.name_bn || '').includes('সিটি কর্পোরেশন') || (selectedUni.name_bn || '').includes('ক্যান্টনমেন্ট'));
+      if (isCityOrCant && !formData.birthAddress.ward) {
+        setAlertState({ isOpen: true, message: 'অনুগ্রহ করে ওয়ার্ড নম্বর পূরণ করুন।', type: 'error' });
+        return false;
+      }
     }
     if (s === 2) {
       if (!formData.fatherNameBn || !formData.motherNameBn) {
@@ -210,6 +252,8 @@ export default function Apply() {
       upazila_en: selUpa?.name_en || null,
       union_name: selUni?.name_bn || null,
       union_en: selUni?.name_en || null,
+      zone: birth.zone || null, // 🟢 নতুন ফিল্ড
+      area: birth.area || null, // 🟢 নতুন ফিল্ড
       ward: birth.ward || null,
       village_bn: birth.villageBn || null,
       village_en: birth.villageEn || null,
