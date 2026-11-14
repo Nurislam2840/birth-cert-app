@@ -85,7 +85,8 @@ export default function Admin() {
   const [formFields, setFormFields] = useState([]);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   const [editField, setEditField] = useState(null);
-  const [newField, setNewField] = useState({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null });
+  // নতুন ফিল্ডে section ডিফল্ট 'main'
+  const [newField, setNewField] = useState({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null, section: 'main' });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -111,7 +112,7 @@ export default function Admin() {
     const { error } = await supabase.from('form_fields').insert([newField]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'ফিল্ড সেভ হয়েছে!', type: 'success' });
-    setNewField({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null });
+    setNewField({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null, section: 'main' });
     setIsAddFieldOpen(false);
     fetchFormFields();
   };
@@ -656,6 +657,7 @@ export default function Admin() {
                   <tr>
                     <th className="px-4 py-3">Field Name</th>
                     <th className="px-4 py-3">Label (Bangla)</th>
+                    <th className="px-4 py-3">Section</th> {/* নতুন কলাম */}
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Step</th>
                     <th className="px-4 py-3">Required</th>
@@ -667,6 +669,9 @@ export default function Admin() {
                     <tr key={field.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs text-teal-600">{field.field_name}</td>
                       <td className="px-4 py-3 font-medium text-gray-800">{field.label_bn}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        <span className="px-2 py-1 bg-gray-100 rounded text-xs">{field.section || 'main'}</span>
+                      </td>
                       <td className="px-4 py-3 text-gray-600 capitalize">{field.field_type}</td>
                       <td className="px-4 py-3 text-gray-600">{field.step}</td>
                       <td className="px-4 py-3">
@@ -681,7 +686,7 @@ export default function Admin() {
                     </tr>
                   ))}
                   {formFields.length === 0 && (
-                    <tr><td colSpan="6" className="text-center py-8 text-gray-500">No fields found. Add a new field to start.</td></tr>
+                    <tr><td colSpan="7" className="text-center py-8 text-gray-500">No fields found. Add a new field to start.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -755,6 +760,110 @@ export default function Admin() {
             <div className="px-6 py-4 border-t bg-gray-50 text-right">
               <button onClick={() => setIsImportOpen(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition" disabled={isImporting}>Close</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Field Modal */}
+      {isAddFieldOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-bold">Add New Field</h3>
+              <button onClick={() => setIsAddFieldOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
+            </div>
+            <form onSubmit={handleAddField} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-700">Field Name (ex: villageBn)</label>
+                <input value={newField.field_name} onChange={e => setNewField({...newField, field_name: e.target.value})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Label (Bangla)</label>
+                <input value={newField.label_bn} onChange={e => setNewField({...newField, label_bn: e.target.value})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Section</label>
+                <select value={newField.section} onChange={e => setNewField({...newField, section: e.target.value})} className={inputClass}>
+                  <option value="main">Main Details (Step 1 & 2)</option>
+                  <option value="birth">Birth Address (Step 3)</option>
+                  <option value="permanent">Permanent Address (Step 3)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Step</label>
+                <input type="number" value={newField.step} onChange={e => setNewField({...newField, step: parseInt(e.target.value)})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Field Type</label>
+                <select value={newField.field_type} onChange={e => setNewField({...newField, field_type: e.target.value})} className={inputClass}>
+                  <option value="text">Text</option>
+                  <option value="date">Date</option>
+                  <option value="number">Number</option>
+                  <option value="select">Select</option>
+                </select>
+              </div>
+              {newField.field_type === 'select' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Options (Comma separated)</label>
+                  <input value={newField.options ? newField.options.join(',') : ''} onChange={e => setNewField({...newField, options: e.target.value.split(',')})} placeholder="পুরুষ, মহিলা" className={inputClass} />
+                </div>
+              )}
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="bg-teal-600 text-white px-6 py-2 rounded-xl font-bold">Save Field</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Field Modal */}
+      {editField && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-bold">Edit Field</h3>
+              <button onClick={() => setEditField(null)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
+            </div>
+            <form onSubmit={handleUpdateField} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-700">Field Name</label>
+                <input value={editField.field_name} onChange={e => setEditField({...editField, field_name: e.target.value})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Label (Bangla)</label>
+                <input value={editField.label_bn} onChange={e => setEditField({...editField, label_bn: e.target.value})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Section</label>
+                <select value={editField.section || 'main'} onChange={e => setEditField({...editField, section: e.target.value})} className={inputClass}>
+                  <option value="main">Main Details (Step 1 & 2)</option>
+                  <option value="birth">Birth Address (Step 3)</option>
+                  <option value="permanent">Permanent Address (Step 3)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Step</label>
+                <input type="number" value={editField.step} onChange={e => setEditField({...editField, step: parseInt(e.target.value)})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Field Type</label>
+                <select value={editField.field_type} onChange={e => setEditField({...editField, field_type: e.target.value})} className={inputClass}>
+                  <option value="text">Text</option>
+                  <option value="date">Date</option>
+                  <option value="number">Number</option>
+                  <option value="select">Select</option>
+                </select>
+              </div>
+              {editField.field_type === 'select' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Options (Comma separated)</label>
+                  <input value={editField.options ? editField.options.join(',') : ''} onChange={e => setEditField({...editField, options: e.target.value.split(',')})} className={inputClass} />
+                </div>
+              )}
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">Update Field</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

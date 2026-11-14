@@ -12,10 +12,8 @@ const Req = () => <span className="text-red-500 ml-1">*</span>;
 const DynamicField = ({ field, formData, handleChange }) => {
   const val = formData[field.field_name] || '';
   let options = [];
-  if (field.options) {
-    if (Array.isArray(field.options)) {
-      options = field.options.map(o => ({ value: o, label: o }));
-    }
+  if (field.options && Array.isArray(field.options)) {
+    options = field.options.map(o => ({ value: o, label: o }));
   }
   return (
     <div>
@@ -38,7 +36,7 @@ const DynamicField = ({ field, formData, handleChange }) => {
   );
 };
 
-const AddressFields = ({ prefix, formData, handleChange, divisions, districts, upazilas, unions, formConfig }) => {
+const AddressFields = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, formConfig }) => {
   const currentDiv = formData[prefix].division;
   const currentDist = formData[prefix].district;
   const currentUpazila = formData[prefix].upazila;
@@ -55,57 +53,32 @@ const AddressFields = ({ prefix, formData, handleChange, divisions, districts, u
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      {formConfig.filter(f => f.step === 3).map(field => {
-        if (field.field_name === 'country') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} /></div>;
-        }
-        if (field.field_name === 'division') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} /></div>;
-        }
-        if (field.field_name === 'district') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} /></div>;
-        }
-        if (field.field_name === 'upazila') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} /></div>;
-        }
-        if (field.field_name === 'union') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} /></div>;
-        }
+      {formConfig.filter(f => f.section === sectionType).map(field => {
+        if (field.field_name === 'country') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} /></div>;
+        if (field.field_name === 'division') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} /></div>;
+        if (field.field_name === 'district') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} /></div>;
+        if (field.field_name === 'upazila') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} /></div>;
+        if (field.field_name === 'union') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} /></div>;
         if (field.field_name === 'zone') {
           if (!isCityOrCantonment) return null;
-          const opts = (field.options || []).map(o => ({ value: o, label: o }));
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.zone`} options={opts} value={formData[prefix].zone || ''} onChange={handleChange} placeholder="অঞ্চল নির্বাচন করুন" /></div>;
+          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.zone`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].zone || ''} onChange={handleChange} placeholder="অঞ্চল নির্বাচন করুন" /></div>;
         }
         if (field.field_name === 'area') {
           if (!isCityOrCantonment) return null;
-          const opts = (field.options || []).map(o => ({ value: o, label: o }));
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.area`} options={opts} value={formData[prefix].area || ''} onChange={handleChange} placeholder="এরিয়া নির্বাচন করুন" /></div>;
+          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.area`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].area || ''} onChange={handleChange} placeholder="এরিয়া নির্বাচন করুন" /></div>;
         }
         if (field.field_name === 'ward') {
           if (isCityOrCantonment) {
-            const opts = (field.options || []).map(o => ({ value: o, label: o }));
-            return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={opts} value={formData[prefix].ward || ''} onChange={handleChange} placeholder="ওয়ার্ড নির্বাচন করুন" allowCustom={true} /></div>;
+            return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].ward || ''} onChange={handleChange} placeholder="ওয়ার্ড নির্বাচন করুন" allowCustom={true} /></div>;
           }
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} /></div>;
         }
-        if (field.field_name === 'postOfficeBn') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        }
-        if (field.field_name === 'postOfficeEn') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        }
-        if (field.field_name === 'villageBn') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        }
-        if (field.field_name === 'villageEn') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        }
-        if (field.field_name === 'houseRoadBn') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        }
-        if (field.field_name === 'houseRoadEn') {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        }
+        if (field.field_name === 'postOfficeBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (field.field_name === 'postOfficeEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (field.field_name === 'villageBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (field.field_name === 'villageEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (field.field_name === 'houseRoadBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (field.field_name === 'houseRoadEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn || ''} onChange={handleChange} className={inputClass} /></div>;
         return null;
       })}
     </div>
@@ -162,7 +135,9 @@ export default function Apply() {
       if (data) {
         setFormConfig(data);
         const initialData = {};
-        data.forEach(f => initialData[f.field_name] = '');
+        data.forEach(f => {
+            if(f.section === 'main' || !f.section) initialData[f.field_name] = '';
+        });
         setFormData(prev => ({ ...prev, ...initialData }));
       }
     };
@@ -181,7 +156,7 @@ export default function Apply() {
 
   const handleSubmit = async () => {
     for (const field of formConfig) {
-      if (field.is_required && !formData[field.field_name]) {
+      if (field.is_required && !formData[field.field_name] && (field.section === 'main' || !field.section)) {
         return setAlertState({ isOpen: true, message: `${field.label_bn} আবশ্যক।`, type: 'error' });
       }
     }
@@ -197,7 +172,18 @@ export default function Apply() {
       user_id: user.id,
       tracking_id: trackingId,
       status: 'Pending',
-      ...formData,
+      
+      first_name_bn: formData.first_name_bn,
+      last_name_bn: formData.last_name_bn,
+      first_name_en: formData.first_name_en,
+      last_name_en: formData.last_name_en,
+      dob: formData.dob,
+      gender: formData.gender,
+      father_name_bn: formData.father_name_bn,
+      father_name_en: formData.father_name_en,
+      mother_name_bn: formData.mother_name_bn,
+      mother_name_en: formData.mother_name_en,
+      
       division: formData.birthAddress.division,
       district: formData.birthAddress.district,
       city_corp: formData.birthAddress.upazila,
@@ -211,7 +197,11 @@ export default function Apply() {
       post_office_en: formData.birthAddress.postOfficeEn,
       house_road_bn: formData.birthAddress.houseRoadBn,
       house_road_en: formData.birthAddress.houseRoadEn,
+
       permanent_same: formData.permanentSame,
+      permanent_district: formData.permanentSame ? formData.birthAddress.district : formData.permanentAddress.district,
+      permanent_village_bn: formData.permanentSame ? formData.birthAddress.villageBn : formData.permanentAddress.villageBn,
+      permanent_village_en: formData.permanentSame ? formData.birthAddress.villageEn : formData.permanentAddress.villageEn,
     };
 
     try {
@@ -245,7 +235,7 @@ export default function Apply() {
     );
   }
 
-  const currentFields = formConfig.filter(f => f.step === step);
+  const currentFields = formConfig.filter(f => f.step === step && (f.section === 'main' || !f.section));
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
@@ -273,9 +263,27 @@ export default function Apply() {
           </div>
 
           {step === 3 && (
-            <div className="mt-8">
-              <h3 className="text-lg font-bold text-black border-b pb-2">ঠিকানা</h3>
-              <AddressFields prefix="birthAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+            <div className="mt-8 space-y-8">
+              <div>
+                <h3 className="text-lg font-bold text-black border-b pb-2 mb-4">জন্মস্থান / বর্তমান ঠিকানা</h3>
+                <AddressFields sectionType="birth" prefix="birthAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-4 border-b pb-2">
+                  <h3 className="text-lg font-bold text-black">স্থায়ী ঠিকানা</h3>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer ml-auto">
+                    <input type="checkbox" name="permanentSame" checked={formData.permanentSame} onChange={handleChange} className="w-4 h-4 text-green-600 rounded" />
+                    জন্মস্থানের ঠিকানা ব্যবহার করুন
+                  </label>
+                </div>
+                
+                {!formData.permanentSame ? (
+                  <AddressFields sectionType="permanent" prefix="permanentAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+                ) : (
+                  <p className="text-sm text-gray-500 italic">জন্মস্থানের ঠিকানাটি স্থায়ী ঠিকানা হিসেবে ব্যবহৃত হবে।</p>
+                )}
+              </div>
             </div>
           )}
         </div>
