@@ -54,32 +54,34 @@ const AddressFields = ({ sectionType, prefix, formData, handleChange, divisions,
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       {formConfig.filter(f => f.section === sectionType).map(field => {
-        // 🟢 ডাটাবেসের ফিল্ডের নাম Camel Case এ থাকায় এখানে সেগুলোই চেক করা হচ্ছে
-        if (field.field_name === 'country') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} /></div>;
-        if (field.field_name === 'division') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} /></div>;
-        if (field.field_name === 'district') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} /></div>;
-        if (field.field_name === 'upazila') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} /></div>;
-        if (field.field_name === 'union') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} /></div>;
-        if (field.field_name === 'zone') {
+        // 🟢 ডাটাবেসের সাথে মিল রাখার জন্য '_perm' বাদ দিয়ে চেক করা হচ্ছে
+        const fName = field.field_name.replace('_perm', ''); 
+
+        if (fName === 'country') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} /></div>;
+        if (fName === 'division') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} /></div>;
+        if (fName === 'district') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} /></div>;
+        if (fName === 'upazila') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} /></div>;
+        if (fName === 'union') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} /></div>;
+        if (fName === 'zone') {
           if (!isCityOrCantonment) return null;
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.zone`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].zone || ''} onChange={handleChange} placeholder="অঞ্চল নির্বাচন করুন" /></div>;
         }
-        if (field.field_name === 'area') {
+        if (fName === 'area') {
           if (!isCityOrCantonment) return null;
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.area`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].area || ''} onChange={handleChange} placeholder="এরিয়া নির্বাচন করুন" /></div>;
         }
-        if (field.field_name === 'ward') {
+        if (fName === 'ward') {
           if (isCityOrCantonment) {
             return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].ward || ''} onChange={handleChange} placeholder="ওয়ার্ড নির্বাচন করুন" allowCustom={true} /></div>;
           }
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} /></div>;
         }
-        if (field.field_name === 'postOfficeBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (field.field_name === 'postOfficeEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (field.field_name === 'villageBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (field.field_name === 'villageEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (field.field_name === 'houseRoadBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (field.field_name === 'houseRoadEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fName === 'postOfficeBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fName === 'postOfficeEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fName === 'villageBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fName === 'villageEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fName === 'houseRoadBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fName === 'houseRoadEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn || ''} onChange={handleChange} className={inputClass} /></div>;
         return null;
       })}
     </div>
@@ -169,22 +171,22 @@ export default function Apply() {
     const selUni = unions.find(u => u.id.toString() === formData.birthAddress.union);
     const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birthAddress.ward);
 
-    // 🟢 ডাটাবেসের ফিল্ডের নাম অনুযায়ী (Camel Case) ম্যাপ করা হলো
+    // 🟢 ডাটাবেসের নামের সাথে মিল রেখে (Snake Case) পে-লোড তৈরি করা হলো
     const payload = {
       user_id: user.id,
       tracking_id: trackingId,
       status: 'Pending',
       
-      first_name_bn: formData.firstNameBn,
-      last_name_bn: formData.lastNameBn,
-      first_name_en: formData.firstNameEn,
-      last_name_en: formData.lastNameEn,
+      first_name_bn: formData.first_name_bn,
+      last_name_bn: formData.last_name_bn,
+      first_name_en: formData.first_name_en,
+      last_name_en: formData.last_name_en,
       dob: formData.dob,
       gender: formData.gender,
-      father_name_bn: formData.fatherNameBn,
-      father_name_en: formData.fatherNameEn,
-      mother_name_bn: formData.motherNameBn,
-      mother_name_en: formData.motherNameEn,
+      father_name_bn: formData.father_name_bn,
+      father_name_en: formData.father_name_en,
+      mother_name_bn: formData.mother_name_bn,
+      mother_name_en: formData.mother_name_en,
       
       division: formData.birthAddress?.division || '',
       district: formData.birthAddress?.district || '',
@@ -237,7 +239,8 @@ export default function Apply() {
     );
   }
 
-  const currentFields = formConfig.filter(f => f.step === step && (f.section === 'main' || !f.section));
+  // 🟢 String() ব্যবহার করা হয়েছে যাতে step নাম্বার ইন্টিজার বা স্ট্রিং যাই হোক, সেটা ম্যাচ করে
+  const currentFields = formConfig.filter(f => String(f.step) === String(step) && (f.section === 'main' || !f.section || f.section === ''));
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
