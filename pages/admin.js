@@ -295,6 +295,7 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
+  // 🟢 CSV ইমপোর্ট ফাংশন (হেডার এবং এক্সেলের \r\n সমস্যা সমাধান করা হয়েছে)
   const handleCSVImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -304,17 +305,33 @@ export default function Admin() {
     reader.onload = async (event) => {
       try {
         const text = event.target.result;
-        const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+        // \r\n বা \n দুটোই হ্যান্ডেল করবে
+        let rows = text.split(/\r?\n/).map(row => row.trim()).filter(row => row);
         if (rows.length < 2) throw new Error('ফাইলটি খালি বা ভুল ফরম্যাটে আছে।');
-        const dataRows = rows.slice(1);
+        
+        // হেডার থাকলে প্রথম লাইন বাদ দেওয়া
+        if (rows[0].toLowerCase().includes('division')) {
+            rows = rows.slice(1); 
+        }
+
         let importCount = 0;
         let errorCount = 0;
-        for (const row of dataRows) {
+        
+        for (const row of rows) {
           if (!row || row.trim() === '' || row === '""') continue; 
+          
           const values = row.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-          if (values.length < 9 || !values[0] || !values[2] || !values[5] || !values[8]) { errorCount++; continue; }
-          const divBn = values[0]; const divEn = values[1]; const distBn = values[2]; const distEn = values[3]; const distCode = values[4];
-          const upaBn = values[5]; const upaEn = values[6]; const upaCode = values[7]; const uniBn = values[8]; const uniEn = values[9] ? values[9] : uniBn;
+          
+          if (values.length < 9 || !values[0] || !values[2] || !values[5] || !values[8]) { 
+              errorCount++; 
+              continue; 
+          }
+          
+          const divBn = values[0]; const divEn = values[1] || divBn; 
+          const distBn = values[2]; const distEn = values[3] || distBn; const distCode = values[4];
+          const upaBn = values[5]; const upaEn = values[6] || upaBn; const upaCode = values[7]; 
+          const uniBn = values[8]; const uniEn = values[9] || uniBn;
+          
           try {
             let divId;
             const { data: existingDiv } = await supabase.from('divisions').select('id').eq('name_bn', divBn).maybeSingle();
@@ -324,6 +341,7 @@ export default function Admin() {
               if (newDiv) divId = newDiv.id;
             }
             if (!divId) { errorCount++; continue; }
+            
             let distId;
             const { data: existingDist } = await supabase.from('districts').select('id').eq('name_bn', distBn).eq('division_id', divId).maybeSingle();
             if (existingDist) distId = existingDist.id;
@@ -332,6 +350,7 @@ export default function Admin() {
               if (newDist) distId = newDist.id;
             }
             if (!distId) { errorCount++; continue; }
+            
             let upaId;
             const { data: existingUpa } = await supabase.from('upazilas').select('id').eq('name_bn', upaBn).eq('district_id', distId).maybeSingle();
             if (existingUpa) upaId = existingUpa.id;
@@ -340,11 +359,16 @@ export default function Admin() {
               if (newUpa) upaId = newUpa.id;
             }
             if (!upaId) { errorCount++; continue; }
+            
             const { data: existingUni } = await supabase.from('unions').select('id').eq('name_bn', uniBn).eq('upazila_id', upaId).maybeSingle();
             if (!existingUni) { await supabase.from('unions').insert({ upazila_id: upaId, name_bn: uniBn, name_en: uniEn }); }
             importCount++;
-          } catch (err) { errorCount++; }
+          } catch (err) { 
+              console.error(err);
+              errorCount++; 
+          }
         }
+        
         await fetchAllLocations();
         setDebugError(null);
         setAlertState({ isOpen: true, message: `ইমপোর্ট সম্পন্ন!\nসফল: ${importCount} টি\nএরর: ${errorCount} টি`, type: 'success' });
@@ -747,7 +771,7 @@ export default function Admin() {
               <button onClick={() => setIsImportOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4 font-medium">আপনার CSV ফাইলে নিচের কলামগুলো থাকতে হবে (হেডার সহ):</p>
+              <p className="text-sm text-gray-600 mb-4 font-medium">আপনার CSV ফাইলে নিচের কলামগুলো থাকতে হবে (হেডার সহ বা ছাড়া):</p>
               <div className="bg-gray-100 p-3 rounded-lg text-xs font-mono mb-6 overflow-x-auto whitespace-nowrap border border-gray-200 text-teal-800">
                 division_bn, division_en, district_bn, district_en, district_code, upazila_bn, upazila_en, upazila_code, union_bn, union_en
               </div>
