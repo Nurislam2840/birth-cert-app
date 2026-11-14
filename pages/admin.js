@@ -85,7 +85,6 @@ export default function Admin() {
   const [formFields, setFormFields] = useState([]);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   const [editField, setEditField] = useState(null);
-  // নতুন ফিল্ডে section ডিফল্ট 'main'
   const [newField, setNewField] = useState({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null, section: 'main' });
 
   useEffect(() => {
@@ -395,7 +394,7 @@ export default function Admin() {
         </div>
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full max-w-full">
         <div className="flex justify-between items-center md:hidden mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
           <div className="font-bold text-gray-800">Dashboard</div>
           <div className="flex gap-2">
@@ -640,7 +639,7 @@ export default function Admin() {
         )}
 
         {activeTab === 'formBuilder' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">Dynamic Form Builder</h2>
@@ -651,45 +650,50 @@ export default function Admin() {
               </button>
             </div>
 
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-600 uppercase text-[10px]">
-                  <tr>
-                    <th className="px-4 py-3">Field Name</th>
-                    <th className="px-4 py-3">Label (Bangla)</th>
-                    <th className="px-4 py-3">Section</th>
-                    <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Step</th>
-                    <th className="px-4 py-3">Required</th>
-                    <th className="px-4 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {formFields.map(field => (
-                    <tr key={field.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs text-teal-600">{field.field_name}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{field.label_bn}</td>
-                      <td className="px-4 py-3 text-gray-600">
-                        <span className="px-2 py-1 bg-gray-100 rounded text-xs">{field.section || 'main'}</span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 capitalize">{field.field_type}</td>
-                      <td className="px-4 py-3 text-gray-600">{field.step}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold ${field.is_required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {field.is_required ? 'Yes' : 'No'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 flex justify-center gap-2">
-                        <button onClick={() => setEditField(field)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
-                        <button onClick={() => handleDeleteField(field.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
-                      </td>
+            {/* 🟢 মোবাইল ফ্রেন্ডলি রেসপন্সিভ টেবিল */}
+            <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden w-full max-w-full">
+              <div className="overflow-x-auto w-full hide-scrollbar">
+                <table className="w-full text-sm text-left min-w-[600px] md:min-w-full">
+                  <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
+                    <tr>
+                      <th className="px-3 py-3 whitespace-nowrap">Field Name</th>
+                      <th className="px-3 py-3 whitespace-nowrap">Label (Bangla)</th>
+                      <th className="px-3 py-3 whitespace-nowrap">Section</th>
+                      <th className="px-3 py-3 whitespace-nowrap">Type</th>
+                      <th className="px-3 py-3 whitespace-nowrap">Step</th>
+                      <th className="px-3 py-3 whitespace-nowrap text-center">Req</th>
+                      <th className="px-3 py-3 text-center whitespace-nowrap">Actions</th>
                     </tr>
-                  ))}
-                  {formFields.length === 0 && (
-                    <tr><td colSpan="7" className="text-center py-8 text-gray-500">No fields found. Add a new field to start.</td></tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {formFields.map(field => (
+                      <tr key={field.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-3 font-mono text-[11px] text-teal-600 break-all">{field.field_name}</td>
+                        <td className="px-3 py-3 font-medium text-gray-800 text-xs min-w-[120px]">{field.label_bn}</td>
+                        <td className="px-3 py-3 text-gray-600">
+                          <span className="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold">{field.section || 'main'}</span>
+                        </td>
+                        <td className="px-3 py-3 text-gray-600 capitalize text-xs">{field.field_type}</td>
+                        <td className="px-3 py-3 text-gray-600 text-center text-xs">{field.step}</td>
+                        <td className="px-3 py-3 text-center">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold ${field.is_required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {field.is_required ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex justify-center gap-1">
+                            <button onClick={() => setEditField(field)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Icons.Edit /></button>
+                            <button onClick={() => handleDeleteField(field.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"><Icons.Trash /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {formFields.length === 0 && (
+                      <tr><td colSpan="7" className="text-center py-8 text-gray-500 text-sm">No fields found. Add a new field to start.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
