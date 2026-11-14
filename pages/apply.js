@@ -14,7 +14,10 @@ const DynamicField = ({ field, formData, handleChange }) => {
   let options = [];
   if (field.options && Array.isArray(field.options)) {
     options = field.options.map(o => ({ value: o, label: o }));
+  } else if (field.field_name === 'gender') {
+    options = [{ value: 'পুরুষ', label: 'পুরুষ' }, { value: 'মহিলা', label: 'মহিলা' }, { value: 'হিজড়া', label: 'হিজড়া' }];
   }
+
   return (
     <div>
       <label className="text-sm font-bold text-black">
@@ -26,9 +29,6 @@ const DynamicField = ({ field, formData, handleChange }) => {
       {field.field_type === 'date' && (
         <input type="date" name={field.field_name} value={val} onChange={handleChange} className={inputClass} required={field.is_required} />
       )}
-      {field.field_type === 'number' && (
-        <input type="number" name={field.field_name} value={val} onChange={handleChange} placeholder={field.placeholder_bn || ''} className={inputClass} required={field.is_required} />
-      )}
       {field.field_type === 'select' && (
         <CustomSelect name={field.field_name} options={options} value={val} onChange={handleChange} required={field.is_required} />
       )}
@@ -36,60 +36,42 @@ const DynamicField = ({ field, formData, handleChange }) => {
   );
 };
 
-const AddressFields = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, formConfig }) => {
-  const currentDiv = formData[prefix].division;
-  const currentDist = formData[prefix].district;
-  const currentUpazila = formData[prefix].upazila;
-  const currentUnion = formData[prefix].union;
+const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, formConfig }) => {
+  const currentDiv = formData[`${prefix}division`];
+  const currentDist = formData[`${prefix}district`];
+  const currentUpazila = formData[`${prefix}upazila`];
+  const currentUnion = formData[`${prefix}union`];
 
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   const availableUnions = currentUpazila ? unions.filter(un => un.upazila_id.toString() === currentUpazila) : [];
 
-  const selectedUnionObj = availableUnions.find(u => u.id.toString() === currentUnion);
-  const isCityOrCantonment = selectedUnionObj 
-    ? ((selectedUnionObj.name_bn || '').includes('সিটি কর্পোরেশন') || (selectedUnionObj.name_bn || '').includes('ক্যান্টনমেন্ট'))
-    : false;
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       {formConfig.filter(f => f.section === sectionType).map(field => {
-        // 🟢 ডাটাবেসের সাথে মিল রাখার জন্য '_perm' বাদ দিয়ে চেক করা হচ্ছে
-        const fName = field.field_name.replace('_perm', ''); 
+        const fieldName = field.field_name;
 
-        if (fName === 'country') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} /></div>;
-        if (fName === 'division') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} /></div>;
-        if (fName === 'district') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} /></div>;
-        if (fName === 'upazila') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} /></div>;
-        if (fName === 'union') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} /></div>;
-        if (fName === 'zone') {
-          if (!isCityOrCantonment) return null;
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.zone`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].zone || ''} onChange={handleChange} placeholder="অঞ্চল নির্বাচন করুন" /></div>;
+        if (fieldName === `${prefix}country`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[fieldName]} onChange={handleChange} /></div>;
+        
+        if (fieldName === `${prefix}division`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} /></div>;
+        
+        if (fieldName === `${prefix}district`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDiv} /></div>;
+        
+        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
+        
+        if (fieldName === `${prefix}union`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
+        
+        if (fieldName === `${prefix}ward`) {
+          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[fieldName]} onChange={handleChange} /></div>;
         }
-        if (fName === 'area') {
-          if (!isCityOrCantonment) return null;
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.area`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].area || ''} onChange={handleChange} placeholder="এরিয়া নির্বাচন করুন" /></div>;
-        }
-        if (fName === 'ward') {
-          if (isCityOrCantonment) {
-            return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={(field.options || []).map(o => ({ value: o, label: o }))} value={formData[prefix].ward || ''} onChange={handleChange} placeholder="ওয়ার্ড নির্বাচন করুন" allowCustom={true} /></div>;
-          }
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} /></div>;
-        }
-        if (fName === 'postOfficeBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (fName === 'postOfficeEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (fName === 'villageBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (fName === 'villageEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (fName === 'houseRoadBn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (fName === 'houseRoadEn') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn || ''} onChange={handleChange} className={inputClass} /></div>;
+        
+        if (fieldName === `${prefix}postOfficeBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}villageBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+
         return null;
       })}
     </div>
   );
-};
-
-const defaultAddress = {
-  country: 'বাংলাদেশ', division: '', district: '', upazila: '', union: '', zone: '', area: '', ward: '', postOfficeBn: '', postOfficeEn: '', villageBn: '', villageEn: '', houseRoadBn: '', houseRoadEn: '',
 };
 
 export default function Apply() {
@@ -104,11 +86,7 @@ export default function Apply() {
   const [unions, setUnions] = useState([]);
 
   const [formConfig, setFormConfig] = useState([]);
-  const [formData, setFormData] = useState({
-    birthAddress: { ...defaultAddress },
-    permanentAddress: { ...defaultAddress },
-    permanentSame: false,
-  });
+  const [formData, setFormData] = useState({ permanentSame: false });
 
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
   const [submittedTrackingId, setSubmittedTrackingId] = useState(null);
@@ -137,11 +115,9 @@ export default function Apply() {
       const { data } = await supabase.from('form_fields').select('*').eq('is_active', true).order('step').order('order_index');
       if (data) {
         setFormConfig(data);
-        const initialData = {};
-        data.forEach(f => {
-            if(f.section === 'main' || !f.section) initialData[f.field_name] = '';
-        });
-        setFormData(prev => ({ ...prev, ...initialData }));
+        const initialData = { permanentSame: false };
+        data.forEach(f => initialData[f.field_name] = '');
+        setFormData(initialData);
       }
     };
     fetchFormConfig();
@@ -149,34 +125,27 @@ export default function Apply() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [child]: value } }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-    }
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async () => {
     for (const field of formConfig) {
-      if (field.is_required && !formData[field.field_name] && (field.section === 'main' || !field.section)) {
+      if (field.is_required && !formData[field.field_name] && field.section === 'main') {
         return setAlertState({ isOpen: true, message: `${field.label_bn} আবশ্যক।`, type: 'error' });
       }
     }
 
     setLoading(true);
     const birthYear = formData.dob ? formData.dob.split('-')[0] : '';
-    const selDist = districts.find(d => d.id.toString() === formData.birthAddress.district);
-    const selUpa = upazilas.find(u => u.id.toString() === formData.birthAddress.upazila);
-    const selUni = unions.find(u => u.id.toString() === formData.birthAddress.union);
-    const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birthAddress.ward);
+    const selDist = districts.find(d => d.id.toString() === formData.birth_district);
+    const selUpa = upazilas.find(u => u.id.toString() === formData.birth_upazila);
+    const selUni = unions.find(u => u.id.toString() === formData.birth_union);
+    const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birth_ward);
 
-    // 🟢 ডাটাবেসের নামের সাথে মিল রেখে (Snake Case) পে-লোড তৈরি করা হলো
     const payload = {
       user_id: user.id,
       tracking_id: trackingId,
       status: 'Pending',
-      
       first_name_bn: formData.first_name_bn,
       last_name_bn: formData.last_name_bn,
       first_name_en: formData.first_name_en,
@@ -188,24 +157,17 @@ export default function Apply() {
       mother_name_bn: formData.mother_name_bn,
       mother_name_en: formData.mother_name_en,
       
-      division: formData.birthAddress?.division || '',
-      district: formData.birthAddress?.district || '',
-      city_corp: formData.birthAddress?.upazila || '',
-      union_name: formData.birthAddress?.union || '',
-      ward: formData.birthAddress?.ward || '',
-      zone: formData.birthAddress?.zone || '',
-      area: formData.birthAddress?.area || '',
-      village_bn: formData.birthAddress?.villageBn || '',
-      village_en: formData.birthAddress?.villageEn || '',
-      post_office_bn: formData.birthAddress?.postOfficeBn || '',
-      post_office_en: formData.birthAddress?.postOfficeEn || '',
-      house_road_bn: formData.birthAddress?.houseRoadBn || '',
-      house_road_en: formData.birthAddress?.houseRoadEn || '',
+      division: formData.birth_division,
+      district: formData.birth_district,
+      city_corp: formData.birth_upazila,
+      union_name: formData.birth_union,
+      ward: formData.birth_ward,
+      village_bn: formData.birth_villageBn,
+      post_office_bn: formData.birth_postOfficeBn,
 
       permanent_same: formData.permanentSame,
-      permanent_district: formData.permanentSame ? formData.birthAddress?.district : formData.permanentAddress?.district,
-      permanent_village_bn: formData.permanentSame ? formData.birthAddress?.villageBn : formData.permanentAddress?.villageBn,
-      permanent_village_en: formData.permanentSame ? formData.birthAddress?.villageEn : formData.permanentAddress?.villageEn,
+      permanent_district: formData.permanentSame ? formData.birth_district : formData.perm_district,
+      permanent_village_bn: formData.permanentSame ? formData.birth_villageBn : formData.perm_villageBn,
     };
 
     try {
@@ -234,18 +196,15 @@ export default function Apply() {
             ড্যাশবোর্ডে যান
           </Link>
         </div>
-        <CustomAlert isOpen={alertState.isOpen} message={alertState.message} type={alertState.type} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
       </div>
     );
   }
 
-  // 🟢 String() ব্যবহার করা হয়েছে যাতে step নাম্বার ইন্টিজার বা স্ট্রিং যাই হোক, সেটা ম্যাচ করে
-  const currentFields = formConfig.filter(f => String(f.step) === String(step) && (f.section === 'main' || !f.section || f.section === ''));
+  const currentFields = formConfig.filter(f => f.step === step && f.section === 'main');
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-        
         <div className="bg-green-700 p-5 flex justify-between items-center text-white">
           <Link href="/dashboard" className="text-sm bg-green-800 px-4 py-2 rounded-lg hover:bg-green-900 transition">← ড্যাশবোর্ড</Link>
           <h2 className="text-xl font-bold">জন্ম নিবন্ধন আবেদন</h2>
@@ -254,21 +213,13 @@ export default function Apply() {
 
         <div className="flex bg-gray-50 border-b">
           {[1, 2, 3].map((s) => (
-            <div key={s} className={`flex-1 text-center py-3 text-sm font-bold transition-colors ${step === s ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>
+            <div key={s} className={`flex-1 text-center py-3 text-sm font-bold ${step === s ? 'text-green-700 border-b-2 border-green-600 bg-white' : 'text-gray-400'}`}>
               {s === 1 ? '১. পরিচিতি' : s === 2 ? '২. পিতা-মাতা' : '৩. ঠিকানা ও সাবমিট'}
             </div>
           ))}
         </div>
 
         <div className="p-6 md:p-8">
-          {/* 🟢 এরর হ্যান্ডলিং: যদি ডাটাবেসে কোনো ফিল্ড না থাকে */}
-          {currentFields.length === 0 && (
-            <div className="text-center py-10 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
-              <p className="text-yellow-700 font-bold">এই স্টেপের জন্য কোনো ফিল্ড কনফিগার করা নেই!</p>
-              <p className="text-sm text-yellow-600 mt-1">অনুগ্রহ করে অ্যাডমিন প্যানেলের Form Builder থেকে ফিল্ড যুক্ত করুন।</p>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {currentFields.map(field => (
               <DynamicField key={field.id} field={field} formData={formData} handleChange={handleChange} />
@@ -279,7 +230,7 @@ export default function Apply() {
             <div className="mt-8 space-y-8">
               <div>
                 <h3 className="text-lg font-bold text-black border-b pb-2 mb-4">জন্মস্থান / বর্তমান ঠিকানা</h3>
-                <AddressFields sectionType="birth" prefix="birthAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+                <AddressSection sectionType="birth" prefix="birth_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
               </div>
 
               <div>
@@ -292,7 +243,7 @@ export default function Apply() {
                 </div>
                 
                 {!formData.permanentSame ? (
-                  <AddressFields sectionType="permanent" prefix="permanentAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+                  <AddressSection sectionType="permanent" prefix="perm_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
                 ) : (
                   <p className="text-sm text-gray-500 italic">জন্মস্থানের ঠিকানাটি স্থায়ী ঠিকানা হিসেবে ব্যবহৃত হবে।</p>
                 )}
@@ -303,11 +254,11 @@ export default function Apply() {
 
         <div className="p-6 bg-gray-50 border-t flex justify-between">
           {step > 1 ? (
-            <button onClick={() => setStep(step - 1)} className="px-6 py-2.5 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500 transition shadow">← পূর্ববর্তী</button>
+            <button onClick={() => setStep(step - 1)} className="px-6 py-2.5 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500 transition">← পূর্ববর্তী</button>
           ) : <div></div>}
 
           {step < 3 ? (
-            <button onClick={() => setStep(step + 1)} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow">পরবর্তী →</button>
+            <button onClick={() => setStep(step + 1)} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">পরবর্তী →</button>
           ) : (
             <button onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition disabled:bg-gray-400">
               {loading ? 'সাবমিট হচ্ছে...' : 'চূড়ান্ত সাবমিট করুন'}

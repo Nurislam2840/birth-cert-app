@@ -657,7 +657,7 @@ export default function Admin() {
                   <tr>
                     <th className="px-4 py-3">Field Name</th>
                     <th className="px-4 py-3">Label (Bangla)</th>
-                    <th className="px-4 py-3">Section</th> {/* নতুন কলাম */}
+                    <th className="px-4 py-3">Section</th>
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Step</th>
                     <th className="px-4 py-3">Required</th>
