@@ -54,6 +54,7 @@ const AddressFields = ({ sectionType, prefix, formData, handleChange, divisions,
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       {formConfig.filter(f => f.section === sectionType).map(field => {
+        // 🟢 ডাটাবেসের ফিল্ডের নাম Camel Case এ থাকায় এখানে সেগুলোই চেক করা হচ্ছে
         if (field.field_name === 'country') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} /></div>;
         if (field.field_name === 'division') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} /></div>;
         if (field.field_name === 'district') return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} /></div>;
@@ -168,40 +169,41 @@ export default function Apply() {
     const selUni = unions.find(u => u.id.toString() === formData.birthAddress.union);
     const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birthAddress.ward);
 
+    // 🟢 ডাটাবেসের ফিল্ডের নাম অনুযায়ী (Camel Case) ম্যাপ করা হলো
     const payload = {
       user_id: user.id,
       tracking_id: trackingId,
       status: 'Pending',
       
-      first_name_bn: formData.first_name_bn,
-      last_name_bn: formData.last_name_bn,
-      first_name_en: formData.first_name_en,
-      last_name_en: formData.last_name_en,
+      first_name_bn: formData.firstNameBn,
+      last_name_bn: formData.lastNameBn,
+      first_name_en: formData.firstNameEn,
+      last_name_en: formData.lastNameEn,
       dob: formData.dob,
       gender: formData.gender,
-      father_name_bn: formData.father_name_bn,
-      father_name_en: formData.father_name_en,
-      mother_name_bn: formData.mother_name_bn,
-      mother_name_en: formData.mother_name_en,
+      father_name_bn: formData.fatherNameBn,
+      father_name_en: formData.fatherNameEn,
+      mother_name_bn: formData.motherNameBn,
+      mother_name_en: formData.motherNameEn,
       
-      division: formData.birthAddress.division,
-      district: formData.birthAddress.district,
-      city_corp: formData.birthAddress.upazila,
-      union_name: formData.birthAddress.union,
-      ward: formData.birthAddress.ward,
-      zone: formData.birthAddress.zone,
-      area: formData.birthAddress.area,
-      village_bn: formData.birthAddress.villageBn,
-      village_en: formData.birthAddress.villageEn,
-      post_office_bn: formData.birthAddress.postOfficeBn,
-      post_office_en: formData.birthAddress.postOfficeEn,
-      house_road_bn: formData.birthAddress.houseRoadBn,
-      house_road_en: formData.birthAddress.houseRoadEn,
+      division: formData.birthAddress?.division || '',
+      district: formData.birthAddress?.district || '',
+      city_corp: formData.birthAddress?.upazila || '',
+      union_name: formData.birthAddress?.union || '',
+      ward: formData.birthAddress?.ward || '',
+      zone: formData.birthAddress?.zone || '',
+      area: formData.birthAddress?.area || '',
+      village_bn: formData.birthAddress?.villageBn || '',
+      village_en: formData.birthAddress?.villageEn || '',
+      post_office_bn: formData.birthAddress?.postOfficeBn || '',
+      post_office_en: formData.birthAddress?.postOfficeEn || '',
+      house_road_bn: formData.birthAddress?.houseRoadBn || '',
+      house_road_en: formData.birthAddress?.houseRoadEn || '',
 
       permanent_same: formData.permanentSame,
-      permanent_district: formData.permanentSame ? formData.birthAddress.district : formData.permanentAddress.district,
-      permanent_village_bn: formData.permanentSame ? formData.birthAddress.villageBn : formData.permanentAddress.villageBn,
-      permanent_village_en: formData.permanentSame ? formData.birthAddress.villageEn : formData.permanentAddress.villageEn,
+      permanent_district: formData.permanentSame ? formData.birthAddress?.district : formData.permanentAddress?.district,
+      permanent_village_bn: formData.permanentSame ? formData.birthAddress?.villageBn : formData.permanentAddress?.villageBn,
+      permanent_village_en: formData.permanentSame ? formData.birthAddress?.villageEn : formData.permanentAddress?.villageEn,
     };
 
     try {
@@ -256,6 +258,14 @@ export default function Apply() {
         </div>
 
         <div className="p-6 md:p-8">
+          {/* 🟢 এরর হ্যান্ডলিং: যদি ডাটাবেসে কোনো ফিল্ড না থাকে */}
+          {currentFields.length === 0 && (
+            <div className="text-center py-10 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
+              <p className="text-yellow-700 font-bold">এই স্টেপের জন্য কোনো ফিল্ড কনফিগার করা নেই!</p>
+              <p className="text-sm text-yellow-600 mt-1">অনুগ্রহ করে অ্যাডমিন প্যানেলের Form Builder থেকে ফিল্ড যুক্ত করুন।</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {currentFields.map(field => (
               <DynamicField key={field.id} field={field} formData={formData} handleChange={handleChange} />
