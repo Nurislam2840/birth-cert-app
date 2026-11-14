@@ -62,7 +62,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       
-      {/* 🟢 প্রফেশনাল নেভবার */}
+      {/* 🟢 প্রফেশনাল নেভবার (টিল কালার) */}
       <header className="bg-teal-800 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -150,14 +150,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 🟢 লাইভ স্ট্যাটস (StatsSection) */}
+        {/* 🟢 লাইভ স্ট্যাটস */}
         <StatsSection liveStats={stats} />
 
         {/* 🟢 সার্ভিস সেকশন */}
         <section className="max-w-7xl mx-auto px-4 py-20">
           <div className="text-center mb-16">
             <h3 className="text-2xl md:text-3xl font-bold text-gray-800">আমাদের সেবাসমূহ</h3>
-            <p className="text-gray-500 mt-2 text-sm md:text-base">নাগরিকদের জন্য 제공 করা হচ্ছে আধুনিক ডিজিটাল সেবা</p>
+            {/* 🟢 এখানে বানানটি ঠিক করা হয়েছে */}
+            <p className="text-gray-500 mt-2 text-sm md:text-base">নাগরিকদের জন্য প্রদান করা হচ্ছে আধুনিক ডিজিটাল সেবা</p>
             <div className="w-20 h-1 bg-teal-600 mx-auto mt-4 rounded-full"></div>
           </div>
           
@@ -244,7 +245,7 @@ export default function Home() {
             <ul className="space-y-2">
               <li>ইমেইল: support@birthcert.gov.bd</li>
               <li>ফোন: ১৬২৬৩</li>
-              <li className="pt-4 text-xs text-gray-600">© ২০২৬ ডিজিটাল নিবন্ধন পোর্টাল। সর্বস্বত্ব সংরক্ষিত।</li>
+              <li className="pt-4 text-xs text-gray-600">© ২০২৪ ডিজিটাল নিবন্ধন পোর্টাল। সর্বস্বত্ব সংরক্ষিত।</li>
             </ul>
           </div>
         </div>
