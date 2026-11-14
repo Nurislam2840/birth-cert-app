@@ -12,10 +12,13 @@ const Req = () => <span className="text-red-500 ml-1">*</span>;
 const DynamicField = ({ field, formData, handleChange }) => {
   const val = formData[field.field_name] || '';
   let options = [];
+  
   if (field.options && Array.isArray(field.options)) {
     options = field.options.map(o => ({ value: o, label: o }));
   } else if (field.field_name === 'gender') {
     options = [{ value: 'পুরুষ', label: 'পুরুষ' }, { value: 'মহিলা', label: 'মহিলা' }, { value: 'হিজড়া', label: 'হিজড়া' }];
+  } else if (field.field_name === 'child_order') {
+    options = Array.from({ length: 15 }, (_, i) => ({ value: `${i + 1}`, label: `${i + 1}` }));
   }
 
   return (
@@ -33,7 +36,7 @@ const DynamicField = ({ field, formData, handleChange }) => {
         <input type="number" name={field.field_name} value={val} onChange={handleChange} placeholder={field.placeholder_bn || ''} className={inputClass} required={field.is_required} />
       )}
       {field.field_type === 'select' && (
-        <CustomSelect name={field.field_name} options={options} value={val} onChange={handleChange} required={field.is_required} />
+        <CustomSelect name={field.field_name} options={options} value={val} onChange={handleChange} placeholder={field.placeholder_bn || "নির্বাচন করুন"} required={field.is_required} />
       )}
     </div>
   );
@@ -57,22 +60,26 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
       }).map(field => {
         const fieldName = field.field_name;
 
-        if (fieldName === `${prefix}country`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[fieldName]} onChange={handleChange} /></div>;
+        if (fieldName === `${prefix}country`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[fieldName]} onChange={handleChange} /></div>;
         
-        if (fieldName === `${prefix}division`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} /></div>;
+        if (fieldName === `${prefix}division`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} /></div>;
         
-        if (fieldName === `${prefix}district`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDiv} /></div>;
+        if (fieldName === `${prefix}district`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDiv} /></div>;
         
-        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
+        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
         
-        if (fieldName === `${prefix}union`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
+        if (fieldName === `${prefix}union`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
         
         if (fieldName === `${prefix}ward`) {
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[fieldName]} onChange={handleChange} /></div>;
+          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[fieldName]} onChange={handleChange} /></div>;
         }
         
-        if (fieldName === `${prefix}postOfficeBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
-        if (fieldName === `${prefix}villageBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}postOfficeBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}postOfficeEn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}villageBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}villageEn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}houseRoadBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
+        if (fieldName === `${prefix}houseRoadEn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
 
         return null;
       })}
@@ -148,46 +155,45 @@ export default function Apply() {
     const selUni = unions.find(u => u.id.toString() === formData.birth_union);
     const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birth_ward);
 
-    // 🟢 এখানে নতুন ফিল্ডগুলো (পিতার জন্ম নিবন্ধন, জন্ম তারিখ, জাতীয়তা, মাতার অনুরূপ) যুক্ত করা হয়েছে
     const payload = {
       user_id: user.id,
       tracking_id: trackingId,
       status: 'Pending',
       
-      // পরিচিতি
       first_name_bn: formData.first_name_bn,
       last_name_bn: formData.last_name_bn,
       first_name_en: formData.first_name_en,
       last_name_en: formData.last_name_en,
       dob: formData.dob,
       gender: formData.gender,
+      child_order: formData.child_order,
 
-      // পিতা-মাতা
       father_birth_reg: formData.father_birth_reg,
       father_name_bn: formData.father_name_bn,
       father_name_en: formData.father_name_en,
-      father_dob: formData.father_dob,
       father_nationality: formData.father_nationality,
 
       mother_birth_reg: formData.mother_birth_reg,
       mother_name_bn: formData.mother_name_bn,
       mother_name_en: formData.mother_name_en,
-      mother_dob: formData.mother_dob,
       mother_nationality: formData.mother_nationality,
       
-      // ঠিকানা
       division: formData.birth_division,
       district: formData.birth_district,
       city_corp: formData.birth_upazila,
       union_name: formData.birth_union,
       ward: formData.birth_ward,
       village_bn: formData.birth_villageBn,
+      village_en: formData.birth_villageEn,
       post_office_bn: formData.birth_postOfficeBn,
+      post_office_en: formData.birth_postOfficeEn,
+      house_road_bn: formData.birth_houseRoadBn,
+      house_road_en: formData.birth_houseRoadEn,
 
-      // স্থায়ী ঠিকানা
       permanent_same: formData.permanentSame,
       permanent_district: formData.permanentSame ? formData.birth_district : formData.perm_district,
       permanent_village_bn: formData.permanentSame ? formData.birth_villageBn : formData.perm_villageBn,
+      permanent_village_en: formData.permanentSame ? formData.birth_villageEn : formData.perm_villageEn,
     };
 
     try {
