@@ -29,6 +29,9 @@ const DynamicField = ({ field, formData, handleChange }) => {
       {field.field_type === 'date' && (
         <input type="date" name={field.field_name} value={val} onChange={handleChange} className={inputClass} required={field.is_required} />
       )}
+      {field.field_type === 'number' && (
+        <input type="number" name={field.field_name} value={val} onChange={handleChange} placeholder={field.placeholder_bn || ''} className={inputClass} required={field.is_required} />
+      )}
       {field.field_type === 'select' && (
         <CustomSelect name={field.field_name} options={options} value={val} onChange={handleChange} required={field.is_required} />
       )}
@@ -48,7 +51,10 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      {formConfig.filter(f => f.section === sectionType).map(field => {
+      {formConfig.filter(f => {
+        const fSection = String(f.section || '').trim().toLowerCase();
+        return fSection === sectionType;
+      }).map(field => {
         const fieldName = field.field_name;
 
         if (fieldName === `${prefix}country`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><CustomSelect name={fieldName} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[fieldName]} onChange={handleChange} /></div>;
@@ -130,7 +136,7 @@ export default function Apply() {
 
   const handleSubmit = async () => {
     for (const field of formConfig) {
-      if (field.is_required && !formData[field.field_name] && field.section === 'main') {
+      if (field.is_required && !formData[field.field_name] && (String(field.section).toLowerCase() === 'main' || !field.section)) {
         return setAlertState({ isOpen: true, message: `${field.label_bn} আবশ্যক।`, type: 'error' });
       }
     }
@@ -200,7 +206,13 @@ export default function Apply() {
     );
   }
 
-  const currentFields = formConfig.filter(f => f.step === step && f.section === 'main');
+  // 🟢 ১০০% ওয়াটারপ্রুফ ফিল্টার: স্ট্রিং এবং ইন্টিজার মিসম্যাচ হলেও ফিল্ড দেখাবে
+  const currentFields = formConfig.filter(f => {
+    const dbStep = parseInt(f.step || 1, 10);
+    const currentStep = parseInt(step, 10);
+    const dbSection = String(f.section || 'main').trim().toLowerCase();
+    return dbStep === currentStep && (dbSection === 'main' || dbSection === '');
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
@@ -220,6 +232,13 @@ export default function Apply() {
         </div>
 
         <div className="p-6 md:p-8">
+          {currentFields.length === 0 && (
+            <div className="text-center py-10 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
+              <p className="text-yellow-700 font-bold">এই স্টেপের জন্য কোনো ফিল্ড কনফিগার করা নেই!</p>
+              <p className="text-sm text-yellow-600 mt-1">অনুগ্রহ করে অ্যাডমিন প্যানেলের Form Builder থেকে ফিল্ড যুক্ত করুন।</p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {currentFields.map(field => (
               <DynamicField key={field.id} field={field} formData={formData} handleChange={handleChange} />
