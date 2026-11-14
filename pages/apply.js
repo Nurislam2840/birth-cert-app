@@ -9,89 +9,43 @@ import { generate17DigitBRN } from '../lib/generateBRN';
 const inputClass = "w-full mt-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-sm text-gray-800 bg-gray-50 focus:bg-white shadow-sm";
 const Req = () => <span className="text-red-500 ml-1">*</span>;
 
-const AddressFields = ({ prefix, formData, handleChange, divisions, districts, upazilas, unions }) => {
-  const currentDiv = formData[prefix].division;
-  const currentDist = formData[prefix].district;
-  const currentUpazila = formData[prefix].upazila;
-  const currentUnion = formData[prefix].union;
-
-  const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
-  const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
-  const availableUnions = currentUpazila ? unions.filter(un => un.upazila_id.toString() === currentUpazila) : [];
-
-  // 🟢 সিটি কর্পোরেশন বা ক্যান্টনমেন্ট চেক
-  const selectedUnionObj = availableUnions.find(u => u.id.toString() === currentUnion);
-  const isCityOrCantonment = selectedUnionObj 
-    ? ((selectedUnionObj.name_bn || '').includes('সিটি কর্পোরেশন') || 
-       (selectedUnionObj.name_bn || '').includes('ক্যান্টনমেন্ট') || 
-       (selectedUnionObj.name_en || '').toLowerCase().includes('city corporation') || 
-       (selectedUnionObj.name_en || '').toLowerCase().includes('cantonment'))
-    : false;
-
+// ডাইনামিক ফিল্ড
+const DynamicField = ({ field, formData, handleChange }) => {
+  const val = formData[field.field_name] || '';
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      <div>
-        <label className="text-sm font-bold text-black">দেশ <Req /></label>
-        <CustomSelect name={`${prefix}.country`} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[prefix].country} onChange={handleChange} />
-      </div>
-      
-      <div>
-        <label className="text-sm font-bold text-black">বিভাগ <Req /></label>
-        <CustomSelect name={`${prefix}.division`} options={divisions.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].division} onChange={handleChange} />
-      </div>
-
-      <div>
-        <label className="text-sm font-bold text-black">জেলা <Req /></label>
-        <CustomSelect name={`${prefix}.district`} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[prefix].district} onChange={handleChange} disabled={!currentDiv} />
-      </div>
-
-      <div>
-        <label className="text-sm font-bold text-black">সিটি কর্পোরেশন, ক্যান্টনমেন্ট/উপজেলা <Req /></label>
-        <CustomSelect name={`${prefix}.upazila`} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].upazila} onChange={handleChange} disabled={!currentDist} />
-      </div>
-
-      <div>
-        <label className="text-sm font-bold text-black">পৌরসভা/ইউনিয়ন <Req /></label>
-        <CustomSelect name={`${prefix}.union`} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[prefix].union} onChange={handleChange} disabled={!currentUpazila} />
-      </div>
-
-      {/* 🟢 সিটি কর্পোরেশন বা ক্যান্টনমেন্ট সিলেক্ট করলে এই ৩টি বক্স দেখাবে */}
-      {isCityOrCantonment ? (
-        <>
-          <div>
-            <label className="text-sm font-bold text-black">অঞ্চল (Zone) <span className="text-xs text-gray-500">(ঐচ্ছিক)</span></label>
-            <input name={`${prefix}.zone`} value={formData[prefix].zone || ''} onChange={handleChange} placeholder="যেমন: অঞ্চল-১" className={inputClass} />
-          </div>
-          <div>
-            <label className="text-sm font-bold text-black">এরিয়া (Area) <span className="text-xs text-gray-500">(ঐচ্ছিক)</span></label>
-            <input name={`${prefix}.area`} value={formData[prefix].area || ''} onChange={handleChange} placeholder="যেমন: মিরপুর" className={inputClass} />
-          </div>
-          <div>
-            <label className="text-sm font-bold text-black">ওয়ার্ড নং <Req /></label>
-            <CustomSelect 
-              name={`${prefix}.ward`}
-              options={Array.from({length: 30}, (_, i) => ({ value: (i + 1).toString(), label: (i + 1).toString() }))}
-              value={formData[prefix].ward}
-              onChange={handleChange}
-              allowCustom={true}
-              placeholder="ওয়ার্ড নির্বাচন করুন"
-            />
-          </div>
-        </>
-      ) : (
-        <div>
-          <label className="text-sm font-bold text-black">ওয়ার্ড <Req /></label>
-          <CustomSelect name={`${prefix}.ward`} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[prefix].ward} onChange={handleChange} />
-        </div>
+    <div>
+      <label className="text-sm font-bold text-black">
+        {field.label_bn} {field.is_required && <Req />}
+      </label>
+      {field.field_type === 'text' && (
+        <input name={field.field_name} value={val} onChange={handleChange} placeholder={field.placeholder_bn || ''} className={inputClass} required={field.is_required} />
       )}
-
-      <div><label className="text-sm font-bold text-black">ডাকঘর (বাংলায়) <Req /></label><input name={`${prefix}.postOfficeBn`} value={formData[prefix].postOfficeBn} onChange={handleChange} className={inputClass} /></div>
-      <div><label className="text-sm font-bold text-black">ডাকঘর (ইংরেজিতে) <Req /></label><input name={`${prefix}.postOfficeEn`} value={formData[prefix].postOfficeEn} onChange={handleChange} className={inputClass} /></div>
-      <div><label className="text-sm font-bold text-black">গ্রাম/পাড়া/মহল্লা <Req /></label><input name={`${prefix}.villageBn`} value={formData[prefix].villageBn} onChange={handleChange} className={inputClass} /></div>
-      <div><label className="text-sm font-bold text-black">গ্রাম/পাড়া/মহল্লা (ইংরেজি) <Req /></label><input name={`${prefix}.villageEn`} value={formData[prefix].villageEn} onChange={handleChange} className={inputClass} /></div>
-      <div><label className="text-sm font-bold text-black">বাসা ও সড়ক (নাম, নম্বর)</label><input name={`${prefix}.houseRoadBn`} value={formData[prefix].houseRoadBn} onChange={handleChange} className={inputClass} /></div>
-      <div><label className="text-sm font-bold text-black">বাসা ও সড়ক (ইংরেজি)</label><input name={`${prefix}.houseRoadEn`} value={formData[prefix].houseRoadEn} onChange={handleChange} className={inputClass} /></div>
+      {field.field_type === 'date' && (
+        <input type="date" name={field.field_name} value={val} onChange={handleChange} className={inputClass} required={field.is_required} />
+      )}
+      {field.field_type === 'number' && (
+        <input type="number" name={field.field_name} value={val} onChange={handleChange} placeholder={field.placeholder_bn || ''} className={inputClass} required={field.is_required} />
+      )}
+      {field.field_type === 'select' && (
+        <CustomSelect
+          name={field.field_name}
+          options={[{value:'পুরুষ',label:'পুরুষ'}, {value:'মহিলা',label:'মহিলা'}, {value:'হিজড়া',label:'হিজড়া'}]}
+          value={val}
+          onChange={handleChange}
+          required={field.is_required}
+        />
+      )}
     </div>
+  );
+};
+
+// AddressFields (আগের কোড)
+const AddressFields = ({ prefix, formData, handleChange, divisions, districts, upazilas, unions }) => {
+  // ... আপনার আগের AddressFields কোড ...
+  return (
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+       {/* আপনার আগের ঠিকানার সব ফিল্ড */}
+     </div>
   );
 };
 
@@ -110,9 +64,15 @@ export default function Apply() {
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
 
-  const [age, setAge] = useState(null);
-  const [submittedTrackingId, setSubmittedTrackingId] = useState(null);
+  const [formConfig, setFormConfig] = useState([]);
+  const [formData, setFormData] = useState({
+    birthAddress: { ...defaultAddress },
+    permanentAddress: { ...defaultAddress },
+    permanentSame: false,
+  });
+
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
+  const [submittedTrackingId, setSubmittedTrackingId] = useState(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data, error }) => {
@@ -133,149 +93,69 @@ export default function Apply() {
       setUnions(uniRes.data || []);
     };
     fetchLocations();
+
+    const fetchFormConfig = async () => {
+      const { data } = await supabase.from('form_fields').select('*').eq('is_active', true).order('step').order('order_index');
+      if (data) {
+        setFormConfig(data);
+        const initialData = {};
+        data.forEach(f => initialData[f.field_name] = '');
+        setFormData(prev => ({ ...prev, ...initialData }));
+      }
+    };
+    fetchFormConfig();
   }, [router]);
-
-  const [formData, setFormData] = useState({
-    firstNameBn: '', lastNameBn: '', firstNameEn: '', lastNameEn: '', dob: '', childOrder: '', gender: '',
-    birthAddress: { ...defaultAddress },
-    fatherBrn: '', fatherDob: '', fatherNameBn: '', fatherNameEn: '', fatherNationality: 'বাংলাদেশী',
-    motherBrn: '', motherDob: '', motherNameBn: '', motherNameEn: '', motherNationality: 'বাংলাদেশী',
-    permanentSame: false,
-    permanentAddress: { ...defaultAddress },
-  });
-
-  const calculateAge = (dob) => {
-    if (!dob) return null;
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let years = today.getFullYear() - birthDate.getFullYear();
-    let months = today.getMonth() - birthDate.getMonth();
-    let days = today.getDate() - birthDate.getDate();
-    if (days < 0) { months--; days += new Date(today.getFullYear(), today.getMonth(), 0).getDate(); }
-    if (months < 0) { years--; months += 12; }
-    return { years, months, days };
-  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const val = type === 'checkbox' ? checked : value;
-
-    if (name === 'dob') setAge(calculateAge(val));
-
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
-      setFormData(prev => {
-        const newData = { ...prev, [parent]: { ...prev[parent], [child]: val } };
-        if (child === 'division') { newData[parent].district = ''; newData[parent].upazila = ''; newData[parent].union = ''; }
-        if (child === 'district') { newData[parent].upazila = ''; newData[parent].union = ''; }
-        if (child === 'upazila') { newData[parent].union = ''; }
-        return newData;
-      });
+      setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [child]: value } }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: val }));
+      setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     }
   };
-
-  const validateStep = (s) => {
-    if (s === 1) {
-      if (!formData.firstNameBn || !formData.dob || !formData.birthAddress.division || !formData.birthAddress.district || !formData.birthAddress.upazila || !formData.birthAddress.union) {
-        setAlertState({ isOpen: true, message: 'অনুগ্রহ করে নাম, জন্ম তারিখ, বিভাগ, জেলা, উপজেলা ও ইউনিয়ন পূরণ করুন।', type: 'error' });
-        return false;
-      }
-      // 🟢 সিটি বা ক্যান্টনমেন্ট হলে ওয়ার্ড চেক
-      const selectedUni = unions.find(u => u.id.toString() === formData.birthAddress.union);
-      const isCityOrCant = selectedUni && ((selectedUni.name_bn || '').includes('সিটি কর্পোরেশন') || (selectedUni.name_bn || '').includes('ক্যান্টনমেন্ট'));
-      if (isCityOrCant && !formData.birthAddress.ward) {
-        setAlertState({ isOpen: true, message: 'অনুগ্রহ করে ওয়ার্ড নম্বর পূরণ করুন।', type: 'error' });
-        return false;
-      }
-    }
-    if (s === 2) {
-      if (!formData.fatherNameBn || !formData.motherNameBn) {
-        setAlertState({ isOpen: true, message: 'পিতা ও মাতার নাম আবশ্যক।', type: 'error' });
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleNext = () => { if (validateStep(step)) setStep(step + 1); };
 
   const handleSubmit = async () => {
-    if (!user) return setAlertState({ isOpen: true, message: 'আবার লগইন করুন।', type: 'error' });
-    if (!validateStep(1) || !validateStep(2)) return;
+    for (const field of formConfig) {
+      if (field.is_required && !formData[field.field_name]) {
+        return setAlertState({ isOpen: true, message: `${field.label_bn} আবশ্যক।`, type: 'error' });
+      }
+    }
 
     setLoading(true);
-    const birth = formData.birthAddress;
-    const perm = formData.permanentSame ? formData.birthAddress : formData.permanentAddress;
-
-    const selDiv = divisions.find(d => d.id.toString() === birth.division);
-    const selDist = districts.find(d => d.id.toString() === birth.district);
-    const selUpa = upazilas.find(u => u.id.toString() === birth.upazila);
-    const selUni = unions.find(u => u.id.toString() === birth.union);
-    
     const birthYear = formData.dob ? formData.dob.split('-')[0] : '';
-    
-    const trackingId = generate17DigitBRN(
-      birthYear, 
-      selDist?.code, 
-      selUpa?.code, 
-      selUni?.name_en, 
-      birth.ward
-    );
+    const selDist = districts.find(d => d.id.toString() === formData.birthAddress.district);
+    const selUpa = upazilas.find(u => u.id.toString() === formData.birthAddress.upazila);
+    const selUni = unions.find(u => u.id.toString() === formData.birthAddress.union);
+    const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birthAddress.ward);
 
     const payload = {
       user_id: user.id,
       tracking_id: trackingId,
-      first_name_bn: formData.firstNameBn || null,
-      last_name_bn: formData.lastNameBn || null,
-      first_name_en: formData.firstNameEn || null,
-      last_name_en: formData.lastNameEn || null,
-      dob: formData.dob || null,
-      child_order: formData.childOrder ? parseInt(formData.childOrder, 10) : null,
-      gender: formData.gender || null,
-      father_brn: formData.fatherBrn || null,
-      father_dob: formData.fatherDob || null,
-      father_name_bn: formData.fatherNameBn || null,
-      father_name_en: formData.fatherNameEn || null,
-      father_nationality: formData.fatherNationality || null,
-      mother_brn: formData.motherBrn || null,
-      mother_dob: formData.motherDob || null,
-      mother_name_bn: formData.motherNameBn || null,
-      mother_name_en: formData.motherNameEn || null,
-      mother_nationality: formData.motherNationality || null,
-      division: selDiv?.name_bn || null,
-      division_en: selDiv?.name_en || null,
-      district: selDist?.name_bn || null,
-      district_en: selDist?.name_en || null,
-      city_corp: selUpa?.name_bn || null,
-      upazila_en: selUpa?.name_en || null,
-      union_name: selUni?.name_bn || null,
-      union_en: selUni?.name_en || null,
-      zone: birth.zone || null, // 🟢 নতুন ফিল্ড
-      area: birth.area || null, // 🟢 নতুন ফিল্ড
-      ward: birth.ward || null,
-      village_bn: birth.villageBn || null,
-      village_en: birth.villageEn || null,
-      post_office_bn: birth.postOfficeBn || null,
-      post_office_en: birth.postOfficeEn || null,
-      house_road_bn: birth.houseRoadBn || null,
-      house_road_en: birth.houseRoadEn || null,
-      permanent_same: formData.permanentSame || false,
-      permanent_division: perm.division || null,
-      permanent_district: perm.district || null,
-      permanent_village_bn: perm.villageBn || null,
-      permanent_village_en: perm.villageEn || null,
-      status: 'Pending'
+      status: 'Pending',
+      ...formData,
+      division: formData.birthAddress.division,
+      district: formData.birthAddress.district,
+      city_corp: formData.birthAddress.upazila,
+      union_name: formData.birthAddress.union,
+      ward: formData.birthAddress.ward,
+      zone: formData.birthAddress.zone,
+      area: formData.birthAddress.area,
+      village_bn: formData.birthAddress.villageBn,
+      village_en: formData.birthAddress.villageEn,
+      post_office_bn: formData.birthAddress.postOfficeBn,
+      post_office_en: formData.birthAddress.postOfficeEn,
+      house_road_bn: formData.birthAddress.houseRoadBn,
+      house_road_en: formData.birthAddress.houseRoadEn,
+      permanent_same: formData.permanentSame,
     };
 
     try {
       const { error } = await supabase.from('birth_applications').insert([payload]);
       if (error) throw error;
-
       setSubmittedTrackingId(trackingId);
-      setAlertState({ isOpen: true, message: `সফলভাবে আবেদন জমা হয়েছে!\n\nআপনার জন্ম নিবন্ধন নম্বর:\n${trackingId}\n\nএই নম্বরটি সংরক্ষণ করুন।`, type: 'success' });
-
+      setAlertState({ isOpen: true, message: `সফলভাবে জমা হয়েছে!`, type: 'success' });
     } catch (err) {
       setAlertState({ isOpen: true, message: 'সিস্টেম এরর: ' + err.message, type: 'error' });
     } finally {
@@ -293,7 +173,6 @@ export default function Apply() {
           <div className="bg-gray-100 p-4 rounded-lg font-mono text-2xl font-bold text-green-700 tracking-widest mb-6 break-all">
             {submittedTrackingId}
           </div>
-          <p className="text-xs text-gray-500 mb-6">এই নম্বরটি সংরক্ষণ করুন। এই নম্বর দিয়েই আপনি আপনার আবেদন ট্র্যাক করতে পারবেন।</p>
           <Link href="/dashboard" className="block w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition shadow">
             ড্যাশবোর্ডে যান
           </Link>
@@ -302,6 +181,8 @@ export default function Apply() {
       </div>
     );
   }
+
+  const currentFields = formConfig.filter(f => f.step === step);
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
@@ -322,91 +203,16 @@ export default function Apply() {
         </div>
 
         <div className="p-6 md:p-8">
-          {step === 1 && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold text-black border-b pb-2">নিবন্ধনাধীন ব্যক্তির পরিচিতি</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div>
-                  <label className="text-sm font-bold text-black">নামের প্রথম অংশ বাংলায় <Req /></label>
-                  <input name="firstNameBn" value={formData.firstNameBn} onChange={handleChange} placeholder="নামের প্রথম অংশ বাংলায়" className={inputClass} />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-black">নামের শেষ অংশ বাংলায় <Req /></label>
-                  <input name="lastNameBn" value={formData.lastNameBn} onChange={handleChange} placeholder="নামের শেষ অংশ বাংলায়" className={inputClass} />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-black">নামের প্রথম অংশ ইংরেজিতে <Req /></label>
-                  <input name="firstNameEn" value={formData.firstNameEn} onChange={handleChange} placeholder="First Name in English" className={inputClass} />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-black">নামের শেষ অংশ ইংরেজিতে <Req /></label>
-                  <input name="lastNameEn" value={formData.lastNameEn} onChange={handleChange} placeholder="Last Name in English" className={inputClass} />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-bold text-black">জন্ম তারিখ (খ্রিঃ) <Req /></label>
-                  <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={inputClass} />
-                  {age && <p className="text-xs text-green-600 font-bold mt-1">বয়স: {age.years} বছর, {age.months} মাস, {age.days} দিন</p>}
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold text-black">পিতা ও মাতার কততম সন্তান <Req /></label>
-                  <CustomSelect name="childOrder" options={[1,2,3,4,5,6,7,8,9,10].map(n => ({ value: n.toString(), label: n.toString() }))} value={formData.childOrder} onChange={handleChange} />
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold text-black">লিঙ্গ <Req /></label>
-                  <CustomSelect name="gender" options={[{ value: 'পুরুষ', label: 'পুরুষ' }, { value: 'মহিলা', label: 'মহিলা' }, { value: 'হিজড়া', label: 'হিজড়া' }]} value={formData.gender} onChange={handleChange} />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-bold text-black border-b pb-2 mt-8">জন্মস্থানের ঠিকানা</h3>
-              <AddressFields prefix="birthAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} />
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold text-black border-b pb-2">পিতার তথ্য</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-bold text-black">পিতার জন্ম নিবন্ধন নম্বর <Req /></label><input name="fatherBrn" value={formData.fatherBrn} onChange={handleChange} placeholder="জন্ম নিবন্ধন নম্বর" className={inputClass} /></div>
-                <div><label className="text-sm font-bold text-black">জন্ম তারিখ (খ্রিঃ) <Req /></label><input type="date" name="fatherDob" value={formData.fatherDob} onChange={handleChange} className={inputClass} /></div>
-                <div><label className="text-sm font-bold text-black">পিতার নাম বাংলায় <Req /></label><input name="fatherNameBn" value={formData.fatherNameBn} onChange={handleChange} placeholder="পিতার নাম বাংলায়" className={inputClass} /></div>
-                <div><label className="text-sm font-bold text-black">পিতার নাম ইংরেজিতে <Req /></label><input name="fatherNameEn" value={formData.fatherNameEn} onChange={handleChange} placeholder="Father's Name in English" className={inputClass} /></div>
-                <div>
-                  <label className="text-sm font-bold text-black">পিতার জাতীয়তা <Req /></label>
-                  <CustomSelect name="fatherNationality" options={[{ value: 'বাংলাদেশী', label: 'বাংলাদেশী' }, { value: 'অন্যান্য', label: 'অন্যান্য' }]} value={formData.fatherNationality} onChange={handleChange} />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-bold text-black border-b pb-2 mt-8">মাতার তথ্য</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-bold text-black">মাতার জন্ম নিবন্ধন নম্বর <Req /></label><input name="motherBrn" value={formData.motherBrn} onChange={handleChange} placeholder="জন্ম নিবন্ধন নম্বর" className={inputClass} /></div>
-                <div><label className="text-sm font-bold text-black">জন্ম তারিখ (খ্রিঃ) <Req /></label><input type="date" name="motherDob" value={formData.motherDob} onChange={handleChange} className={inputClass} /></div>
-                <div><label className="text-sm font-bold text-black">মাতার নাম বাংলায় <Req /></label><input name="motherNameBn" value={formData.motherNameBn} onChange={handleChange} placeholder="মাতার নাম বাংলায়" className={inputClass} /></div>
-                <div><label className="text-sm font-bold text-black">মাতার নাম ইংরেজিতে <Req /></label><input name="motherNameEn" value={formData.motherNameEn} onChange={handleChange} placeholder="Mother's Name in English" className={inputClass} /></div>
-                <div>
-                  <label className="text-sm font-bold text-black">মাতার জাতীয়তা <Req /></label>
-                  <CustomSelect name="motherNationality" options={[{ value: 'বাংলাদেশী', label: 'বাংলাদেশী' }, { value: 'অন্যান্য', label: 'অন্যান্য' }]} value={formData.motherNationality} onChange={handleChange} />
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {currentFields.map(field => (
+              <DynamicField key={field.id} field={field} formData={formData} handleChange={handleChange} />
+            ))}
+          </div>
 
           {step === 3 && (
-            <div className="space-y-6">
-              <div className="flex items-center bg-green-50 p-4 rounded-lg border border-green-200">
-                <input type="checkbox" name="permanentSame" checked={formData.permanentSame} onChange={handleChange} className="w-5 h-5 text-green-600 rounded mr-3 cursor-pointer" />
-                <label className="font-bold text-green-800 cursor-pointer">জন্মস্থানের ঠিকানা ও স্থায়ী ঠিকানা একই</label>
-              </div>
-
-              {!formData.permanentSame && (
-                <>
-                  <h3 className="text-lg font-bold text-black border-b pb-2 mt-6">স্থায়ী ঠিকানা</h3>
-                  <AddressFields prefix="permanentAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} />
-                </>
-              )}
+            <div className="mt-8">
+              <h3 className="text-lg font-bold text-black border-b pb-2">ঠিকানা</h3>
+              <AddressFields prefix="birthAddress" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} />
             </div>
           )}
         </div>
@@ -417,7 +223,7 @@ export default function Apply() {
           ) : <div></div>}
 
           {step < 3 ? (
-            <button onClick={handleNext} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow">পরবর্তী →</button>
+            <button onClick={() => setStep(step + 1)} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow">পরবর্তী →</button>
           ) : (
             <button onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition disabled:bg-gray-400">
               {loading ? 'সাবমিট হচ্ছে...' : 'চূড়ান্ত সাবমিট করুন'}

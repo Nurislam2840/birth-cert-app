@@ -12,7 +12,6 @@ import { jsPDF } from 'jspdf';
 const LOGO_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/logo.png` : 'https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organization-public-sector-government-fc1aa96622361e91a0a538e6bce4bef9.png';
 const WATERMARK_URL = ASSETS_BUCKET_URL ? `${ASSETS_BUCKET_URL}/watermark.png` : 'https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png';
 
-// 🟢 প্রিমিয়াম আইকন কম্পোনেন্ট
 const Icons = {
   Dashboard: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>,
   Location: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
@@ -29,10 +28,11 @@ const Icons = {
   Close: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>,
   Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
   Import: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>,
+  Form: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>,
 };
 
-const numberToWords = (num) => { /* ... */ return num.toString(); };
-const dateToWords = (dateStr) => { /* ... */ return dateStr; };
+const numberToWords = (num) => { return num.toString(); };
+const dateToWords = (dateStr) => { return dateStr; };
 const safe = (val) => (val === null || val === undefined ? '' : String(val));
 
 export default function Admin() {
@@ -59,7 +59,6 @@ export default function Admin() {
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
-
   const [expandedDivs, setExpandedDivs] = useState(new Set());
   const [expandedDists, setExpandedDists] = useState(new Set());
   const [expandedUpas, setExpandedUpas] = useState(new Set());
@@ -78,13 +77,20 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' });
 
+  // সার্টিফিকেট সেটিংস
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  // CSV ইমপোর্ট স্টেট
+  // CSV ইমপোর্ট
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
+
+  // ফর্ম ফিল্ড স্টেট
+  const [formFields, setFormFields] = useState([]);
+  const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
+  const [editField, setEditField] = useState(null);
+  const [newField, setNewField] = useState({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1 });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -94,10 +100,43 @@ export default function Admin() {
       await fetchApplications();
       await fetchAllLocations();
       await fetchCertSettings();
+      await fetchFormFields();
       setLoading(false);
     };
     checkAdmin();
   }, []);
+
+  const fetchFormFields = async () => {
+    const { data } = await supabase.from('form_fields').select('*').order('step').order('order_index');
+    setFormFields(data || []);
+  };
+
+  const handleAddField = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('form_fields').insert([newField]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'ফিল্ড সেভ হয়েছে!', type: 'success' });
+    setNewField({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1 });
+    setIsAddFieldOpen(false);
+    fetchFormFields();
+  };
+
+  const handleUpdateField = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('form_fields').update(editField).eq('id', editField.id);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'ফিল্ড আপডেট হয়েছে!', type: 'success' });
+    setEditField(null);
+    fetchFormFields();
+  };
+
+  const handleDeleteField = async (id) => {
+    if (!window.confirm('আপনি কি নিশ্চিত এই ফিল্ডটি ডিলিট করতে চান?')) return;
+    const { error } = await supabase.from('form_fields').delete().eq('id', id);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'ফিল্ড ডিলিট হয়েছে!', type: 'success' });
+    fetchFormFields();
+  };
 
   const fetchCertSettings = async () => {
     const { data } = await supabase.from('certificate_settings').select('*').eq('id', 1).single();
@@ -183,7 +222,7 @@ export default function Admin() {
     if (!newUni.upazila_id) return setDebugError('উপজেলা নির্বাচন করুন');
     const { error } = await supabase.from('unions').insert([{ upazila_id: parseInt(newUni.upazila_id), name_bn: newUni.name_bn, name_en: newUni.name_en }]);
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'ইউনিয়ন/পৌরসভা সেভ হয়েছে!', type: 'success' });
+    setAlertState({ isOpen: true, message: 'ইউনিয়ন সেভ হয়েছে!', type: 'success' });
     setNewUni({ ...newUni, name_bn: '', name_en: '' });
     setShowAddUnion(false);
     fetchAllLocations();
@@ -203,7 +242,7 @@ export default function Admin() {
   };
 
   const handleDeleteLoc = async (type, id) => {
-    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান? এর অধীনে থাকা সব ডেটাও ডিলিট হয়ে যাবে।')) return;
+    if (!window.confirm('আপনি কি নিশ্চিত এই লোকেশনটি ডিলিট করতে চান?')) return;
     const { error } = await supabase.from(type).delete().eq('id', id);
     if (error) return setDebugError('ডিলিট ব্যর্থ: ' + error.message);
     setAlertState({ isOpen: true, message: 'ডিলিট করা হয়েছে!', type: 'success' });
@@ -261,47 +300,26 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  // CSV ইমপোর্ট হ্যান্ডলার
   const handleCSVImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setIsImporting(true);
     setDebugError('CSV ফাইল প্রসেস হচ্ছে...');
-
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const text = event.target.result;
         const rows = text.split('\n').map(row => row.trim()).filter(row => row);
-        
         if (rows.length < 2) throw new Error('ফাইলটি খালি বা ভুল ফরম্যাটে আছে।');
-        
         const dataRows = rows.slice(1);
         let importCount = 0;
         let errorCount = 0;
-
         for (const row of dataRows) {
           if (!row || row.trim() === '' || row === '""') continue; 
-
           const values = row.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-          
-          if (values.length < 9 || !values[0] || !values[2] || !values[5] || !values[8]) { 
-            errorCount++; 
-            continue; 
-          }
-
-          const divBn = values[0];
-          const divEn = values[1];
-          const distBn = values[2];
-          const distEn = values[3];
-          const distCode = values[4];
-          const upaBn = values[5];
-          const upaEn = values[6];
-          const upaCode = values[7];
-          const uniBn = values[8];
-          const uniEn = values[9] ? values[9] : uniBn;
-
+          if (values.length < 9 || !values[0] || !values[2] || !values[5] || !values[8]) { errorCount++; continue; }
+          const divBn = values[0]; const divEn = values[1]; const distBn = values[2]; const distEn = values[3]; const distCode = values[4];
+          const upaBn = values[5]; const upaEn = values[6]; const upaCode = values[7]; const uniBn = values[8]; const uniEn = values[9] ? values[9] : uniBn;
           try {
             let divId;
             const { data: existingDiv } = await supabase.from('divisions').select('id').eq('name_bn', divBn).maybeSingle();
@@ -311,7 +329,6 @@ export default function Admin() {
               if (newDiv) divId = newDiv.id;
             }
             if (!divId) { errorCount++; continue; }
-
             let distId;
             const { data: existingDist } = await supabase.from('districts').select('id').eq('name_bn', distBn).eq('division_id', divId).maybeSingle();
             if (existingDist) distId = existingDist.id;
@@ -320,7 +337,6 @@ export default function Admin() {
               if (newDist) distId = newDist.id;
             }
             if (!distId) { errorCount++; continue; }
-
             let upaId;
             const { data: existingUpa } = await supabase.from('upazilas').select('id').eq('name_bn', upaBn).eq('district_id', distId).maybeSingle();
             if (existingUpa) upaId = existingUpa.id;
@@ -329,17 +345,11 @@ export default function Admin() {
               if (newUpa) upaId = newUpa.id;
             }
             if (!upaId) { errorCount++; continue; }
-
             const { data: existingUni } = await supabase.from('unions').select('id').eq('name_bn', uniBn).eq('upazila_id', upaId).maybeSingle();
-            if (!existingUni) {
-              await supabase.from('unions').insert({ upazila_id: upaId, name_bn: uniBn, name_en: uniEn });
-            }
+            if (!existingUni) { await supabase.from('unions').insert({ upazila_id: upaId, name_bn: uniBn, name_en: uniEn }); }
             importCount++;
-          } catch (err) {
-            errorCount++;
-          }
+          } catch (err) { errorCount++; }
         }
-
         await fetchAllLocations();
         setDebugError(null);
         setAlertState({ isOpen: true, message: `ইমপোর্ট সম্পন্ন!\nসফল: ${importCount} টি\nএরর: ${errorCount} টি`, type: 'success' });
@@ -361,7 +371,6 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans relative overflow-x-hidden">
       
-      {/* 🟢 প্রিমিয়াম সাইডবার */}
       <aside className="w-full md:w-64 bg-gray-900 text-white md:min-h-screen flex flex-col shadow-2xl z-50 sticky top-0 md:relative">
         <div className="p-5 flex items-center gap-3 border-b border-gray-800 bg-gray-950">
           <img src={LOGO_URL} alt="Logo" className="w-10 h-10 bg-white rounded-full p-1 shadow-lg" />
@@ -370,7 +379,6 @@ export default function Admin() {
             <p className="text-[10px] text-gray-400">Birth Registration</p>
           </div>
         </div>
-        
         <nav className="flex-1 flex md:flex-col overflow-x-auto md:overflow-visible p-3 md:p-4 gap-2 hide-scrollbar">
           <button onClick={() => setActiveTab('applications')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'applications' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Dashboard /> <span className="hidden md:inline">Applications</span>
@@ -378,21 +386,20 @@ export default function Admin() {
           <button onClick={() => setActiveTab('locations')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'locations' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Location /> <span className="hidden md:inline">Location Manager</span>
           </button>
+          <button onClick={() => setActiveTab('formBuilder')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'formBuilder' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+            <Icons.Form /> <span className="hidden md:inline">Form Builder</span>
+          </button>
           <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Settings /> <span className="hidden md:inline">Certificate Settings</span>
           </button>
         </nav>
-
         <div className="p-4 border-t border-gray-800 hidden md:block bg-gray-950">
           <div className="text-xs text-gray-400 mb-3 truncate px-2">{user?.email}</div>
           <button onClick={async () => { await supabase.auth.signOut(); router.push('/admin/login'); }} className="w-full bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white px-4 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2"><Icons.Logout /> Logout</button>
         </div>
       </aside>
 
-      {/* 🟢 মেইন কনটেন্ট */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        
-        {/* টপ বার (মোবাইল) */}
         <div className="flex justify-between items-center md:hidden mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
           <div className="font-bold text-gray-800">Dashboard</div>
           <div className="flex gap-2">
@@ -414,92 +421,89 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 ড্যাশবোর্ড স্ট্যাটস */}
         {activeTab === 'applications' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-teal-500 to-teal-700 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
-              <div>
-                <p className="text-teal-100 text-sm font-semibold mb-1">Total Applications</p>
-                <h3 className="text-3xl font-extrabold">{applications.length}</h3>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-teal-500 to-teal-700 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
+                <div>
+                  <p className="text-teal-100 text-sm font-semibold mb-1">Total Applications</p>
+                  <h3 className="text-3xl font-extrabold">{applications.length}</h3>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Users /></div>
               </div>
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Users /></div>
-            </div>
-            <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
-              <div>
-                <p className="text-yellow-100 text-sm font-semibold mb-1">Pending</p>
-                <h3 className="text-3xl font-extrabold">{applications.filter(a => a.status === 'Pending').length}</h3>
+              <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
+                <div>
+                  <p className="text-yellow-100 text-sm font-semibold mb-1">Pending</p>
+                  <h3 className="text-3xl font-extrabold">{applications.filter(a => a.status === 'Pending').length}</h3>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Pending /></div>
               </div>
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Pending /></div>
-            </div>
-            <div className="bg-gradient-to-br from-green-500 to-green-700 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
-              <div>
-                <p className="text-green-100 text-sm font-semibold mb-1">Approved</p>
-                <h3 className="text-3xl font-extrabold">{applications.filter(a => a.status === 'Approved').length}</h3>
+              <div className="bg-gradient-to-br from-green-500 to-green-700 p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
+                <div>
+                  <p className="text-green-100 text-sm font-semibold mb-1">Approved</p>
+                  <h3 className="text-3xl font-extrabold">{applications.filter(a => a.status === 'Approved').length}</h3>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Check /></div>
               </div>
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Check /></div>
             </div>
-          </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 className="text-xl font-bold text-gray-800">Recent Applications</h2>
+                <div className="relative w-full md:w-80">
+                  <input type="text" placeholder="Search ID or Name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none bg-gray-50 transition-all" />
+                  <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left min-w-[700px]">
+                  <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] tracking-wider font-semibold">
+                    <tr>
+                      <th className="px-6 py-4">Tracking ID</th>
+                      <th className="px-6 py-4">Applicant</th>
+                      <th className="px-6 py-4">Date</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {applications.filter(app => (app.tracking_id || '').includes(searchQuery) || (app.first_name_bn || '').includes(searchQuery)).map(app => {
+                      const busy = processingIds.has(app.id);
+                      return (
+                        <tr key={app.id} className="hover:bg-teal-50/30 transition-colors">
+                          <td className="px-6 py-4 font-mono font-bold text-teal-700">{app.tracking_id}</td>
+                          <td className="px-6 py-4">
+                            <p className="font-bold text-gray-800">{app.first_name_bn} {app.last_name_bn}</p>
+                            <p className="text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                              {app.status === 'Pending' ? <Icons.Pending /> : <Icons.Check />}
+                              {app.status === 'Pending' ? 'Pending' : 'Approved'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 flex justify-center gap-3">
+                            <button onClick={() => { setSelectedApp(app); setIsViewOpen(true); }} className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition" title="View"><Icons.Search /></button>
+                            {app.status === 'Pending' ? (
+                              <button onClick={() => handleApprove(app)} disabled={busy} className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${busy ? 'bg-gray-200 text-gray-400' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-md shadow-teal-600/20'}`}>
+                                {busy ? 'Wait...' : <><Icons.Check /> Approve</>}
+                              </button>
+                            ) : (
+                              app.pdf_url && <button onClick={() => handleDownload(app)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-md shadow-green-600/20 flex items-center gap-2"><Icons.Download /> Download</button>
+                            )}
+                            <button onClick={() => handleDeleteApplication(app.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition" title="Delete"><Icons.Trash /></button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
 
-        {/* 🟢 অ্যাপ্লিকেশন টেবিল */}
-        {activeTab === 'applications' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-              <h2 className="text-xl font-bold text-gray-800">Recent Applications</h2>
-              <div className="relative w-full md:w-80">
-                <input type="text" placeholder="Search ID or Name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none bg-gray-50 transition-all" />
-                <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[700px]">
-                <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] tracking-wider font-semibold">
-                  <tr>
-                    <th className="px-6 py-4">Tracking ID</th>
-                    <th className="px-6 py-4">Applicant</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {applications.filter(app => (app.tracking_id || '').includes(searchQuery) || (app.first_name_bn || '').includes(searchQuery)).map(app => {
-                    const busy = processingIds.has(app.id);
-                    return (
-                      <tr key={app.id} className="hover:bg-teal-50/30 transition-colors">
-                        <td className="px-6 py-4 font-mono font-bold text-teal-700">{app.tracking_id}</td>
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-gray-800">{app.first_name_bn} {app.last_name_bn}</p>
-                          <p className="text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
-                        </td>
-                        <td className="px-6 py-4 text-gray-600">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                            {app.status === 'Pending' ? <Icons.Pending /> : <Icons.Check />}
-                            {app.status === 'Pending' ? 'Pending' : 'Approved'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 flex justify-center gap-3">
-                          <button onClick={() => { setSelectedApp(app); setIsViewOpen(true); }} className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition" title="View"><Icons.Search /></button>
-                          {app.status === 'Pending' ? (
-                            <button onClick={() => handleApprove(app)} disabled={busy} className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${busy ? 'bg-gray-200 text-gray-400' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-md shadow-teal-600/20'}`}>
-                              {busy ? 'Wait...' : <><Icons.Check /> Approve</>}
-                            </button>
-                          ) : (
-                            app.pdf_url && <button onClick={() => handleDownload(app)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-md shadow-green-600/20 flex items-center gap-2"><Icons.Download /> Download</button>
-                          )}
-                          <button onClick={() => handleDeleteApplication(app.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition" title="Delete"><Icons.Trash /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* 🟢 লোকেশন ম্যানেজার */}
         {activeTab === 'locations' && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -518,7 +522,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* অ্যাড ফর্মসমূহ (একই ডিজাইন) */}
               {showAddDiv && (
                 <form onSubmit={handleAddDivision} className="bg-teal-50 p-5 rounded-xl border border-teal-100 flex flex-col md:flex-row gap-4 items-end mb-6">
                   <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Division (Bangla)</label><input value={newDiv.name_bn} onChange={e => setNewDiv({...newDiv, name_bn: e.target.value})} className={inputClass} required/></div>
@@ -553,7 +556,6 @@ export default function Admin() {
                 </form>
               )}
 
-              {/* ট্রি ভিউ */}
               <div className="border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden">
                 {divisions.length === 0 ? (
                   <div className="p-10 text-center text-gray-500">No data found. Add a division to start.</div>
@@ -641,7 +643,57 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 সেটিংস */}
+        {activeTab === 'formBuilder' && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Dynamic Form Builder</h2>
+                <p className="text-sm text-gray-500 mt-1">Add, edit or delete form fields that appear on the Apply page.</p>
+              </div>
+              <button onClick={() => setIsAddFieldOpen(true)} className="bg-teal-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-teal-600/30 hover:bg-teal-700 transition flex items-center gap-2">
+                <Icons.Plus /> Add New Field
+              </button>
+            </div>
+
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 uppercase text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3">Field Name</th>
+                    <th className="px-4 py-3">Label (Bangla)</th>
+                    <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">Step</th>
+                    <th className="px-4 py-3">Required</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {formFields.map(field => (
+                    <tr key={field.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-mono text-xs text-teal-600">{field.field_name}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{field.label_bn}</td>
+                      <td className="px-4 py-3 text-gray-600 capitalize">{field.field_type}</td>
+                      <td className="px-4 py-3 text-gray-600">{field.step}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold ${field.is_required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {field.is_required ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 flex justify-center gap-2">
+                        <button onClick={() => setEditField(field)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
+                        <button onClick={() => handleDeleteField(field.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {formFields.length === 0 && (
+                    <tr><td colSpan="6" className="text-center py-8 text-gray-500">No fields found. Add a new field to start.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
             <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-4"><Icons.Settings /> Certificate Settings</h2>
