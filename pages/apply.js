@@ -148,21 +148,34 @@ export default function Apply() {
     const selUni = unions.find(u => u.id.toString() === formData.birth_union);
     const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birth_ward);
 
+    // 🟢 এখানে নতুন ফিল্ডগুলো (পিতার জন্ম নিবন্ধন, জন্ম তারিখ, জাতীয়তা, মাতার অনুরূপ) যুক্ত করা হয়েছে
     const payload = {
       user_id: user.id,
       tracking_id: trackingId,
       status: 'Pending',
+      
+      // পরিচিতি
       first_name_bn: formData.first_name_bn,
       last_name_bn: formData.last_name_bn,
       first_name_en: formData.first_name_en,
       last_name_en: formData.last_name_en,
       dob: formData.dob,
       gender: formData.gender,
+
+      // পিতা-মাতা
+      father_birth_reg: formData.father_birth_reg,
       father_name_bn: formData.father_name_bn,
       father_name_en: formData.father_name_en,
+      father_dob: formData.father_dob,
+      father_nationality: formData.father_nationality,
+
+      mother_birth_reg: formData.mother_birth_reg,
       mother_name_bn: formData.mother_name_bn,
       mother_name_en: formData.mother_name_en,
+      mother_dob: formData.mother_dob,
+      mother_nationality: formData.mother_nationality,
       
+      // ঠিকানা
       division: formData.birth_division,
       district: formData.birth_district,
       city_corp: formData.birth_upazila,
@@ -171,6 +184,7 @@ export default function Apply() {
       village_bn: formData.birth_villageBn,
       post_office_bn: formData.birth_postOfficeBn,
 
+      // স্থায়ী ঠিকানা
       permanent_same: formData.permanentSame,
       permanent_district: formData.permanentSame ? formData.birth_district : formData.perm_district,
       permanent_village_bn: formData.permanentSame ? formData.birth_villageBn : formData.perm_villageBn,
@@ -206,8 +220,11 @@ export default function Apply() {
     );
   }
 
-  // 🟢 আপাতত শুধু step চেক করছি (সব ডাটা দেখানোর জন্য)
-  const currentFields = formConfig.filter(f => parseInt(f.step) === parseInt(step));
+  const currentFields = formConfig.filter(f => {
+    const dbStep = parseInt(f.step || 1, 10);
+    const currentStep = parseInt(step, 10);
+    return dbStep === currentStep && String(f.section || 'main').trim().toLowerCase() === 'main';
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
@@ -227,17 +244,6 @@ export default function Apply() {
         </div>
 
         <div className="p-6 md:p-8">
-          
-          {/* 🟢 এই লাল বক্সটি ডিবাগ করার জন্য */}
-          <div className="bg-red-600 text-white p-3 rounded mb-4 font-bold text-center text-sm">
-            DB Fields: {formConfig.length} | Current Step: {step} | Matched: {currentFields.length}
-          </div>
-
-          {currentFields.length === 0 && (
-            <div className="text-center py-10 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
-              <p className="text-yellow-700 font-bold">এই স্টেপের জন্য কোনো ফিল্ড কনফিগার করা নেই!</p>
-            </div>
-          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {currentFields.map(field => (
@@ -280,7 +286,7 @@ export default function Apply() {
             <button onClick={() => setStep(step + 1)} className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">পরবর্তী →</button>
           ) : (
             <button onClick={handleSubmit} disabled={loading} className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition disabled:bg-gray-400">
-              {loading ? 'সাবমিট হচ্ছে...' : 'চূড়ান্ত সাবমিট করুন'}
+              {loading ? 'সাবমিট হচ্ছে...' : 'চূড়ান্ত সাবমিট করুন'}
             </button>
           )}
         </div>
