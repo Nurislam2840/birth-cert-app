@@ -44,7 +44,6 @@ export default function Admin() {
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
   const [debugError, setDebugError] = useState(null);
 
-  // অ্যাপ্লিকেশন স্টেট
   const [applications, setApplications] = useState([]);
   const [processingIds, setProcessingIds] = useState(new Set());
   const [selectedApp, setSelectedApp] = useState(null);
@@ -54,7 +53,6 @@ export default function Admin() {
   const [barcodeUrl, setBarcodeUrl] = useState(null);
   const printRef = useRef(null);
 
-  // লোকেশন স্টেট
   const [divisions, setDivisions] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
@@ -77,20 +75,17 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' });
 
-  // সার্টিফিকেট সেটিংস
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  // CSV ইমপোর্ট
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
 
-  // ফর্ম ফিল্ড স্টেট
   const [formFields, setFormFields] = useState([]);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   const [editField, setEditField] = useState(null);
-  const [newField, setNewField] = useState({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1 });
+  const [newField, setNewField] = useState({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -116,7 +111,7 @@ export default function Admin() {
     const { error } = await supabase.from('form_fields').insert([newField]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'ফিল্ড সেভ হয়েছে!', type: 'success' });
-    setNewField({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1 });
+    setNewField({ field_name: '', label_bn: '', placeholder_bn: '', field_type: 'text', is_required: true, step: 1, order_index: 1, options: null });
     setIsAddFieldOpen(false);
     fetchFormFields();
   };
