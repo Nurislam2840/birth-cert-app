@@ -206,13 +206,8 @@ export default function Apply() {
     );
   }
 
-  // 🟢 ১০০% ওয়াটারপ্রুফ ফিল্টার: স্ট্রিং এবং ইন্টিজার মিসম্যাচ হলেও ফিল্ড দেখাবে
-  const currentFields = formConfig.filter(f => {
-    const dbStep = parseInt(f.step || 1, 10);
-    const currentStep = parseInt(step, 10);
-    const dbSection = String(f.section || 'main').trim().toLowerCase();
-    return dbStep === currentStep && (dbSection === 'main' || dbSection === '');
-  });
+  // 🟢 আপাতত শুধু step চেক করছি (সব ডাটা দেখানোর জন্য)
+  const currentFields = formConfig.filter(f => parseInt(f.step) === parseInt(step));
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 font-sans">
@@ -232,10 +227,15 @@ export default function Apply() {
         </div>
 
         <div className="p-6 md:p-8">
+          
+          {/* 🟢 এই লাল বক্সটি ডিবাগ করার জন্য */}
+          <div className="bg-red-600 text-white p-3 rounded mb-4 font-bold text-center text-sm">
+            DB Fields: {formConfig.length} | Current Step: {step} | Matched: {currentFields.length}
+          </div>
+
           {currentFields.length === 0 && (
             <div className="text-center py-10 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
               <p className="text-yellow-700 font-bold">এই স্টেপের জন্য কোনো ফিল্ড কনফিগার করা নেই!</p>
-              <p className="text-sm text-yellow-600 mt-1">অনুগ্রহ করে অ্যাডমিন প্যানেলের Form Builder থেকে ফিল্ড যুক্ত করুন।</p>
             </div>
           )}
           
