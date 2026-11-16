@@ -4,7 +4,7 @@ const LOGO_URL = 'https://i.postimg.cc/J4t2GLWN/government-of-bangladesh-organiz
 const WATERMARK_URL = 'https://i.postimg.cc/G2hjVFLH/c583e512-b7bc-45ed-bed9-fa5b4c5060d7-removalai-preview.png';
 
 const safe = (val) => (val === null || val === undefined ? '' : String(val));
-const dateToWords = (dateStr) => { return dateStr; }; // আপনি চাইলে এখানে বাংলা/ইংরেজি ওয়ার্ড কনভার্টার বসাতে পারেন
+const dateToWords = (dateStr) => { return dateStr; };
 
 const PDFTemplate = forwardRef(({ app, certSettings, qrCodeUrl, barcodeUrl }, ref) => {
   if (!app) return null;

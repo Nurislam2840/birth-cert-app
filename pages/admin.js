@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CustomAlert from '../components/CustomAlert';
 import CustomSelect from '../components/CustomSelect'; 
-import PDFTemplate from '../components/PDFTemplate'; // 🟢 নতুন পিডিএফ কম্পোনেন্ট
+import PDFTemplate from '../components/PDFTemplate'; 
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 import html2canvas from 'html2canvas';
@@ -50,7 +50,6 @@ export default function Admin() {
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [barcodeUrl, setBarcodeUrl] = useState(null);
   
-  // 🟢 পিডিএফ রেফারেন্স
   const printRef = useRef(null);
 
   const [divisions, setDivisions] = useState([]);
@@ -77,7 +76,6 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
-  // 🟢 ওয়ার্ড/অঞ্চল ম্যানেজমেন্ট স্টেট
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
   const [selectedUpazilaForWard, setSelectedUpazilaForWard] = useState(null);
   const [newWard, setNewWard] = useState({ name_bn: '', name_en: '' });
@@ -123,7 +121,6 @@ export default function Admin() {
     setSpecialAreas(specRes.data || []);
   };
 
-  // 🟢 উপজেলা উপরে-নিচে করার ফাংশন
   const handleMoveUpazila = async (districtId, currentIndex, direction) => {
     const districtUpazilas = upazilas.filter(u => u.district_id === districtId);
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
@@ -224,6 +221,17 @@ export default function Admin() {
     finally { setProcessingIds(prev => { const next = new Set(prev); next.delete(app.id); return next; }); }
   };
 
+  const handleDownload = async (app) => {
+    if (!app.pdf_url) return;
+    try {
+      const res = await fetch(app.pdf_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `Certificate-${app.tracking_id}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch (e) { window.open(app.pdf_url, '_blank'); }
+  };
+
   const fetchFormFields = async () => {
     const { data } = await supabase.from('form_fields').select('*').order('step').order('order_index');
     setFormFields(data || []);
@@ -249,7 +257,6 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans relative overflow-x-hidden">
       
-      {/* Sidebar (আগের মতোই) */}
       <aside className="w-full md:w-64 bg-gray-900 text-white md:min-h-screen flex flex-col shadow-2xl z-50 sticky top-0 md:relative">
         <div className="p-5 flex items-center gap-3 border-b border-gray-800 bg-gray-950">
           <img src={LOGO_URL} alt="Logo" className="w-10 h-10 bg-white rounded-full p-1 shadow-lg" />
@@ -272,124 +279,222 @@ export default function Admin() {
         </div>
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full max-w-full">
-        {/* Applications Tab (আগের মতোই) */}
-        {activeTab === 'applications' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-             {/* ... Applications Table Code (আগের মতোই) ... */}
-             <div className="p-6">
-               <h2 className="text-xl font-bold mb-4">Recent Applications</h2>
-               {/* এখানে আপনার আগের অ্যাপ্লিকেশন টেবিলটি বসাবেন */}
-             </div>
+      <main className="flex-1 p-3 md:p-8 overflow-y-auto w-full max-w-full">
+        {debugError && (
+          <div className="mb-4 md:mb-6 bg-red-50 border-l-4 border-red-500 p-3 md:p-4 rounded-xl flex justify-between items-start shadow-sm text-xs md:text-sm">
+            <div className="flex gap-2 md:gap-3">
+              <div className="text-red-500"><Icons.Trash /></div>
+              <div>
+                <p className="font-bold text-red-800">Error</p>
+                <p className="text-red-600">{debugError}</p>
+              </div>
+            </div>
+            <button onClick={() => setDebugError(null)} className="text-gray-400 hover:text-red-600"><Icons.Close /></button>
           </div>
         )}
 
-        {activeTab === 'locations' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        {activeTab === 'applications' && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
+              <div className="bg-gradient-to-br from-teal-500 to-teal-700 p-4 md:p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Location Hierarchy</h2>
-                  <p className="text-sm text-gray-500 mt-1">Manage divisions, districts, upazilas, and unions.</p>
+                  <p className="text-teal-100 text-xs md:text-sm font-semibold mb-1">Total Applications</p>
+                  <h3 className="text-2xl md:text-3xl font-extrabold">{applications.length}</h3>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Users /></div>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 p-4 md:p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
+                <div>
+                  <p className="text-yellow-100 text-xs md:text-sm font-semibold mb-1">Pending</p>
+                  <h3 className="text-2xl md:text-3xl font-extrabold">{applications.filter(a => a.status === 'Pending').length}</h3>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Pending /></div>
+              </div>
+              <div className="bg-gradient-to-br from-green-500 to-green-700 p-4 md:p-6 rounded-2xl shadow-lg text-white flex items-center justify-between transform hover:scale-[1.02] transition-transform">
+                <div>
+                  <p className="text-green-100 text-xs md:text-sm font-semibold mb-1">Approved</p>
+                  <h3 className="text-2xl md:text-3xl font-extrabold">{applications.filter(a => a.status === 'Approved').length}</h3>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><Icons.Check /></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full max-w-full">
+              <div className="p-4 md:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 className="text-lg md:text-xl font-bold text-gray-800">Recent Applications</h2>
+                <div className="relative w-full md:w-80">
+                  <input type="text" placeholder="Search ID or Name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 md:py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none bg-gray-50 transition-all" />
+                  <div className="absolute left-3 top-3 md:top-3.5 text-gray-400"><Icons.Search /></div>
+                </div>
+              </div>
+              <div className="overflow-x-auto w-full hide-scrollbar">
+                <table className="w-full text-sm text-left min-w-[600px] md:min-w-full">
+                  <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] md:text-[11px] tracking-wider font-semibold">
+                    <tr>
+                      <th className="px-2 md:px-6 py-3 md:py-4">Tracking ID</th>
+                      <th className="px-2 md:px-6 py-3 md:py-4">Applicant</th>
+                      <th className="px-2 md:px-6 py-3 md:py-4">Date</th>
+                      <th className="px-2 md:px-6 py-3 md:py-4">Status</th>
+                      <th className="px-2 md:px-6 py-3 md:py-4 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {applications.filter(app => (app.tracking_id || '').includes(searchQuery) || (app.first_name_bn || '').includes(searchQuery)).map(app => {
+                      const busy = processingIds.has(app.id);
+                      return (
+                        <tr key={app.id} className="hover:bg-teal-50/30 transition-colors">
+                          <td className="px-2 md:px-6 py-3 md:py-4 font-mono font-bold text-teal-700 text-xs md:text-sm break-all">{app.tracking_id}</td>
+                          <td className="px-2 md:px-6 py-3 md:py-4 min-w-[100px]">
+                            <p className="font-bold text-gray-800 text-xs md:text-sm">{app.first_name_bn} {app.last_name_bn}</p>
+                            <p className="text-[9px] md:text-xs text-gray-500">{app.first_name_en} {app.last_name_en}</p>
+                          </td>
+                          <td className="px-2 md:px-6 py-3 md:py-4 text-gray-600 text-xs md:text-sm whitespace-nowrap">{new Date(app.created_at).toLocaleDateString('en-GB')}</td>
+                          <td className="px-2 md:px-6 py-3 md:py-4">
+                            <span className={`inline-flex items-center gap-1 px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-md text-[9px] md:text-xs font-bold whitespace-nowrap ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                              {app.status === 'Pending' ? 'Pending' : 'Approved'}
+                            </span>
+                          </td>
+                          <td className="px-2 md:px-6 py-3 md:py-4">
+                            <div className="flex justify-center gap-1 md:gap-3">
+                              <button onClick={() => { setSelectedApp(app); setIsViewOpen(true); }} className="p-1 md:p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition" title="View"><Icons.Search /></button>
+                              {app.status === 'Pending' ? (
+                                <button onClick={() => handleApprove(app)} disabled={busy} className={`px-1.5 md:px-4 py-1 md:py-2 rounded-lg text-[9px] md:text-xs font-bold transition flex items-center gap-1 ${busy ? 'bg-gray-200 text-gray-400' : 'bg-teal-600 text-white hover:bg-teal-700'}`}>
+                                  {busy ? 'Wait' : 'Approve'}
+                                </button>
+                              ) : (
+                                app.pdf_url && <button onClick={() => handleDownload(app)} className="px-1.5 md:px-4 py-1 md:py-2 bg-green-600 text-white rounded-lg text-[9px] md:text-xs font-bold hover:bg-green-700 flex items-center gap-1"><Icons.Download /> DL</button>
+                              )}
+                              <button onClick={() => handleDeleteApplication(app.id)} className="p-1 md:p-2 text-red-500 hover:bg-red-100 rounded-lg transition" title="Delete"><Icons.Trash /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'locations' && (
+          <div className="space-y-6 w-full max-w-full">
+            <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
+                <div>
+                  <h2 className="text-lg md:text-xl font-bold text-gray-800">Location Hierarchy</h2>
+                  <p className="text-[10px] md:text-sm text-gray-500 mt-1">Manage divisions, districts, upazilas, and unions.</p>
+                </div>
+                <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
+                  <button onClick={() => setIsImportOpen(true)} className="flex-1 md:flex-none justify-center bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg shadow-teal-600/30 hover:bg-teal-700 transition flex items-center gap-1 md:gap-2">
+                    <Icons.Import /> CSV
+                  </button>
+                  <button onClick={() => setShowAddDiv(!showAddDiv)} className="flex-1 md:flex-none justify-center bg-blue-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition flex items-center gap-1 md:gap-2">
+                    <Icons.Plus /> Add Div
+                  </button>
                 </div>
               </div>
 
-              <div className="border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden">
-                {divisions.map(div => (
-                  <div key={div.id} className="border-b last:border-b-0">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-gray-50 hover:bg-teal-50/50 cursor-pointer gap-2 transition-colors" onClick={() => toggleDiv(div.id)}>
-                      <div className="flex items-center gap-3">
-                        <span className={`transform transition-transform text-teal-600 bg-teal-100 p-1 rounded-full ${expandedDivs.has(div.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
-                        <span className="font-bold text-gray-800 text-lg">{div.name_bn}</span>
+              <div className="border border-gray-200 rounded-2xl bg-white shadow-sm overflow-hidden w-full max-w-full">
+                {divisions.length === 0 ? (
+                  <div className="p-10 text-center text-gray-500">No data found. Add a division to start.</div>
+                ) : (
+                  divisions.map(div => (
+                    <div key={div.id} className="border-b last:border-b-0">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-4 bg-gray-50 hover:bg-teal-50/50 cursor-pointer gap-2 transition-colors" onClick={() => toggleDiv(div.id)}>
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <span className={`transform transition-transform text-teal-600 bg-teal-100 p-1 rounded-full ${expandedDivs.has(div.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
+                          <span className="font-bold text-gray-800 text-sm md:text-lg">{div.name_bn}</span>
+                          <span className="text-[10px] md:text-sm text-gray-500 hidden sm:inline">({div.name_en})</span>
+                        </div>
+                        <div className="flex gap-2 md:gap-3 ml-8 md:ml-0" onClick={e => e.stopPropagation()}>
+                          <button onClick={() => { setShowAddDist(true); setNewDist({...newDist, division_id: div.id.toString()}); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> District</button>
+                          <button onClick={() => openEditLoc('divisions', div)} className="text-blue-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Edit /></button>
+                          <button onClick={() => handleDeleteLoc('divisions', div.id)} className="text-red-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Trash /></button>
+                        </div>
                       </div>
-                      <div className="flex gap-3 ml-10 md:ml-0" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => { setShowAddDist(true); setNewDist({...newDist, division_id: div.id.toString()}); }} className="text-teal-600 text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> District</button>
-                        <button onClick={() => openEditLoc('divisions', div)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
-                        <button onClick={() => handleDeleteLoc('divisions', div.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
-                      </div>
-                    </div>
 
-                    {expandedDivs.has(div.id) && (
-                      <div className="pl-6 md:pl-10 bg-white">
-                        {districts.filter(d => d.division_id === div.id).map(dist => (
-                          <div key={dist.id} className="border-t">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between p-3 hover:bg-gray-50 cursor-pointer gap-2" onClick={() => toggleDist(dist.id)}>
-                              <div className="flex items-center gap-3">
-                                <span className={`transform transition-transform text-gray-400 ${expandedDists.has(dist.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
-                                <span className="font-semibold text-gray-700 text-sm">{dist.name_bn}</span>
+                      {expandedDivs.has(div.id) && (
+                        <div className="pl-4 md:pl-10 bg-white">
+                          {districts.filter(d => d.division_id === div.id).map(dist => (
+                            <div key={dist.id} className="border-t">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-3 hover:bg-gray-50 cursor-pointer gap-2" onClick={() => toggleDist(dist.id)}>
+                                <div className="flex items-center gap-2 md:gap-3">
+                                  <span className={`transform transition-transform text-gray-400 ${expandedDists.has(dist.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
+                                  <span className="font-semibold text-gray-700 text-xs md:text-sm">{dist.name_bn}</span>
+                                  <span className="text-[9px] md:text-[10px] bg-blue-100 text-blue-700 px-1.5 md:px-2 py-0.5 rounded-md font-bold">Code: {dist.code || 'N/A'}</span>
+                                </div>
+                                <div className="flex gap-2 md:gap-3 ml-8 md:ml-0" onClick={e => e.stopPropagation()}>
+                                  <button onClick={() => { setShowAddUpa(true); setNewUpa({...newUpa, district_id: dist.id.toString()}); }} className="text-blue-600 text-[9px] md:text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> Upazila</button>
+                                  <button onClick={() => openEditLoc('districts', dist)} className="text-blue-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Edit /></button>
+                                  <button onClick={() => handleDeleteLoc('districts', dist.id)} className="text-red-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Trash /></button>
+                                </div>
                               </div>
-                              <div className="flex gap-3 ml-8 md:ml-0" onClick={e => e.stopPropagation()}>
-                                <button onClick={() => { setShowAddUpa(true); setNewUpa({...newUpa, district_id: dist.id.toString()}); }} className="text-blue-600 text-xs font-bold hover:underline flex items-center gap-1"><Icons.Plus /> Upazila</button>
-                                <button onClick={() => openEditLoc('districts', dist)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
-                                <button onClick={() => handleDeleteLoc('districts', dist.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
-                              </div>
-                            </div>
 
-                            {expandedDists.has(dist.id) && (
-                              <div className="pl-6 md:pl-10 bg-gray-50/30">
-                                {upazilas.filter(u => u.district_id === dist.id).map((upa, idx, arr) => (
-                                  <div key={upa.id} className="border-t">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between p-3 hover:bg-gray-100 cursor-pointer gap-2" onClick={() => toggleUpa(upa.id)}>
-                                      <div className="flex items-center gap-3">
-                                        <span className={`transform transition-transform text-gray-400 ${expandedUpas.has(upa.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
-                                        <span className="font-medium text-gray-700 text-sm">{upa.name_bn}</span>
-                                        
-                                        {/* 🟢 উপজেলা উপরে-নিচে করার বাটন */}
-                                        <div className="flex gap-1 ml-2">
-                                          <button onClick={(e) => { e.stopPropagation(); handleMoveUpazila(dist.id, idx, 'up'); }} disabled={idx === 0} className="p-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"><Icons.ChevronUp /></button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleMoveUpazila(dist.id, idx, 'down'); }} disabled={idx === arr.length - 1} className="p-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"><Icons.ChevronDown /></button>
+                              {expandedDists.has(dist.id) && (
+                                <div className="pl-4 md:pl-10 bg-gray-50/30">
+                                  {upazilas.filter(u => u.district_id === dist.id).map((upa, idx, arr) => (
+                                    <div key={upa.id} className="border-t">
+                                      <div className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-3 hover:bg-gray-100 cursor-pointer gap-2" onClick={() => toggleUpa(upa.id)}>
+                                        <div className="flex items-center gap-1.5 md:gap-3 flex-wrap">
+                                          <span className={`transform transition-transform text-gray-400 ${expandedUpas.has(upa.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
+                                          <span className="font-medium text-gray-700 text-xs md:text-sm">{upa.name_bn}</span>
+                                          
+                                          <div className="flex gap-1 ml-1 md:ml-2">
+                                            <button onClick={(e) => { e.stopPropagation(); handleMoveUpazila(dist.id, idx, 'up'); }} disabled={idx === 0} className="p-0.5 md:p-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"><Icons.ChevronUp /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleMoveUpazila(dist.id, idx, 'down'); }} disabled={idx === arr.length - 1} className="p-0.5 md:p-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"><Icons.ChevronDown /></button>
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2 md:gap-3 ml-8 md:ml-0" onClick={e => e.stopPropagation()}>
+                                          <button onClick={() => openEditLoc('upazilas', upa)} className="text-blue-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Edit /></button>
+                                          <button onClick={() => handleDeleteLoc('upazilas', upa.id)} className="text-red-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Trash /></button>
                                         </div>
                                       </div>
-                                      <div className="flex gap-3 ml-8 md:ml-0" onClick={e => e.stopPropagation()}>
-                                        <button onClick={() => openEditLoc('upazilas', upa)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
-                                        <button onClick={() => handleDeleteLoc('upazilas', upa.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
-                                      </div>
-                                    </div>
 
-                                    {expandedUpas.has(upa.id) && (
-                                      <div className="pl-6 md:pl-10 bg-white">
-                                        {/* 🟢 ওয়ার্ড বা ইউনিয়ন ম্যানেজমেন্ট */}
-                                        {(upa.type === 'city_corp' || upa.type === 'cantonment') ? (
-                                          <div className="p-3 border-t">
-                                            <div className="flex justify-between items-center mb-2">
-                                              <span className="text-xs font-bold text-teal-700">ওয়ার্ড/অঞ্চল লিস্ট:</span>
-                                              <button onClick={() => { setSelectedUpazilaForWard(upa); setIsWardModalOpen(true); }} className="text-teal-600 text-xs font-bold hover:underline">+ Add Ward</button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                              {specialAreas.filter(sa => sa.type === (upa.type === 'cantonment' ? 'cantonment' : 'city_corp')).map(area => (
-                                                <span key={area.id} className="bg-teal-50 text-teal-700 px-3 py-1 rounded-full text-xs font-bold border border-teal-200 flex items-center gap-2">
-                                                  {area.name_bn}
-                                                  <button onClick={() => handleDeleteWard(area.id)} className="text-red-500 hover:text-red-700"><Icons.Trash /></button>
-                                                </span>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          unions.filter(un => un.upazila_id === upa.id).map(union => (
-                                            <div key={union.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border-t hover:bg-gray-50 gap-2">
-                                              <div className="flex items-center gap-3 ml-6">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400"></div>
-                                                <span className="text-gray-700 text-sm">{union.name_bn}</span>
+                                      {expandedUpas.has(upa.id) && (
+                                        <div className="pl-4 md:pl-10 bg-white">
+                                          {(upa.type === 'city_corp' || upa.type === 'cantonment') ? (
+                                            <div className="p-2 md:p-3 border-t">
+                                              <div className="flex justify-between items-center mb-2">
+                                                <span className="text-[9px] md:text-xs font-bold text-teal-700">ওয়ার্ড/অঞ্চল:</span>
+                                                <button onClick={() => { setSelectedUpazilaForWard(upa); setIsWardModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
                                               </div>
-                                              <div className="flex gap-3 ml-10 md:ml-0">
-                                                <button onClick={() => openEditLoc('unions', union)} className="text-blue-600 text-xs font-bold hover:underline"><Icons.Edit /></button>
-                                                <button onClick={() => handleDeleteLoc('unions', union.id)} className="text-red-600 text-xs font-bold hover:underline"><Icons.Trash /></button>
+                                              <div className="flex flex-wrap gap-1.5 md:gap-2">
+                                                {specialAreas.filter(sa => sa.type === (upa.type === 'cantonment' ? 'cantonment' : 'city_corp')).map(area => (
+                                                  <span key={area.id} className="bg-teal-50 text-teal-700 px-1.5 md:px-3 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-bold border border-teal-200 flex items-center gap-1">
+                                                    {area.name_bn}
+                                                    <button onClick={() => handleDeleteWard(area.id)} className="text-red-500 hover:text-red-700"><Icons.Trash /></button>
+                                                  </span>
+                                                ))}
                                               </div>
                                             </div>
-                                          ))
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                                          ) : (
+                                            unions.filter(un => un.upazila_id === upa.id).map(union => (
+                                              <div key={union.id} className="flex flex-col md:flex-row md:items-center justify-between p-2 md:p-3 border-t hover:bg-gray-50 gap-2">
+                                                <div className="flex items-center gap-2 md:gap-3 ml-4 md:ml-6">
+                                                  <div className="w-1.5 h-1.5 rounded-full bg-teal-400"></div>
+                                                  <span className="text-gray-700 text-[10px] md:text-sm">{union.name_bn}</span>
+                                                </div>
+                                                <div className="flex gap-2 md:gap-3 ml-8 md:ml-0">
+                                                  <button onClick={() => openEditLoc('unions', union)} className="text-blue-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Edit /></button>
+                                                  <button onClick={() => handleDeleteLoc('unions', union.id)} className="text-red-600 text-[9px] md:text-xs font-bold hover:underline"><Icons.Trash /></button>
+                                                </div>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -399,11 +504,11 @@ export default function Admin() {
         {isWardModalOpen && selectedUpazilaForWard && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-              <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="text-lg font-bold">Add New {selectedUpazilaForWard.type === 'cantonment' ? 'Zone' : 'Ward/Zone'}</h3>
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b bg-gray-50 flex justify-between items-center">
+                <h3 className="text-base md:text-lg font-bold">Add New {selectedUpazilaForWard.type === 'cantonment' ? 'Zone' : 'Ward/Zone'}</h3>
                 <button onClick={() => { setIsWardModalOpen(false); setSelectedUpazilaForWard(null); }} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
               </div>
-              <form onSubmit={handleAddWard} className="p-6 space-y-4">
+              <form onSubmit={handleAddWard} className="p-4 md:p-6 space-y-4">
                 <div>
                   <label className="text-xs font-bold text-gray-700">Name (Bangla)</label>
                   <input value={newWard.name_bn} onChange={e => setNewWard({...newWard, name_bn: e.target.value})} className={inputClass} required/>
@@ -420,7 +525,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 PDF Template (এখন এটি আলাদা ফাইল থেকে আসছে) */}
         {selectedApp && (
           <PDFTemplate 
             ref={printRef} 
