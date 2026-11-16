@@ -78,7 +78,8 @@ export default function Admin() {
   // Ward/Zone States (সিটি ও ক্যান্টনমেন্টের জন্য)
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
   const [selectedUpazilaForWard, setSelectedUpazilaForWard] = useState(null);
-  const [newWard, setNewWard] = useState({ name_bn: '', name_en: '', sub_type: 'ward' });
+  const [newWard, setNewWard] = useState({ name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
+  const [editSpecial, setEditSpecial] = useState(null); // স্পেশাল এরিয়া এডিট করার জন্য
 
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -106,14 +107,6 @@ export default function Admin() {
     checkAdmin();
   }, []);
 
-  const fetchApplications = async () => {
-    try {
-      const { data, error } = await supabase.from('birth_applications').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setApplications(data || []);
-    } catch (err) { setDebugError('ডেটা লোডে সমস্যা: ' + err.message); }
-  };
-
   const fetchAllLocations = async () => {
     const [divRes, distRes, upaRes, uniRes, specRes] = await Promise.all([
       supabase.from('divisions').select('*').order('id'),
@@ -127,6 +120,14 @@ export default function Admin() {
     setUpazilas(upaRes.data || []);
     setUnions(uniRes.data || []);
     setSpecialAreas(specRes.data || []);
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const { data, error } = await supabase.from('birth_applications').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setApplications(data || []);
+    } catch (err) { setDebugError('ডেটা লোডে সমস্যা: ' + err.message); }
   };
 
   const fetchCertSettings = async () => {
@@ -195,24 +196,38 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // 🟢 ওয়ার্ড/অঞ্চল অ্যাড করার ফাংশন (সিটি ও ক্যান্টনমেন্টের জন্য)
+  // 🟢 ওয়ার্ড/অঞ্চল অ্যাড করার ফাংশন
   const handleAddWard = async (e) => {
     e.preventDefault();
-    if (!selectedUpazilaForWard) return;
-    
-    const type = selectedUpazilaForWard.type === 'cantonment' ? 'cantonment' : 'city_corp';
-    const sub_type = newWard.sub_type; 
+    const type = selectedUpazilaForWard ? (selectedUpazilaForWard.type === 'cantonment' ? 'cantonment' : 'city_corp') : newWard.type;
     
     const { error } = await supabase.from('special_areas').insert([{
       type: type,
-      sub_type: sub_type,
+      sub_type: newWard.sub_type,
       name_bn: newWard.name_bn,
       name_en: newWard.name_en
     }]);
 
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
-    setNewWard({ name_bn: '', name_en: '', sub_type: 'ward' });
+    setNewWard({ name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
+    setIsWardModalOpen(false);
+    setSelectedUpazilaForWard(null);
+    fetchAllLocations();
+  };
+
+  const handleUpdateSpecial = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('special_areas').update({
+      type: editSpecial.type,
+      sub_type: editSpecial.sub_type,
+      name_bn: editSpecial.name_bn,
+      name_en: editSpecial.name_en
+    }).eq('id', editSpecial.id);
+    
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'আপডেট হয়েছে!', type: 'success' });
+    setEditSpecial(null);
     fetchAllLocations();
   };
 
@@ -274,7 +289,7 @@ export default function Admin() {
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage.from('certificates').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
       if (uploadError) throw new Error('আপলোড ব্যর্থ: ' + uploadError.message);
-      const { data: publicUrlData } = await supabase.storage.from('certificates').getPublicUrl(filePath);
+      const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
       const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved', pdf_url: publicUrlData.publicUrl }).eq('id', app.id);
       if (updateError) throw new Error('ডাটাবেস ব্যর্থ: ' + updateError.message);
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: publicUrlData.publicUrl } : a));
@@ -295,7 +310,6 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  // Form Builder Actions
   const handleAddField = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('form_fields').insert([newField]);
@@ -340,7 +354,6 @@ export default function Admin() {
   };
 
   const handleCSVImport = async (e) => {
-    // আগের কোডের মতোই CSV ইমপোর্ট ফাংশন থাকবে
     const file = e.target.files[0];
     if (!file) return;
     setIsImporting(true);
@@ -449,6 +462,9 @@ export default function Admin() {
           </button>
           <button onClick={() => setActiveTab('locations')} className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl font-medium text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'locations' ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Location /> <span className="hidden md:inline">Locations</span>
+          </button>
+          <button onClick={() => setActiveTab('specialAreas')} className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl font-medium text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'specialAreas' ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+            <Icons.Building /> <span className="hidden md:inline">City & Cantonment</span>
           </button>
           <button onClick={() => setActiveTab('formBuilder')} className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl font-medium text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'formBuilder' ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Form /> <span className="hidden md:inline">Form Builder</span>
@@ -711,7 +727,57 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ৩. Form Builder Tab */}
+        {/* ৩. City & Cantonment Tab */}
+        {activeTab === 'specialAreas' && (
+          <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
+              <div>
+                <h2 className="text-base md:text-xl font-bold text-gray-800">City & Cantonment</h2>
+                <p className="text-[10px] md:text-sm text-gray-500 mt-1">Manage Ward, Zone, and Areas for City Corporations and Cantonments.</p>
+              </div>
+              <button onClick={() => { setSelectedUpazilaForWard(null); setIsWardModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
+                <Icons.Plus /> Add New Area
+              </button>
+            </div>
+
+            <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
+              <table className="w-full text-sm text-left min-w-[500px] md:min-w-full">
+                <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
+                  <tr>
+                    <th className="px-2 md:px-4 py-3">Type</th>
+                    <th className="px-2 md:px-4 py-3">Sub Type</th>
+                    <th className="px-2 md:px-4 py-3">Name (Bangla)</th>
+                    <th className="px-2 md:px-4 py-3">Name (English)</th>
+                    <th className="px-2 md:px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {specialAreas.map(area => (
+                    <tr key={area.id} className="hover:bg-gray-50">
+                      <td className="px-2 md:px-4 py-3 font-bold text-teal-700 text-xs md:text-sm">
+                        {area.type === 'city_corp' ? 'সিটি কর্পোরেশন' : 'সেনানিবাস'}
+                      </td>
+                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
+                        {area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}
+                      </td>
+                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
+                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_en}</td>
+                      <td className="px-2 md:px-4 py-3 flex justify-center gap-2">
+                        <button onClick={() => setEditSpecial(area)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
+                        <button onClick={() => handleDeleteWard(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {specialAreas.length === 0 && (
+                    <tr><td colSpan="5" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new area.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ৪. Form Builder Tab */}
         {activeTab === 'formBuilder' && (
           <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
@@ -768,7 +834,7 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ৪. Settings Tab */}
+        {/* ৫. Settings Tab */}
         {activeTab === 'settings' && (
           <div className="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
             <h2 className="text-base md:text-xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2 border-b pb-3 md:pb-4"><Icons.Settings /> Certificate Settings</h2>
@@ -1005,20 +1071,62 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 Add Ward Modal (সিটি ও ক্যান্টনমেন্টের জন্য) */}
-        {isWardModalOpen && selectedUpazilaForWard && (
+        {/* 🟢 Add/Edit Ward Modal */}
+        {(isWardModalOpen || editSpecial) && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="px-4 md:px-6 py-3 md:py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="text-base md:text-lg font-bold">Add New Area</h3>
-                <button onClick={() => { setIsWardModalOpen(false); setSelectedUpazilaForWard(null); }} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
+                <h3 className="text-base md:text-lg font-bold">
+                  {editSpecial ? 'Edit Area' : 'Add New Area'}
+                </h3>
+                <button 
+                  onClick={() => { setIsWardModalOpen(false); setSelectedUpazilaForWard(null); setEditSpecial(null); }} 
+                  className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"
+                >
+                  <Icons.Close />
+                </button>
               </div>
-              <form onSubmit={handleAddWard} className="p-4 md:p-6 space-y-3 md:space-y-4">
+              <form onSubmit={editSpecial ? handleUpdateSpecial : handleAddWard} className="p-4 md:p-6 space-y-3 md:space-y-4">
+                
+                {!editSpecial && (
+                  <div>
+                    <label className="text-[10px] md:text-xs font-bold text-gray-700">Type</label>
+                    <select 
+                      value={selectedUpazilaForWard ? (selectedUpazilaForWard.type === 'cantonment' ? 'cantonment' : 'city_corp') : newWard.type} 
+                      onChange={e => {
+                        if (selectedUpazilaForWard) return;
+                        setNewWard({...newWard, type: e.target.value});
+                      }} 
+                      className={inputClass}
+                      disabled={!!selectedUpazilaForWard}
+                    >
+                      <option value="city_corp">সিটি কর্পোরেশন</option>
+                      <option value="cantonment">সেনানিবাস</option>
+                    </select>
+                  </div>
+                )}
+
+                {editSpecial && (
+                  <div>
+                    <label className="text-[10px] md:text-xs font-bold text-gray-700">Type</label>
+                    <select 
+                      value={editSpecial.type} 
+                      onChange={e => setEditSpecial({...editSpecial, type: e.target.value})} 
+                      className={inputClass}
+                    >
+                      <option value="city_corp">সিটি কর্পোরেশন</option>
+                      <option value="cantonment">সেনানিবাস</option>
+                    </select>
+                  </div>
+                )}
+
                 <div>
-                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Type</label>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Sub Type (Dropdown Options)</label>
                   <select 
-                    value={newWard.sub_type} 
-                    onChange={e => setNewWard({...newWard, sub_type: e.target.value})} 
+                    value={editSpecial ? editSpecial.sub_type : newWard.sub_type} 
+                    onChange={e => editSpecial 
+                      ? setEditSpecial({...editSpecial, sub_type: e.target.value}) 
+                      : setNewWard({...newWard, sub_type: e.target.value})} 
                     className={inputClass}
                   >
                     <option value="ward">শুধু ওয়ার্ড</option>
@@ -1026,10 +1134,29 @@ export default function Admin() {
                     <option value="ward_zone">ওয়ার্ড/অঞ্চল</option>
                   </select>
                 </div>
-                <div><label className="text-[10px] md:text-xs font-bold text-gray-700">Name (Bangla)</label><input value={newWard.name_bn} onChange={e => setNewWard({...newWard, name_bn: e.target.value})} className={inputClass} required/></div>
-                <div><label className="text-[10px] md:text-xs font-bold text-gray-700">Name (English)</label><input value={newWard.name_en} onChange={e => setNewWard({...newWard, name_en: e.target.value})} className={inputClass} required/></div>
+                
+                <div>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Name (Bangla)</label>
+                  <input 
+                    value={editSpecial ? editSpecial.name_bn : newWard.name_bn} 
+                    onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_bn: e.target.value}) : setNewWard({...newWard, name_bn: e.target.value})} 
+                    className={inputClass} required
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Name (English)</label>
+                  <input 
+                    value={editSpecial ? editSpecial.name_en : newWard.name_en} 
+                    onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_en: e.target.value}) : setNewWard({...newWard, name_en: e.target.value})} 
+                    className={inputClass} required
+                  />
+                </div>
+                
                 <div className="flex justify-end pt-3 md:pt-4">
-                  <button type="submit" className="bg-teal-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold text-xs md:text-sm">Save</button>
+                  <button type="submit" className="bg-teal-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold text-xs md:text-sm">
+                    {editSpecial ? 'Update' : 'Save'}
+                  </button>
                 </div>
               </form>
             </div>
