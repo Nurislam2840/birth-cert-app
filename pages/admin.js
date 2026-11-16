@@ -295,28 +295,31 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  // 🟢 CSV ইমপোর্ট ফাংশন (হেডার এবং এক্সেলের \r\n সমস্যা সমাধান করা হয়েছে)
+  // 🟢 CSV ইমপোর্ট ফাংশন (ক্যাশিংসহ)
   const handleCSVImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setIsImporting(true);
     setDebugError('CSV ফাইল প্রসেস হচ্ছে...');
+    
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const text = event.target.result;
-        // \r\n বা \n দুটোই হ্যান্ডেল করবে
         let rows = text.split(/\r?\n/).map(row => row.trim()).filter(row => row);
         if (rows.length < 2) throw new Error('ফাইলটি খালি বা ভুল ফরম্যাটে আছে।');
         
-        // হেডার থাকলে প্রথম লাইন বাদ দেওয়া
-        if (rows[0].toLowerCase().includes('division')) {
+        if (rows[0].toLowerCase().includes('division') || rows[0].toLowerCase().includes('district')) {
             rows = rows.slice(1); 
         }
 
         let importCount = 0;
         let errorCount = 0;
         
+        const existingDivs = new Map();
+        const existingDists = new Map();
+        const existingUpas = new Map();
+
         for (const row of rows) {
           if (!row || row.trim() === '' || row === '""') continue; 
           
@@ -334,37 +337,59 @@ export default function Admin() {
           
           try {
             let divId;
-            const { data: existingDiv } = await supabase.from('divisions').select('id').eq('name_bn', divBn).maybeSingle();
-            if (existingDiv) divId = existingDiv.id;
-            else {
-              const { data: newDiv } = await supabase.from('divisions').insert({ name_bn: divBn, name_en: divEn }).select().single();
-              if (newDiv) divId = newDiv.id;
+            if (existingDivs.has(divBn)) {
+                divId = existingDivs.get(divBn);
+            } else {
+                const { data: existingDiv } = await supabase.from('divisions').select('id').eq('name_bn', divBn).maybeSingle();
+                if (existingDiv) {
+                    divId = existingDiv.id;
+                } else {
+                    const { data: newDiv } = await supabase.from('divisions').insert({ name_bn: divBn, name_en: divEn }).select().single();
+                    if (newDiv) divId = newDiv.id;
+                }
+                if (divId) existingDivs.set(divBn, divId);
             }
             if (!divId) { errorCount++; continue; }
             
             let distId;
-            const { data: existingDist } = await supabase.from('districts').select('id').eq('name_bn', distBn).eq('division_id', divId).maybeSingle();
-            if (existingDist) distId = existingDist.id;
-            else {
-              const { data: newDist } = await supabase.from('districts').insert({ division_id: divId, name_bn: distBn, name_en: distEn, code: distCode }).select().single();
-              if (newDist) distId = newDist.id;
+            const distKey = `${divId}_${distBn}`;
+            if (existingDists.has(distKey)) {
+                distId = existingDists.get(distKey);
+            } else {
+                const { data: existingDist } = await supabase.from('districts').select('id').eq('name_bn', distBn).eq('division_id', divId).maybeSingle();
+                if (existingDist) {
+                    distId = existingDist.id;
+                } else {
+                    const { data: newDist } = await supabase.from('districts').insert({ division_id: divId, name_bn: distBn, name_en: distEn, code: distCode }).select().single();
+                    if (newDist) distId = newDist.id;
+                }
+                if (distId) existingDists.set(distKey, distId);
             }
             if (!distId) { errorCount++; continue; }
             
             let upaId;
-            const { data: existingUpa } = await supabase.from('upazilas').select('id').eq('name_bn', upaBn).eq('district_id', distId).maybeSingle();
-            if (existingUpa) upaId = existingUpa.id;
-            else {
-              const { data: newUpa } = await supabase.from('upazilas').insert({ district_id: distId, name_bn: upaBn, name_en: upaEn, code: upaCode }).select().single();
-              if (newUpa) upaId = newUpa.id;
+            const upaKey = `${distId}_${upaBn}`;
+            if (existingUpas.has(upaKey)) {
+                upaId = existingUpas.get(upaKey);
+            } else {
+                const { data: existingUpa } = await supabase.from('upazilas').select('id').eq('name_bn', upaBn).eq('district_id', distId).maybeSingle();
+                if (existingUpa) {
+                    upaId = existingUpa.id;
+                } else {
+                    const { data: newUpa } = await supabase.from('upazilas').insert({ district_id: distId, name_bn: upaBn, name_en: upaEn, code: upaCode }).select().single();
+                    if (newUpa) upaId = newUpa.id;
+                }
+                if (upaId) existingUpas.set(upaKey, upaId);
             }
             if (!upaId) { errorCount++; continue; }
             
             const { data: existingUni } = await supabase.from('unions').select('id').eq('name_bn', uniBn).eq('upazila_id', upaId).maybeSingle();
-            if (!existingUni) { await supabase.from('unions').insert({ upazila_id: upaId, name_bn: uniBn, name_en: uniEn }); }
+            if (!existingUni) { 
+                await supabase.from('unions').insert({ upazila_id: upaId, name_bn: uniBn, name_en: uniEn }); 
+            }
             importCount++;
           } catch (err) { 
-              console.error(err);
+              console.error("Row error:", row, err);
               errorCount++; 
           }
         }
@@ -674,7 +699,6 @@ export default function Admin() {
               </button>
             </div>
 
-            {/* 🟢 মোবাইল ফ্রেন্ডলি রেসপন্সিভ টেবিল */}
             <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden w-full max-w-full">
               <div className="overflow-x-auto w-full hide-scrollbar">
                 <table className="w-full text-sm text-left min-w-[600px] md:min-w-full">
@@ -762,31 +786,64 @@ export default function Admin() {
         )}
       </main>
 
-      {/* CSV Import Modal */}
+      {/* 🟢 নতুন আকর্ষণীয় CSV Import Modal */}
       {isImportOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100">
-            <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Icons.Import /> Import CSV Data</h3>
-              <button onClick={() => setIsImportOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
+            
+            <div className="px-6 py-5 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <span className="bg-teal-100 text-teal-700 p-1.5 rounded-lg">
+                  <Icons.Import />
+                </span>
+                Import Data
+              </h3>
+              <button onClick={() => setIsImportOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-1.5 rounded-full shadow-sm transition-all">
+                <Icons.Close />
+              </button>
             </div>
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4 font-medium">আপনার CSV ফাইলে নিচের কলামগুলো থাকতে হবে (হেডার সহ বা ছাড়া):</p>
-              <div className="bg-gray-100 p-3 rounded-lg text-xs font-mono mb-6 overflow-x-auto whitespace-nowrap border border-gray-200 text-teal-800">
-                division_bn, division_en, district_bn, district_en, district_code, upazila_bn, upazila_en, upazila_code, union_bn, union_en
+
+            <div className="p-8">
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-gray-800 mb-1">Upload CSV File</h4>
+                <p className="text-sm text-gray-500">আপনার ফাইলটি নির্বাচন করুন</p>
               </div>
+
               <input 
                 type="file" 
                 accept=".csv" 
                 ref={fileInputRef} 
                 onChange={handleCSVImport} 
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 transition-all border border-gray-300 rounded-xl cursor-pointer"
+                className="hidden"
+                id="csv-upload"
                 disabled={isImporting}
               />
-              {isImporting && <p className="text-sm text-teal-600 mt-4 animate-pulse font-bold flex items-center gap-2"><Icons.Pending /> ফাইল প্রসেস হচ্ছে, অপেক্ষা করুন...</p>}
+              
+              <label 
+                htmlFor="csv-upload" 
+                className={`flex items-center justify-center w-full py-3 px-4 border-2 border-dashed ${isImporting ? 'border-gray-300 bg-gray-50 text-gray-400' : 'border-teal-400 bg-teal-50 text-teal-700 hover:bg-teal-100 cursor-pointer'} rounded-xl font-bold transition-all`}
+              >
+                {isImporting ? 'অপেক্ষা করুন...' : '+ Choose File'}
+              </label>
+
+              {isImporting && (
+                <div className="mt-6 flex flex-col items-center justify-center bg-blue-50 p-4 rounded-xl border border-blue-100">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-blue-700 font-bold">ফাইল প্রসেস হচ্ছে...</span>
+                  </div>
+                  <p className="text-xs text-blue-500 text-center">অনুগ্রহ করে অপেক্ষা করুন, ডাটা সেভ করা হচ্ছে।</p>
+                </div>
+              )}
             </div>
+
             <div className="px-6 py-4 border-t bg-gray-50 text-right">
-              <button onClick={() => setIsImportOpen(false)} className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition" disabled={isImporting}>Close</button>
+              <button onClick={() => setIsImportOpen(false)} className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition" disabled={isImporting}>Close</button>
             </div>
           </div>
         </div>
