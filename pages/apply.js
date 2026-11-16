@@ -36,7 +36,7 @@ const DynamicField = ({ field, formData, handleChange }) => {
         <input type="number" name={field.field_name} value={val} onChange={handleChange} placeholder={field.placeholder_bn || ''} className={inputClass} required={field.is_required} />
       )}
       {field.field_type === 'select' && (
-        <CustomSelect name={field.field_name} options={options} value={val} onChange={handleChange} placeholder={field.placeholder_bn || "নির্বাচন করুন"} required={field.is_required} />
+        <CustomSelect name={field.field_name} options={options} value={val} onChange={handleChange} required={field.is_required} />
       )}
     </div>
   );
@@ -50,7 +50,35 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
 
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
-  const availableUnions = currentUpazila ? unions.filter(un => un.upazila_id.toString() === currentUpazila) : [];
+  
+  // 🟢 উপজেলা লিস্ট তৈরি (সাধারণ উপজেলা + সিটি কর্পোরেশন + ক্যান্টনমেন্ট)
+  const upazilaOptions = [...availableUpazilas];
+  if (currentDist) {
+    const specialUnions = unions.filter(un => 
+      un.upazila_id.toString() === '0' || // যদি সরাসরি জেলার অধীনে থাকে
+      (un.name_bn || '').includes('সিটি কর্পোরেশন') || 
+      (un.name_en || '').toLowerCase().includes('city corporation') ||
+      (un.name_bn || '').includes('ক্যান্টনমেন্ট') || 
+      (un.name_en || '').toLowerCase().includes('cantonment')
+    );
+    // নিশ্চিত করা যে সিটি কর্পোরেশন/ক্যান্টনমেন্টগুলো উপজেলা লিস্টে যুক্ত হয়
+    specialUnions.forEach(su => {
+      if (!upazilaOptions.find(u => u.id === su.id)) {
+        upazilaOptions.push({ id: su.id, name_bn: su.name_bn, name_en: su.name_en, isSpecial: true });
+      }
+    });
+  }
+
+  const currentUpazilaObj = upazilaOptions.find(u => u.id.toString() === currentUpazila);
+  const isCityOrCantonment = currentUpazilaObj 
+    ? ((currentUpazilaObj.name_bn || '').includes('সিটি কর্পোরেশন') || (currentUpazilaObj.name_bn || '').includes('ক্যান্টনমেন্ট'))
+    : false;
+
+  const availableUnions = currentUpazila ? unions.filter(un => {
+    // যদি সিটি কর্পোরেশন বা ক্যান্টনমেন্ট সিলেক্ট করা থাকে, তবে সাধারণ ইউনিয়ন দেখাবে না
+    if (isCityOrCantonment) return false; 
+    return un.upazila_id.toString() === currentUpazila;
+  }) : [];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -66,9 +94,15 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
         
         if (fieldName === `${prefix}district`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDiv} /></div>;
         
-        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUpazilas.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
+        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={upazilaOptions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
         
-        if (fieldName === `${prefix}union`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
+        if (fieldName === `${prefix}union`) {
+          // যদি সিটি বা ক্যান্টনমেন্ট সিলেক্ট করা থাকে, তবে ইউনিয়ন অপশনগুলো খালি রাখা যায় অথবা 'প্রযোজ্য নয়' দেখানো যায়
+          if (isCityOrCantonment) {
+            return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input value="প্রযোজ্য নয়" className={inputClass} disabled /></div>;
+          }
+          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
+        }
         
         if (fieldName === `${prefix}ward`) {
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[fieldName]} onChange={handleChange} /></div>;
