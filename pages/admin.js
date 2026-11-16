@@ -29,6 +29,7 @@ const Icons = {
   Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
   Import: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>,
   Form: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>,
+  Building: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>,
 };
 
 const numberToWords = (num) => { return num.toString(); };
@@ -61,6 +62,12 @@ export default function Admin() {
   const [expandedDists, setExpandedDists] = useState(new Set());
   const [expandedUpas, setExpandedUpas] = useState(new Set());
 
+  // 🟢 সিটি কর্পোরেশন ও সেনানিবাসের জন্য নতুন স্টেট
+  const [specialAreas, setSpecialAreas] = useState([]);
+  const [isAddSpecialOpen, setIsAddSpecialOpen] = useState(false);
+  const [newSpecial, setNewSpecial] = useState({ type: 'city_corp', sub_type: 'ward_zone', name_bn: '', name_en: '' });
+  const [editSpecial, setEditSpecial] = useState(null);
+
   const [showAddDiv, setShowAddDiv] = useState(false);
   const [showAddDist, setShowAddDist] = useState(false);
   const [showAddUpa, setShowAddUpa] = useState(false);
@@ -68,12 +75,12 @@ export default function Admin() {
 
   const [newDiv, setNewDiv] = useState({ name_bn: '', name_en: '' });
   const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '', code: '' }); 
-  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '' }); 
+  const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '', type: 'upazila' }); 
   const [newUni, setNewUni] = useState({ upazila_id: '', name_bn: '', name_en: '' });
 
   const [isEditLocOpen, setIsEditLocOpen] = useState(false);
   const [editLocType, setEditLocType] = useState('');
-  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '' });
+  const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -156,16 +163,18 @@ export default function Admin() {
   };
 
   const fetchAllLocations = async () => {
-    const [divRes, distRes, upaRes, uniRes] = await Promise.all([
+    const [divRes, distRes, upaRes, uniRes, specRes] = await Promise.all([
       supabase.from('divisions').select('*').order('id'),
       supabase.from('districts').select('*').order('id'),
       supabase.from('upazilas').select('*').order('id'),
-      supabase.from('unions').select('*').order('id')
+      supabase.from('unions').select('*').order('id'),
+      supabase.from('special_areas').select('*').order('id')
     ]);
     setDivisions(divRes.data || []);
     setDistricts(distRes.data || []);
     setUpazilas(upaRes.data || []);
     setUnions(uniRes.data || []);
+    setSpecialAreas(specRes.data || []);
   };
 
   const fetchApplications = async () => {
@@ -206,7 +215,7 @@ export default function Admin() {
     if (!newUpa.district_id) return setDebugError('জেলা নির্বাচন করুন');
     const { error } = await supabase.from('upazilas').insert([{ ...newUpa, district_id: parseInt(newUpa.district_id) }]);
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'উপজেলা সেভ হয়েছে!', type: 'success' });
+    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
     setNewUpa({ ...newUpa, name_bn: '', name_en: '', code: '' });
     setShowAddUpa(false);
     fetchAllLocations();
@@ -223,12 +232,42 @@ export default function Admin() {
     fetchAllLocations();
   };
 
+  // 🟢 স্পেশাল এরিয়া (সিটি/সেনানিবাস) হ্যান্ডলার
+  const handleAddSpecial = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('special_areas').insert([newSpecial]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
+    setNewSpecial({ type: 'city_corp', sub_type: 'ward_zone', name_bn: '', name_en: '' });
+    setIsAddSpecialOpen(false);
+    fetchAllLocations();
+  };
+
+  const handleUpdateSpecial = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('special_areas').update(editSpecial).eq('id', editSpecial.id);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'আপডেট হয়েছে!', type: 'success' });
+    setEditSpecial(null);
+    fetchAllLocations();
+  };
+
+  const handleDeleteSpecial = async (id) => {
+    if (!window.confirm('ডিলিট করতে চান?')) return;
+    const { error } = await supabase.from('special_areas').delete().eq('id', id);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'ডিলিট হয়েছে!', type: 'success' });
+    fetchAllLocations();
+  };
+
   const openEditLoc = (type, data) => { setEditLocType(type); setEditLocData(data); setIsEditLocOpen(true); };
 
   const handleUpdateLoc = async (e) => {
     e.preventDefault();
     const updateData = { name_bn: editLocData.name_bn, name_en: editLocData.name_en };
     if (editLocType === 'districts' || editLocType === 'upazilas') updateData.code = editLocData.code;
+    if (editLocType === 'upazilas') updateData.type = editLocData.type;
+    
     const { error } = await supabase.from(editLocType).update(updateData).eq('id', editLocData.id);
     if (error) return setDebugError('আপডেট ব্যর্থ: ' + error.message);
     setAlertState({ isOpen: true, message: 'সফলভাবে আপডেট হয়েছে!', type: 'success' });
@@ -295,7 +334,6 @@ export default function Admin() {
     } catch (e) { window.open(app.pdf_url, '_blank'); }
   };
 
-  // 🟢 CSV ইমপোর্ট ফাংশন (ক্যাশিংসহ)
   const handleCSVImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -429,6 +467,9 @@ export default function Admin() {
           </button>
           <button onClick={() => setActiveTab('locations')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'locations' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Location /> <span className="hidden md:inline">Location Manager</span>
+          </button>
+          <button onClick={() => setActiveTab('specialAreas')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'specialAreas' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+            <Icons.Building /> <span className="hidden md:inline">City & Cantonment</span>
           </button>
           <button onClick={() => setActiveTab('formBuilder')} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === 'formBuilder' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Form /> <span className="hidden md:inline">Form Builder</span>
@@ -585,8 +626,16 @@ export default function Admin() {
               {showAddUpa && (
                 <form onSubmit={handleAddUpazila} className="bg-yellow-50 p-5 rounded-xl border border-yellow-100 flex flex-col md:flex-row gap-4 items-end mb-6">
                   <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">District</label><CustomSelect name="district_id" options={districts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={newUpa.district_id} onChange={(e) => setNewUpa({...newUpa, district_id: e.target.value})} placeholder="Select District" /></div>
-                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Upazila (Bangla)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
-                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Upazila (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full">
+                    <label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Type</label>
+                    <select value={newUpa.type} onChange={e => setNewUpa({...newUpa, type: e.target.value})} className={inputClass}>
+                      <option value="upazila">সাধারণ উপজেলা</option>
+                      <option value="city_corp">সিটি কর্পোরেশন</option>
+                      <option value="cantonment">সেনানিবাস</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Name (Bangla)</label><input value={newUpa.name_bn} onChange={e => setNewUpa({...newUpa, name_bn: e.target.value})} className={inputClass} required/></div>
+                  <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Name (English)</label><input value={newUpa.name_en} onChange={e => setNewUpa({...newUpa, name_en: e.target.value})} className={inputClass} required/></div>
                   <div className="flex-1 w-full"><label className="text-xs font-bold text-gray-700 uppercase mb-1 block">Code</label><input value={newUpa.code || ''} onChange={e => setNewUpa({...newUpa, code: e.target.value})} placeholder="89" className={inputClass} /></div>
                   <button type="submit" className="w-full md:w-auto bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-yellow-600 shadow-md transition">Save</button>
                 </form>
@@ -645,6 +694,8 @@ export default function Admin() {
                                         <div className="flex items-center gap-3">
                                           <span className={`transform transition-transform text-gray-400 ${expandedUpas.has(upa.id) ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
                                           <span className="font-medium text-gray-700 text-sm">{upa.name_bn}</span>
+                                          {upa.type === 'city_corp' && <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">সিটি কর্পোরেশন</span>}
+                                          {upa.type === 'cantonment' && <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold">সেনানিবাস</span>}
                                           <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md font-bold">Code: {upa.code || 'N/A'}</span>
                                         </div>
                                         <div className="flex gap-3 ml-8 md:ml-0" onClick={e => e.stopPropagation()}>
@@ -683,6 +734,52 @@ export default function Admin() {
                   ))
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🟢 নতুন সিটি ও সেনানিবাস ট্যাব */}
+        {activeTab === 'specialAreas' && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">City Corporation & Cantonment</h2>
+                <p className="text-sm text-gray-500 mt-1">Manage Ward, Zone, and Areas for City Corporations and Cantonments.</p>
+              </div>
+              <button onClick={() => setIsAddSpecialOpen(true)} className="bg-teal-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-teal-600/30 hover:bg-teal-700 transition flex items-center gap-2">
+                <Icons.Plus /> Add New Area
+              </button>
+            </div>
+
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 uppercase text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">Sub Type</th>
+                    <th className="px-4 py-3">Name (Bangla)</th>
+                    <th className="px-4 py-3">Name (English)</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {specialAreas.map(area => (
+                    <tr key={area.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-bold text-teal-700">{area.type === 'city_corp' ? 'সিটি কর্পোরেশন' : 'সেনানিবাস'}</td>
+                      <td className="px-4 py-3">{area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}</td>
+                      <td className="px-4 py-3">{area.name_bn}</td>
+                      <td className="px-4 py-3">{area.name_en}</td>
+                      <td className="px-4 py-3 flex justify-center gap-2">
+                        <button onClick={() => setEditSpecial(area)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
+                        <button onClick={() => handleDeleteSpecial(area.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {specialAreas.length === 0 && (
+                    <tr><td colSpan="5" className="text-center py-8 text-gray-500">No data found. Add a new area.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -786,7 +883,7 @@ export default function Admin() {
         )}
       </main>
 
-      {/* 🟢 নতুন আকর্ষণীয় CSV Import Modal */}
+      {/* CSV Import Modal */}
       {isImportOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
@@ -970,6 +1067,16 @@ export default function Admin() {
                 <label className="text-xs font-bold text-gray-700 uppercase mb-2 block">Name (English)</label>
                 <input value={editLocData.name_en || ''} onChange={(e) => setEditLocData({ ...editLocData, name_en: e.target.value })} className={inputClass} required />
               </div>
+              {editLocType === 'upazilas' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700 uppercase mb-2 block">Type</label>
+                  <select value={editLocData.type || 'upazila'} onChange={(e) => setEditLocData({ ...editLocData, type: e.target.value })} className={inputClass}>
+                    <option value="upazila">সাধারণ উপজেলা</option>
+                    <option value="city_corp">সিটি কর্পোরেশন</option>
+                    <option value="cantonment">সেনানিবাস</option>
+                  </select>
+                </div>
+              )}
               {(editLocType === 'districts' || editLocType === 'upazilas') && (
                 <div>
                   <label className="text-xs font-bold text-gray-700 uppercase mb-2 block">Code (2 Digits)</label>
@@ -1046,6 +1153,54 @@ export default function Admin() {
                 <button onClick={() => setIsViewOpen(false)} className="px-5 py-2.5 bg-gray-800 text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition">Close</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🟢 নতুন স্পেশাল এরিয়া অ্যাড/এডিট মোডাল */}
+      {(isAddSpecialOpen || editSpecial) && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
+            <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800">{editSpecial ? 'Edit Area' : 'Add New Area'}</h3>
+              <button onClick={() => { setIsAddSpecialOpen(false); setEditSpecial(null); }} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
+            </div>
+            <form onSubmit={editSpecial ? handleUpdateSpecial : handleAddSpecial} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-700">Type</label>
+                <select 
+                  value={editSpecial ? editSpecial.type : newSpecial.type} 
+                  onChange={e => editSpecial ? setEditSpecial({...editSpecial, type: e.target.value}) : setNewSpecial({...newSpecial, type: e.target.value})} 
+                  className={inputClass}
+                >
+                  <option value="city_corp">সিটি কর্পোরেশন</option>
+                  <option value="cantonment">সেনানিবাস</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Sub Type (Dropdown Options)</label>
+                <select 
+                  value={editSpecial ? editSpecial.sub_type : newSpecial.sub_type} 
+                  onChange={e => editSpecial ? setEditSpecial({...editSpecial, sub_type: e.target.value}) : setNewSpecial({...newSpecial, sub_type: e.target.value})} 
+                  className={inputClass}
+                >
+                  <option value="ward">শুধু ওয়ার্ড</option>
+                  <option value="zone">শুধু অঞ্চল</option>
+                  <option value="ward_zone">ওয়ার্ড/অঞ্চল</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Name (Bangla)</label>
+                <input value={editSpecial ? editSpecial.name_bn : newSpecial.name_bn} onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_bn: e.target.value}) : setNewSpecial({...newSpecial, name_bn: e.target.value})} className={inputClass} required/>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Name (English)</label>
+                <input value={editSpecial ? editSpecial.name_en : newSpecial.name_en} onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_en: e.target.value}) : setNewSpecial({...newSpecial, name_en: e.target.value})} className={inputClass} required/>
+              </div>
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="bg-teal-600 text-white px-6 py-2 rounded-xl font-bold">{editSpecial ? 'Update' : 'Save'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -42,50 +42,30 @@ const DynamicField = ({ field, formData, handleChange }) => {
   );
 };
 
-const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, formConfig }) => {
+const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, specialAreas, formConfig }) => {
   const currentDiv = formData[`${prefix}division`];
   const currentDist = formData[`${prefix}district`];
   const currentUpazila = formData[`${prefix}upazila`];
-  const currentUnion = formData[`${prefix}union`];
-
+  
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   
-  // 🟢 উপজেলা লিস্ট তৈরি (সাধারণ উপজেলা + সিটি কর্পোরেশন + ক্যান্টনমেন্ট)
-  const upazilaOptions = [...availableUpazilas];
-  if (currentDist) {
-    const specialUnions = unions.filter(un => 
-      un.upazila_id.toString() === '0' || // যদি সরাসরি জেলার অধীনে থাকে
-      (un.name_bn || '').includes('সিটি কর্পোরেশন') || 
-      (un.name_en || '').toLowerCase().includes('city corporation') ||
-      (un.name_bn || '').includes('ক্যান্টনমেন্ট') || 
-      (un.name_en || '').toLowerCase().includes('cantonment')
-    );
-    // নিশ্চিত করা যে সিটি কর্পোরেশন/ক্যান্টনমেন্টগুলো উপজেলা লিস্টে যুক্ত হয়
-    specialUnions.forEach(su => {
-      if (!upazilaOptions.find(u => u.id === su.id)) {
-        upazilaOptions.push({ id: su.id, name_bn: su.name_bn, name_en: su.name_en, isSpecial: true });
-      }
-    });
-  }
+  // 🟢 সিটি কর্পোরেশন এবং সেনানিবাস স্পেশাল লিস্ট
+  const specialUpazilaOptions = availableUpazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment');
+  const normalUpazilaOptions = availableUpazilas.filter(u => u.type === 'upazila' || !u.type);
+  const allUpazilaOptions = [...normalUpazilaOptions, ...specialUpazilaOptions];
 
-  const currentUpazilaObj = upazilaOptions.find(u => u.id.toString() === currentUpazila);
-  const isCityOrCantonment = currentUpazilaObj 
-    ? ((currentUpazilaObj.name_bn || '').includes('সিটি কর্পোরেশন') || (currentUpazilaObj.name_bn || '').includes('ক্যান্টনমেন্ট'))
-    : false;
+  const selectedUpazilaObj = allUpazilaOptions.find(u => u.id.toString() === currentUpazila);
+  const isCityCorp = selectedUpazilaObj?.type === 'city_corp';
+  const isCantonment = selectedUpazilaObj?.type === 'cantonment';
 
-  const availableUnions = currentUpazila ? unions.filter(un => {
-    // যদি সিটি কর্পোরেশন বা ক্যান্টনমেন্ট সিলেক্ট করা থাকে, তবে সাধারণ ইউনিয়ন দেখাবে না
-    if (isCityOrCantonment) return false; 
-    return un.upazila_id.toString() === currentUpazila;
-  }) : [];
+  // 🟢 অ্যাডমিন প্যানেল থেকে আসা স্পেশাল এরিয়ার ডাটা
+  const cityWardOptions = specialAreas.filter(sa => sa.type === 'city_corp' && sa.sub_type === 'ward_zone');
+  const cantonmentZoneOptions = specialAreas.filter(sa => sa.type === 'cantonment' && sa.sub_type === 'zone');
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      {formConfig.filter(f => {
-        const fSection = String(f.section || '').trim().toLowerCase();
-        return fSection === sectionType;
-      }).map(field => {
+      {formConfig.filter(f => String(f.section || '').trim().toLowerCase() === sectionType).map(field => {
         const fieldName = field.field_name;
 
         if (fieldName === `${prefix}country`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={[{ value: 'বাংলাদেশ', label: 'বাংলাদেশ' }]} value={formData[fieldName]} onChange={handleChange} /></div>;
@@ -94,18 +74,48 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
         
         if (fieldName === `${prefix}district`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableDistricts.map(d => ({ value: d.id.toString(), label: d.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDiv} /></div>;
         
-        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={upazilaOptions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
-        
-        if (fieldName === `${prefix}union`) {
-          // যদি সিটি বা ক্যান্টনমেন্ট সিলেক্ট করা থাকে, তবে ইউনিয়ন অপশনগুলো খালি রাখা যায় অথবা 'প্রযোজ্য নয়' দেখানো যায়
-          if (isCityOrCantonment) {
-            return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn}</label><input value="প্রযোজ্য নয়" className={inputClass} disabled /></div>;
-          }
-          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
+        if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={allUpazilaOptions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
+
+        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে "ওয়ার্ড/অঞ্চল" বক্স শো করবে
+        if (isCityCorp && fieldName === `${prefix}ward`) {
+          return (
+            <div key={field.id}>
+              <label className="text-sm font-bold text-black">ওয়ার্ড/অঞ্চল <Req /></label>
+              <CustomSelect 
+                name={fieldName} 
+                options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
+                value={formData[fieldName]} 
+                onChange={handleChange} 
+              />
+            </div>
+          );
+        }
+
+        // 🟢 সেনানিবাস সিলেক্ট করলে "অঞ্চল" বক্স শো করবে
+        if (isCantonment && fieldName === `${prefix}ward`) {
+          return (
+            <div key={field.id}>
+              <label className="text-sm font-bold text-black">অঞ্চল <Req /></label>
+              <CustomSelect 
+                name={fieldName} 
+                options={cantonmentZoneOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
+                value={formData[fieldName]} 
+                onChange={handleChange} 
+              />
+            </div>
+          );
         }
         
+        // সাধারণ উপজেলার জন্য সাধারণ ওয়ার্ড
         if (fieldName === `${prefix}ward`) {
+          if (isCityCorp || isCantonment) return null; // স্পেশাল হলে বাদ যাবে
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[fieldName]} onChange={handleChange} /></div>;
+        }
+
+        if (fieldName === `${prefix}union`) {
+          if (isCityCorp || isCantonment) return null; // সিটি/সেনানিবাসে ইউনিয়ন নেই
+          const availableUnions = currentUpazila ? unions.filter(un => un.upazila_id.toString() === currentUpazila) : [];
+          return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={availableUnions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentUpazila} /></div>;
         }
         
         if (fieldName === `${prefix}postOfficeBn`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><input name={fieldName} value={formData[fieldName] || ''} onChange={handleChange} className={inputClass} /></div>;
@@ -131,6 +141,7 @@ export default function Apply() {
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
+  const [specialAreas, setSpecialAreas] = useState([]);
 
   const [formConfig, setFormConfig] = useState([]);
   const [formData, setFormData] = useState({ permanentSame: false });
@@ -145,16 +156,18 @@ export default function Apply() {
     });
 
     const fetchLocations = async () => {
-      const [divRes, distRes, upaRes, uniRes] = await Promise.all([
+      const [divRes, distRes, upaRes, uniRes, specRes] = await Promise.all([
         supabase.from('divisions').select('*'),
         supabase.from('districts').select('*'),
         supabase.from('upazilas').select('*'),
-        supabase.from('unions').select('*')
+        supabase.from('unions').select('*'),
+        supabase.from('special_areas').select('*')
       ]);
       setDivisions(divRes.data || []);
       setDistricts(distRes.data || []);
       setUpazilas(upaRes.data || []);
       setUnions(uniRes.data || []);
+      setSpecialAreas(specRes.data || []);
     };
     fetchLocations();
 
@@ -295,7 +308,7 @@ export default function Apply() {
             <div className="mt-8 space-y-8">
               <div>
                 <h3 className="text-lg font-bold text-black border-b pb-2 mb-4">জন্মস্থান / বর্তমান ঠিকানা</h3>
-                <AddressSection sectionType="birth" prefix="birth_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+                <AddressSection sectionType="birth" prefix="birth_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} specialAreas={specialAreas} formConfig={formConfig} />
               </div>
 
               <div>
@@ -308,7 +321,7 @@ export default function Apply() {
                 </div>
                 
                 {!formData.permanentSame ? (
-                  <AddressSection sectionType="permanent" prefix="perm_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} formConfig={formConfig} />
+                  <AddressSection sectionType="permanent" prefix="perm_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} specialAreas={specialAreas} formConfig={formConfig} />
                 ) : (
                   <p className="text-sm text-gray-500 italic">জন্মস্থানের ঠিকানাটি স্থায়ী ঠিকানা হিসেবে ব্যবহৃত হবে।</p>
                 )}
