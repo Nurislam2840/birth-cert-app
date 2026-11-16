@@ -51,17 +51,19 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   
   // 🟢 সিটি কর্পোরেশন এবং সেনানিবাস স্পেশাল লিস্ট
-  const specialUpazilaOptions = availableUpazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment');
-  const normalUpazilaOptions = availableUpazilas.filter(u => u.type === 'upazila' || !u.type);
+  const specialUpazilaOptions = availableUpazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি কর্পোরেশন') || (u.name_bn || '').includes('ক্যান্টনমেন্ট'));
+  const normalUpazilaOptions = availableUpazilas.filter(u => !specialUpazilaOptions.includes(u));
   const allUpazilaOptions = [...normalUpazilaOptions, ...specialUpazilaOptions];
 
   const selectedUpazilaObj = allUpazilaOptions.find(u => u.id.toString() === currentUpazila);
-  const isCityCorp = selectedUpazilaObj?.type === 'city_corp';
-  const isCantonment = selectedUpazilaObj?.type === 'cantonment';
+  
+  // 🟢 নামের ভেতরে সিটি বা ক্যান্টনমেন্ট থাকলে সেটি ডিটেক্ট করবে (CSV ডাটার জন্য)
+  const isCityCorp = selectedUpazilaObj?.type === 'city_corp' || (selectedUpazilaObj?.name_bn || '').includes('সিটি কর্পোরেশন') || (selectedUpazilaObj?.name_en || '').toLowerCase().includes('city corporation');
+  const isCantonment = selectedUpazilaObj?.type === 'cantonment' || (selectedUpazilaObj?.name_bn || '').includes('ক্যান্টনমেন্ট') || (selectedUpazilaObj?.name_en || '').toLowerCase().includes('cantonment');
 
   // 🟢 অ্যাডমিন প্যানেল থেকে আসা স্পেশাল এরিয়ার ডাটা
-  const cityWardOptions = specialAreas.filter(sa => sa.type === 'city_corp' && sa.sub_type === 'ward_zone');
-  const cantonmentZoneOptions = specialAreas.filter(sa => sa.type === 'cantonment' && sa.sub_type === 'zone');
+  const cityWardOptions = specialAreas.filter(sa => sa.type === 'city_corp' && (sa.sub_type === 'ward_zone' || sa.sub_type === 'ward'));
+  const cantonmentZoneOptions = specialAreas.filter(sa => sa.type === 'cantonment' && (sa.sub_type === 'zone' || sa.sub_type === 'ward_zone'));
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -86,6 +88,7 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
                 options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
                 value={formData[fieldName]} 
                 onChange={handleChange} 
+                placeholder="ওয়ার্ড/অঞ্চল নির্বাচন করুন"
               />
             </div>
           );
@@ -101,6 +104,7 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
                 options={cantonmentZoneOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
                 value={formData[fieldName]} 
                 onChange={handleChange} 
+                placeholder="অঞ্চল নির্বাচন করুন"
               />
             </div>
           );
