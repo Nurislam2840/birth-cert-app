@@ -31,6 +31,7 @@ const Icons = {
   Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
   Import: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>,
   Form: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>,
+  Building: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>,
 };
 
 export default function Admin() {
@@ -42,7 +43,6 @@ export default function Admin() {
   const [alertState, setAlertState] = useState({ isOpen: false, message: '', type: 'success' });
   const [debugError, setDebugError] = useState(null);
 
-  // States for Data
   const [applications, setApplications] = useState([]);
   const [processingIds, setProcessingIds] = useState(new Set());
   const [selectedApp, setSelectedApp] = useState(null);
@@ -62,13 +62,6 @@ export default function Admin() {
   const [expandedDists, setExpandedDists] = useState(new Set());
   const [expandedUpas, setExpandedUpas] = useState(new Set());
 
-  const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  
-  const [isWardModalOpen, setIsWardModalOpen] = useState(false);
-  const [selectedUpazilaForWard, setSelectedUpazilaForWard] = useState(null);
-  const [newWard, setNewWard] = useState({ name_bn: '', name_en: '' });
-
   // States for Modals
   const [showAddDiv, setShowAddDiv] = useState(false);
   const [showAddDist, setShowAddDist] = useState(false);
@@ -82,11 +75,18 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
+  // Ward/Zone States (সিটি ও ক্যান্টনমেন্টের জন্য)
+  const [isWardModalOpen, setIsWardModalOpen] = useState(false);
+  const [selectedUpazilaForWard, setSelectedUpazilaForWard] = useState(null);
+  const [newWard, setNewWard] = useState({ name_bn: '', name_en: '', sub_type: 'ward' });
+
+  const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Form Builder States
   const [formFields, setFormFields] = useState([]);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   const [editField, setEditField] = useState(null);
@@ -195,15 +195,24 @@ export default function Admin() {
     fetchAllLocations();
   };
 
+  // 🟢 ওয়ার্ড/অঞ্চল অ্যাড করার ফাংশন (সিটি ও ক্যান্টনমেন্টের জন্য)
   const handleAddWard = async (e) => {
     e.preventDefault();
     if (!selectedUpazilaForWard) return;
+    
     const type = selectedUpazilaForWard.type === 'cantonment' ? 'cantonment' : 'city_corp';
-    const sub_type = selectedUpazilaForWard.type === 'cantonment' ? 'zone' : 'ward_zone';
-    const { error } = await supabase.from('special_areas').insert([{ type, sub_type, name_bn: newWard.name_bn, name_en: newWard.name_en }]);
+    const sub_type = newWard.sub_type; 
+    
+    const { error } = await supabase.from('special_areas').insert([{
+      type: type,
+      sub_type: sub_type,
+      name_bn: newWard.name_bn,
+      name_en: newWard.name_en
+    }]);
+
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'ওয়ার্ড/অঞ্চল সেভ হয়েছে!', type: 'success' });
-    setNewWard({ name_bn: '', name_en: '' });
+    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
+    setNewWard({ name_bn: '', name_en: '', sub_type: 'ward' });
     fetchAllLocations();
   };
 
@@ -265,7 +274,7 @@ export default function Admin() {
       const filePath = `certificates/${app.tracking_id}.pdf`;
       const { error: uploadError } = await supabase.storage.from('certificates').upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
       if (uploadError) throw new Error('আপলোড ব্যর্থ: ' + uploadError.message);
-      const { data: publicUrlData } = supabase.storage.from('certificates').getPublicUrl(filePath);
+      const { data: publicUrlData } = await supabase.storage.from('certificates').getPublicUrl(filePath);
       const { error: updateError } = await supabase.from('birth_applications').update({ status: 'Approved', pdf_url: publicUrlData.publicUrl }).eq('id', app.id);
       if (updateError) throw new Error('ডাটাবেস ব্যর্থ: ' + updateError.message);
       setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'Approved', pdf_url: publicUrlData.publicUrl } : a));
@@ -331,6 +340,7 @@ export default function Admin() {
   };
 
   const handleCSVImport = async (e) => {
+    // আগের কোডের মতোই CSV ইমপোর্ট ফাংশন থাকবে
     const file = e.target.files[0];
     if (!file) return;
     setIsImporting(true);
@@ -424,7 +434,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans relative overflow-x-hidden">
       
-      {/* 🟢 Sidebar */}
+      {/* Sidebar */}
       <aside className="w-full md:w-64 bg-gray-900 text-white md:min-h-screen flex flex-col shadow-2xl z-50 sticky top-0 md:relative">
         <div className="p-4 md:p-5 flex items-center gap-3 border-b border-gray-800 bg-gray-950">
           <img src={LOGO_URL} alt="Logo" className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full p-1 shadow-lg" />
@@ -453,7 +463,7 @@ export default function Admin() {
         </div>
       </aside>
 
-      {/* 🟢 Main Content */}
+      {/* Main Content */}
       <main className="flex-1 p-3 md:p-8 overflow-y-auto w-full max-w-full">
         {debugError && (
           <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 md:p-4 rounded-xl flex justify-between items-start shadow-sm text-xs md:text-sm">
@@ -995,15 +1005,27 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Add Ward Modal */}
+        {/* 🟢 Add Ward Modal (সিটি ও ক্যান্টনমেন্টের জন্য) */}
         {isWardModalOpen && selectedUpazilaForWard && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="px-4 md:px-6 py-3 md:py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="text-base md:text-lg font-bold">Add New {selectedUpazilaForWard.type === 'cantonment' ? 'Zone' : 'Ward/Zone'}</h3>
+                <h3 className="text-base md:text-lg font-bold">Add New Area</h3>
                 <button onClick={() => { setIsWardModalOpen(false); setSelectedUpazilaForWard(null); }} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
               </div>
               <form onSubmit={handleAddWard} className="p-4 md:p-6 space-y-3 md:space-y-4">
+                <div>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Type</label>
+                  <select 
+                    value={newWard.sub_type} 
+                    onChange={e => setNewWard({...newWard, sub_type: e.target.value})} 
+                    className={inputClass}
+                  >
+                    <option value="ward">শুধু ওয়ার্ড</option>
+                    <option value="zone">শুধু অঞ্চল</option>
+                    <option value="ward_zone">ওয়ার্ড/অঞ্চল</option>
+                  </select>
+                </div>
                 <div><label className="text-[10px] md:text-xs font-bold text-gray-700">Name (Bangla)</label><input value={newWard.name_bn} onChange={e => setNewWard({...newWard, name_bn: e.target.value})} className={inputClass} required/></div>
                 <div><label className="text-[10px] md:text-xs font-bold text-gray-700">Name (English)</label><input value={newWard.name_en} onChange={e => setNewWard({...newWard, name_en: e.target.value})} className={inputClass} required/></div>
                 <div className="flex justify-end pt-3 md:pt-4">
