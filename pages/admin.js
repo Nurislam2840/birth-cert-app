@@ -62,7 +62,6 @@ export default function Admin() {
   const [expandedDists, setExpandedDists] = useState(new Set());
   const [expandedUpas, setExpandedUpas] = useState(new Set());
 
-  // 🟢 সিটি কর্পোরেশন ও সেনানিবাসের জন্য নতুন স্টেট
   const [specialAreas, setSpecialAreas] = useState([]);
   const [isAddSpecialOpen, setIsAddSpecialOpen] = useState(false);
   const [newSpecial, setNewSpecial] = useState({ type: 'city_corp', sub_type: 'ward_zone', name_bn: '', name_en: '' });
@@ -213,7 +212,13 @@ export default function Admin() {
   const handleAddUpazila = async (e) => {
     e.preventDefault();
     if (!newUpa.district_id) return setDebugError('জেলা নির্বাচন করুন');
-    const { error } = await supabase.from('upazilas').insert([{ ...newUpa, district_id: parseInt(newUpa.district_id) }]);
+    const { error } = await supabase.from('upazilas').insert([{ 
+      district_id: parseInt(newUpa.district_id), 
+      name_bn: newUpa.name_bn, 
+      name_en: newUpa.name_en, 
+      code: newUpa.code,
+      type: newUpa.type 
+    }]);
     if (error) return setDebugError(error.message);
     setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
     setNewUpa({ ...newUpa, name_bn: '', name_en: '', code: '' });
@@ -232,7 +237,6 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // 🟢 স্পেশাল এরিয়া (সিটি/সেনানিবাস) হ্যান্ডলার
   const handleAddSpecial = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('special_areas').insert([newSpecial]);
@@ -738,7 +742,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 নতুন সিটি ও সেনানিবাস ট্যাব */}
         {activeTab === 'specialAreas' && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -1157,7 +1160,7 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 🟢 নতুন স্পেশাল এরিয়া অ্যাড/এডিট মোডাল */}
+      {/* Add/Edit Special Area Modal */}
       {(isAddSpecialOpen || editSpecial) && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
