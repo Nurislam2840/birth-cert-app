@@ -62,11 +62,10 @@ export default function Admin() {
   const [expandedDists, setExpandedDists] = useState(new Set());
   const [expandedUpas, setExpandedUpas] = useState(new Set());
 
-  // States for Modals
   const [showAddDiv, setShowAddDiv] = useState(false);
   const [showAddDist, setShowAddDist] = useState(false);
   const [showAddUpa, setShowAddUpa] = useState(false);
-  
+
   const [newDiv, setNewDiv] = useState({ name_bn: '', name_en: '' });
   const [newDist, setNewDist] = useState({ division_id: '', name_bn: '', name_en: '', code: '' }); 
   const [newUpa, setNewUpa] = useState({ district_id: '', name_bn: '', name_en: '', code: '', type: 'upazila' }); 
@@ -75,11 +74,10 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
-  // Ward/Zone States (সিটি ও ক্যান্টনমেন্টের জন্য)
+  // 🟢 Ward/Zone States
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
-  const [selectedUpazilaForWard, setSelectedUpazilaForWard] = useState(null);
-  const [newWard, setNewWard] = useState({ name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
-  const [editSpecial, setEditSpecial] = useState(null); // স্পেশাল এরিয়া এডিট করার জন্য
+  const [newWard, setNewWard] = useState({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
+  const [editSpecial, setEditSpecial] = useState(null);
 
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -158,50 +156,15 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  const handleAddDivision = async (e) => {
-    e.preventDefault();
-    const { error } = await supabase.from('divisions').insert([newDiv]);
-    if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'বিভাগ সেভ হয়েছে!', type: 'success' });
-    setNewDiv({ name_bn: '', name_en: '' });
-    setShowAddDiv(false);
-    fetchAllLocations();
-  };
-
-  const handleAddDistrict = async (e) => {
-    e.preventDefault();
-    if (!newDist.division_id) return setDebugError('বিভাগ নির্বাচন করুন');
-    const { error } = await supabase.from('districts').insert([{ ...newDist, division_id: parseInt(newDist.division_id) }]);
-    if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'জেলা সেভ হয়েছে!', type: 'success' });
-    setNewDist({ ...newDist, name_bn: '', name_en: '', code: '' });
-    setShowAddDist(false);
-    fetchAllLocations();
-  };
-
-  const handleAddUpazila = async (e) => {
-    e.preventDefault();
-    if (!newUpa.district_id) return setDebugError('জেলা নির্বাচন করুন');
-    const { error } = await supabase.from('upazilas').insert([{ 
-      district_id: parseInt(newUpa.district_id), 
-      name_bn: newUpa.name_bn, 
-      name_en: newUpa.name_en, 
-      code: newUpa.code,
-      type: newUpa.type 
-    }]);
-    if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
-    setNewUpa({ ...newUpa, name_bn: '', name_en: '', code: '' });
-    setShowAddUpa(false);
-    fetchAllLocations();
-  };
-
-  // 🟢 ওয়ার্ড/অঞ্চল অ্যাড করার ফাংশন
   const handleAddWard = async (e) => {
     e.preventDefault();
-    const type = selectedUpazilaForWard ? (selectedUpazilaForWard.type === 'cantonment' ? 'cantonment' : 'city_corp') : newWard.type;
-    
+    if (!newWard.upazila_id) return setDebugError('সিটি কর্পোরেশন বা সেনানিবাস নির্বাচন করুন।');
+
+    const selectedUpa = upazilas.find(u => u.id.toString() === newWard.upazila_id);
+    const type = selectedUpa?.type === 'cantonment' ? 'cantonment' : 'city_corp';
+
     const { error } = await supabase.from('special_areas').insert([{
+      upazila_id: parseInt(newWard.upazila_id),
       type: type,
       sub_type: newWard.sub_type,
       name_bn: newWard.name_bn,
@@ -209,17 +172,14 @@ export default function Admin() {
     }]);
 
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
-    setNewWard({ name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
-    setIsWardModalOpen(false);
-    setSelectedUpazilaForWard(null);
+    setAlertState({ isOpen: true, message: 'ওয়ার্ড/অঞ্চল সেভ হয়েছে!', type: 'success' });
+    setNewWard({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
     fetchAllLocations();
   };
 
   const handleUpdateSpecial = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('special_areas').update({
-      type: editSpecial.type,
       sub_type: editSpecial.sub_type,
       name_bn: editSpecial.name_bn,
       name_en: editSpecial.name_en
@@ -257,6 +217,44 @@ export default function Admin() {
     const { error } = await supabase.from(type).delete().eq('id', id);
     if (error) setDebugError('ডিলিট ব্যর্থ: ' + error.message);
     else { setAlertState({ isOpen: true, message: 'ডিলিট হয়েছে!', type: 'success' }); fetchAllLocations(); }
+  };
+
+  const handleAddDivision = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('divisions').insert([newDiv]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'বিভাগ সেভ হয়েছে!', type: 'success' });
+    setNewDiv({ name_bn: '', name_en: '' });
+    setShowAddDiv(false);
+    fetchAllLocations();
+  };
+
+  const handleAddDistrict = async (e) => {
+    e.preventDefault();
+    if (!newDist.division_id) return setDebugError('বিভাগ নির্বাচন করুন');
+    const { error } = await supabase.from('districts').insert([{ ...newDist, division_id: parseInt(newDist.division_id) }]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'জেলা সেভ হয়েছে!', type: 'success' });
+    setNewDist({ ...newDist, name_bn: '', name_en: '', code: '' });
+    setShowAddDist(false);
+    fetchAllLocations();
+  };
+
+  const handleAddUpazila = async (e) => {
+    e.preventDefault();
+    if (!newUpa.district_id) return setDebugError('জেলা নির্বাচন করুন');
+    const { error } = await supabase.from('upazilas').insert([{ 
+      district_id: parseInt(newUpa.district_id), 
+      name_bn: newUpa.name_bn, 
+      name_en: newUpa.name_en, 
+      code: newUpa.code,
+      type: newUpa.type 
+    }]);
+    if (error) return setDebugError(error.message);
+    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
+    setNewUpa({ ...newUpa, name_bn: '', name_en: '', code: '' });
+    setShowAddUpa(false);
+    fetchAllLocations();
   };
 
   const handleDeleteApplication = async (id) => {
@@ -684,10 +682,10 @@ export default function Admin() {
                                             <div className="p-2 md:p-3 border-t">
                                               <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[9px] md:text-xs font-bold text-teal-700">ওয়ার্ড/অঞ্চল:</span>
-                                                <button onClick={() => { setSelectedUpazilaForWard(upa); setIsWardModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
+                                                <button onClick={() => { setNewWard({ ...newWard, upazila_id: upa.id.toString(), type: upa.type }); setIsWardModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
                                               </div>
                                               <div className="flex flex-wrap gap-1.5 md:gap-2">
-                                                {specialAreas.filter(sa => sa.type === (upa.type === 'cantonment' ? 'cantonment' : 'city_corp')).map(area => (
+                                                {specialAreas.filter(sa => sa.upazila_id === upa.id).map(area => (
                                                   <span key={area.id} className="bg-teal-50 text-teal-700 px-1.5 md:px-3 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-bold border border-teal-200 flex items-center gap-1">
                                                     {area.name_bn}
                                                     <button onClick={() => handleDeleteWard(area.id)} className="text-red-500 hover:text-red-700"><Icons.Trash /></button>
@@ -735,7 +733,7 @@ export default function Admin() {
                 <h2 className="text-base md:text-xl font-bold text-gray-800">City & Cantonment</h2>
                 <p className="text-[10px] md:text-sm text-gray-500 mt-1">Manage Ward, Zone, and Areas for City Corporations and Cantonments.</p>
               </div>
-              <button onClick={() => { setSelectedUpazilaForWard(null); setIsWardModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
+              <button onClick={() => { setNewWard({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' }); setIsWardModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
                 <Icons.Plus /> Add New Area
               </button>
             </div>
@@ -744,30 +742,33 @@ export default function Admin() {
               <table className="w-full text-sm text-left min-w-[500px] md:min-w-full">
                 <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
                   <tr>
+                    <th className="px-2 md:px-4 py-3">সিটি/সেনানিবাস</th>
                     <th className="px-2 md:px-4 py-3">Type</th>
-                    <th className="px-2 md:px-4 py-3">Sub Type</th>
                     <th className="px-2 md:px-4 py-3">Name (Bangla)</th>
                     <th className="px-2 md:px-4 py-3">Name (English)</th>
                     <th className="px-2 md:px-4 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {specialAreas.map(area => (
-                    <tr key={area.id} className="hover:bg-gray-50">
-                      <td className="px-2 md:px-4 py-3 font-bold text-teal-700 text-xs md:text-sm">
-                        {area.type === 'city_corp' ? 'সিটি কর্পোরেশন' : 'সেনানিবাস'}
-                      </td>
-                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
-                        {area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}
-                      </td>
-                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
-                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_en}</td>
-                      <td className="px-2 md:px-4 py-3 flex justify-center gap-2">
-                        <button onClick={() => setEditSpecial(area)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
-                        <button onClick={() => handleDeleteWard(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
-                      </td>
-                    </tr>
-                  ))}
+                  {specialAreas.map(area => {
+                    const parentUpa = upazilas.find(u => u.id === area.upazila_id);
+                    return (
+                      <tr key={area.id} className="hover:bg-gray-50">
+                        <td className="px-2 md:px-4 py-3 font-bold text-gray-800 text-xs md:text-sm">
+                          {parentUpa ? parentUpa.name_bn : 'N/A'}
+                        </td>
+                        <td className="px-2 md:px-4 py-3 text-teal-700 font-bold text-xs md:text-sm">
+                          {area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}
+                        </td>
+                        <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
+                        <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_en}</td>
+                        <td className="px-2 md:px-4 py-3 flex justify-center gap-2">
+                          <button onClick={() => setEditSpecial(area)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
+                          <button onClick={() => handleDeleteWard(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {specialAreas.length === 0 && (
                     <tr><td colSpan="5" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new area.</td></tr>
                   )}
@@ -1080,7 +1081,7 @@ export default function Admin() {
                   {editSpecial ? 'Edit Area' : 'Add New Area'}
                 </h3>
                 <button 
-                  onClick={() => { setIsWardModalOpen(false); setSelectedUpazilaForWard(null); setEditSpecial(null); }} 
+                  onClick={() => { setIsWardModalOpen(false); setNewWard({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' }); setEditSpecial(null); }} 
                   className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"
                 >
                   <Icons.Close />
@@ -1090,33 +1091,28 @@ export default function Admin() {
                 
                 {!editSpecial && (
                   <div>
-                    <label className="text-[10px] md:text-xs font-bold text-gray-700">Type</label>
+                    <label className="text-[10px] md:text-xs font-bold text-gray-700">সিটি কর্পোরেশন / সেনানিবাস</label>
                     <select 
-                      value={selectedUpazilaForWard ? (selectedUpazilaForWard.type === 'cantonment' ? 'cantonment' : 'city_corp') : newWard.type} 
-                      onChange={e => {
-                        if (selectedUpazilaForWard) return;
-                        setNewWard({...newWard, type: e.target.value});
-                      }} 
+                      value={newWard.upazila_id} 
+                      onChange={e => setNewWard({...newWard, upazila_id: e.target.value})} 
                       className={inputClass}
-                      disabled={!!selectedUpazilaForWard}
+                      required
                     >
-                      <option value="city_corp">সিটি কর্পোরেশন</option>
-                      <option value="cantonment">সেনানিবাস</option>
+                      <option value="">সিলেক্ট করুন</option>
+                      {upazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি') || (u.name_bn || '').includes('ক্যান্টনমেন্ট')).map(u => (
+                        <option key={u.id} value={u.id}>{u.name_bn}</option>
+                      ))}
                     </select>
                   </div>
                 )}
 
                 {editSpecial && (
                   <div>
-                    <label className="text-[10px] md:text-xs font-bold text-gray-700">Type</label>
-                    <select 
-                      value={editSpecial.type} 
-                      onChange={e => setEditSpecial({...editSpecial, type: e.target.value})} 
-                      className={inputClass}
-                    >
-                      <option value="city_corp">সিটি কর্পোরেশন</option>
-                      <option value="cantonment">সেনানিবাস</option>
-                    </select>
+                    <label className="text-[10px] md:text-xs font-bold text-gray-700">সিটি কর্পোরেশন / সেনানিবাস</label>
+                    <input 
+                      value={upazilas.find(u => u.id === editSpecial.upazila_id)?.name_bn || 'N/A'} 
+                      className={inputClass} disabled 
+                    />
                   </div>
                 )}
 
