@@ -32,6 +32,7 @@ const Icons = {
   Import: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>,
   Form: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>,
   Building: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>,
+  Globe: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>,
 };
 
 export default function Admin() {
@@ -76,7 +77,7 @@ export default function Admin() {
 
   // 🟢 Ward/Zone States
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
-  const [newWard, setNewWard] = useState({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
+  const [newWard, setNewWard] = useState({ upazila_id: '', name_bn: '', sub_type: 'ward' });
   const [editSpecial, setEditSpecial] = useState(null);
 
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
@@ -160,20 +161,17 @@ export default function Admin() {
     e.preventDefault();
     if (!newWard.upazila_id) return setDebugError('সিটি কর্পোরেশন বা সেনানিবাস নির্বাচন করুন।');
 
-    const selectedUpa = upazilas.find(u => u.id.toString() === newWard.upazila_id);
-    const type = selectedUpa?.type === 'cantonment' ? 'cantonment' : 'city_corp';
-
     const { error } = await supabase.from('special_areas').insert([{
       upazila_id: parseInt(newWard.upazila_id),
-      type: type,
+      type: 'city_corp',
       sub_type: newWard.sub_type,
       name_bn: newWard.name_bn,
-      name_en: newWard.name_en
+      name_en: newWard.name_bn
     }]);
 
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'ওয়ার্ড/অঞ্চল সেভ হয়েছে!', type: 'success' });
-    setNewWard({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' });
+    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
+    setNewWard({ upazila_id: '', name_bn: '', sub_type: 'ward' });
     fetchAllLocations();
   };
 
@@ -182,7 +180,7 @@ export default function Admin() {
     const { error } = await supabase.from('special_areas').update({
       sub_type: editSpecial.sub_type,
       name_bn: editSpecial.name_bn,
-      name_en: editSpecial.name_en
+      name_en: editSpecial.name_bn
     }).eq('id', editSpecial.id);
     
     if (error) return setDebugError(error.message);
@@ -470,6 +468,13 @@ export default function Admin() {
           <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl font-medium text-xs md:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
             <Icons.Settings /> <span className="hidden md:inline">Settings</span>
           </button>
+          
+          {/* 🟢 মেইন সাইটে যাওয়ার বাটন */}
+          <div className="mt-4 pt-4 border-t border-gray-800 w-full">
+            <Link href="/" className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl font-medium text-xs md:text-sm transition-all whitespace-nowrap text-teal-400 hover:bg-teal-600/20 hover:text-teal-300 w-full">
+              <Icons.Globe /> <span className="hidden md:inline">Go to Site</span>
+            </Link>
+          </div>
         </nav>
         <div className="p-3 md:p-4 border-t border-gray-800 hidden md:block bg-gray-950">
           <div className="text-xs text-gray-400 mb-3 truncate px-2">{user?.email}</div>
@@ -477,7 +482,6 @@ export default function Admin() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 p-3 md:p-8 overflow-y-auto w-full max-w-full">
         {debugError && (
           <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 md:p-4 rounded-xl flex justify-between items-start shadow-sm text-xs md:text-sm">
@@ -492,7 +496,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ১. Applications Tab */}
         {activeTab === 'applications' && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
@@ -568,7 +571,6 @@ export default function Admin() {
           </>
         )}
 
-        {/* ২. Locations Tab */}
         {activeTab === 'locations' && (
           <div className="space-y-6 w-full max-w-full">
             <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
@@ -682,7 +684,7 @@ export default function Admin() {
                                             <div className="p-2 md:p-3 border-t">
                                               <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[9px] md:text-xs font-bold text-teal-700">ওয়ার্ড/অঞ্চল:</span>
-                                                <button onClick={() => { setNewWard({ ...newWard, upazila_id: upa.id.toString(), type: upa.type }); setIsWardModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
+                                                <button onClick={() => { setNewWard({ upazila_id: upa.id.toString(), name_bn: '', sub_type: 'ward' }); setIsWardModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
                                               </div>
                                               <div className="flex flex-wrap gap-1.5 md:gap-2">
                                                 {specialAreas.filter(sa => sa.upazila_id === upa.id).map(area => (
@@ -725,7 +727,7 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ৩. City & Cantonment Tab */}
+        {/* 🟢 City & Cantonment Tab (মোবাইল ফ্রেন্ডলি) */}
         {activeTab === 'specialAreas' && (
           <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
@@ -733,52 +735,53 @@ export default function Admin() {
                 <h2 className="text-base md:text-xl font-bold text-gray-800">City & Cantonment</h2>
                 <p className="text-[10px] md:text-sm text-gray-500 mt-1">Manage Ward, Zone, and Areas for City Corporations and Cantonments.</p>
               </div>
-              <button onClick={() => { setNewWard({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' }); setIsWardModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
+              <button onClick={() => { setNewWard({ upazila_id: '', name_bn: '', sub_type: 'ward' }); setIsWardModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
                 <Icons.Plus /> Add New Area
               </button>
             </div>
 
             <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
-              <table className="w-full text-sm text-left min-w-[500px] md:min-w-full">
-                <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
-                  <tr>
-                    <th className="px-2 md:px-4 py-3">সিটি/সেনানিবাস</th>
-                    <th className="px-2 md:px-4 py-3">Type</th>
-                    <th className="px-2 md:px-4 py-3">Name (Bangla)</th>
-                    <th className="px-2 md:px-4 py-3">Name (English)</th>
-                    <th className="px-2 md:px-4 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {specialAreas.map(area => {
-                    const parentUpa = upazilas.find(u => u.id === area.upazila_id);
-                    return (
-                      <tr key={area.id} className="hover:bg-gray-50">
-                        <td className="px-2 md:px-4 py-3 font-bold text-gray-800 text-xs md:text-sm">
-                          {parentUpa ? parentUpa.name_bn : 'N/A'}
-                        </td>
-                        <td className="px-2 md:px-4 py-3 text-teal-700 font-bold text-xs md:text-sm">
-                          {area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}
-                        </td>
-                        <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
-                        <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_en}</td>
-                        <td className="px-2 md:px-4 py-3 flex justify-center gap-2">
-                          <button onClick={() => setEditSpecial(area)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
-                          <button onClick={() => handleDeleteWard(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {specialAreas.length === 0 && (
-                    <tr><td colSpan="5" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new area.</td></tr>
-                  )}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto w-full hide-scrollbar">
+                <table className="w-full text-sm text-left min-w-[500px] md:min-w-full">
+                  <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
+                    <tr>
+                      <th className="px-2 md:px-4 py-3">সিটি/সেনানিবাস</th>
+                      <th className="px-2 md:px-4 py-3">Type</th>
+                      <th className="px-2 md:px-4 py-3">Name</th>
+                      <th className="px-2 md:px-4 py-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {specialAreas.map(area => {
+                      const parentUpa = upazilas.find(u => u.id === area.upazila_id);
+                      return (
+                        <tr key={area.id} className="hover:bg-gray-50">
+                          <td className="px-2 md:px-4 py-3 font-bold text-gray-800 text-xs md:text-sm">
+                            {parentUpa ? parentUpa.name_bn : 'N/A'}
+                          </td>
+                          <td className="px-2 md:px-4 py-3 text-teal-700 font-bold text-xs md:text-sm whitespace-nowrap">
+                            {area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}
+                          </td>
+                          <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
+                          <td className="px-2 md:px-4 py-3">
+                            <div className="flex justify-center gap-1 md:gap-2">
+                              <button onClick={() => setEditSpecial(area)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
+                              <button onClick={() => handleDeleteWard(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {specialAreas.length === 0 && (
+                      <tr><td colSpan="4" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new area.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
-        {/* ৪. Form Builder Tab */}
         {activeTab === 'formBuilder' && (
           <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
@@ -835,7 +838,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ৫. Settings Tab */}
         {activeTab === 'settings' && (
           <div className="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
             <h2 className="text-base md:text-xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2 border-b pb-3 md:pb-4"><Icons.Settings /> Certificate Settings</h2>
@@ -875,7 +877,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 Modals */}
         {isImportOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
@@ -1081,7 +1082,7 @@ export default function Admin() {
                   {editSpecial ? 'Edit Area' : 'Add New Area'}
                 </h3>
                 <button 
-                  onClick={() => { setIsWardModalOpen(false); setNewWard({ upazila_id: '', name_bn: '', name_en: '', sub_type: 'ward', type: 'city_corp' }); setEditSpecial(null); }} 
+                  onClick={() => { setIsWardModalOpen(false); setNewWard({ upazila_id: '', name_bn: '', sub_type: 'ward' }); setEditSpecial(null); }} 
                   className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"
                 >
                   <Icons.Close />
@@ -1117,7 +1118,7 @@ export default function Admin() {
                 )}
 
                 <div>
-                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Sub Type (Dropdown Options)</label>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Sub Type</label>
                   <select 
                     value={editSpecial ? editSpecial.sub_type : newWard.sub_type} 
                     onChange={e => editSpecial 
@@ -1132,20 +1133,12 @@ export default function Admin() {
                 </div>
                 
                 <div>
-                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Name (Bangla)</label>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Name</label>
                   <input 
                     value={editSpecial ? editSpecial.name_bn : newWard.name_bn} 
                     onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_bn: e.target.value}) : setNewWard({...newWard, name_bn: e.target.value})} 
                     className={inputClass} required
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Name (English)</label>
-                  <input 
-                    value={editSpecial ? editSpecial.name_en : newWard.name_en} 
-                    onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_en: e.target.value}) : setNewWard({...newWard, name_en: e.target.value})} 
-                    className={inputClass} required
+                    placeholder="যেমন: ১ নং ওয়ার্ড / Ward No-1"
                   />
                 </div>
                 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // 🟢 React ইমপোর্ট করা হয়েছে
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -50,7 +50,6 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   
-  // 🟢 সিটি কর্পোরেশন এবং সেনানিবাস স্পেশাল লিস্ট
   const specialUpazilaOptions = availableUpazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি কর্পোরেশন') || (u.name_bn || '').includes('ক্যান্টনমেন্ট'));
   const normalUpazilaOptions = availableUpazilas.filter(u => !specialUpazilaOptions.includes(u));
   const allUpazilaOptions = [...normalUpazilaOptions, ...specialUpazilaOptions];
@@ -60,7 +59,7 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
   const isCityCorp = selectedUpazilaObj?.type === 'city_corp' || (selectedUpazilaObj?.name_bn || '').includes('সিটি কর্পোরেশন') || (selectedUpazilaObj?.name_en || '').toLowerCase().includes('city corporation');
   const isCantonment = selectedUpazilaObj?.type === 'cantonment' || (selectedUpazilaObj?.name_bn || '').includes('ক্যান্টনমেন্ট') || (selectedUpazilaObj?.name_en || '').toLowerCase().includes('cantonment');
 
-  // 🟢 অ্যাডমিন প্যানেল থেকে আসা স্পেশাল এরিয়ার ডাটা
+  // 🟢 অ্যাডমিন প্যানেল থেকে আসা স্পেশাল এরিয়ার ডাটা (শুধু নির্দিষ্ট সিটির অধীনে)
   const cityWardOptions = specialAreas.filter(sa => sa.upazila_id?.toString() === currentUpazila);
   const cantonmentZoneOptions = specialAreas.filter(sa => sa.upazila_id?.toString() === currentUpazila);
 
@@ -77,34 +76,22 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
         
         if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={allUpazilaOptions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
 
-        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে "ওয়ার্ড/অঞ্চল" এবং "ওয়ার্ড" বক্স শো করবে
+        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে "ওয়ার্ড/অঞ্চল" ড্রপডাউন শো করবে
         if (isCityCorp && fieldName === `${prefix}ward`) {
           return (
-            <React.Fragment key={field.id}>
-              <div>
-                <label className="text-sm font-bold text-black">ওয়ার্ড/অঞ্চল <Req /></label>
-                <CustomSelect 
-                  name={fieldName} 
-                  options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
-                  value={formData[fieldName]} 
-                  onChange={handleChange} 
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-black">ওয়ার্ড</label>
-                <input 
-                  name={`${prefix}sub_ward`} 
-                  value={formData[`${prefix}sub_ward`] || ''} 
-                  onChange={handleChange} 
-                  placeholder="যেমন: ১ নং ওয়ার্ড" 
-                  className={inputClass} 
-                />
-              </div>
-            </React.Fragment>
+            <div key={field.id}>
+              <label className="text-sm font-bold text-black">ওয়ার্ড/অঞ্চল <Req /></label>
+              <CustomSelect 
+                name={fieldName} 
+                options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
+                value={formData[fieldName]} 
+                onChange={handleChange} 
+              />
+            </div>
           );
         }
 
-        // 🟢 সেনানিবাস সিলেক্ট করলে "অঞ্চল" বক্স শো করবে
+        // 🟢 সেনানিবাস সিলেক্ট করলে "অঞ্চল" ড্রপডাউন শো করবে
         if (isCantonment && fieldName === `${prefix}ward`) {
           return (
             <div key={field.id}>
@@ -243,7 +230,6 @@ export default function Apply() {
       city_corp: formData.birth_upazila,
       union_name: formData.birth_union,
       ward: formData.birth_ward,
-      sub_ward: formData.birth_sub_ward || '', // 🟢 নতুন যোগ করা লাইন
       village_bn: formData.birth_villageBn,
       village_en: formData.birth_villageEn,
       post_office_bn: formData.birth_postOfficeBn,
