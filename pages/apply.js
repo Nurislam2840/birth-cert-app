@@ -78,36 +78,46 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
         
         if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={allUpazilaOptions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
 
-        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে "ওয়ার্ড/অঞ্চল" বক্স শো করবে
+        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে "ওয়ার্ড/অঞ্চল" এবং "ওয়ার্ড" বক্স শো করবে
         if (isCityCorp && fieldName === `${prefix}ward`) {
           return (
-            <div key={field.id}>
-              <label className="text-sm font-bold text-black">ওয়ার্ড/অঞ্চল <Req /></label>
-              <CustomSelect 
-                name={fieldName} 
-                options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
-                value={formData[fieldName]} 
-                onChange={handleChange} 
-                placeholder="ওয়ার্ড/অঞ্চল নির্বাচন করুন"
-              />
-            </div>
-          );
+        	<React.Fragment key={field.id}>
+              <div>
+        		<label className="text-sm font-bold text-black">ওয়ার্ড/অঞ্চল <Req /></label>
+        		<CustomSelect 
+        		  name={fieldName} 
+        		  options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
+        		  value={formData[fieldName]} 
+        		  onChange={handleChange} 
+        		/>
+        	  </div>
+              <div>
+        		<label className="text-sm font-bold text-black">ওয়ার্ড</label>
+        		<input 
+        		name={`${prefix}sub_ward`} 
+        		value={formData[`${prefix}sub_ward`] || ''} 
+        		onChange={handleChange} 
+        		placeholder="ওয়ার্ড" 
+        		className={inputClass} 
+        		/>
+        </div>
+        </React.Fragment>
+        );
         }
-
+        
         // 🟢 সেনানিবাস সিলেক্ট করলে "অঞ্চল" বক্স শো করবে
         if (isCantonment && fieldName === `${prefix}ward`) {
-          return (
-            <div key={field.id}>
-              <label className="text-sm font-bold text-black">অঞ্চল <Req /></label>
-              <CustomSelect 
-                name={fieldName} 
-                options={cantonmentZoneOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
-                value={formData[fieldName]} 
-                onChange={handleChange} 
-                placeholder="অঞ্চল নির্বাচন করুন"
-              />
-            </div>
-          );
+        return (
+        <div key={field.id}>
+        <label className="text-sm font-bold text-black">অঞ্চল <Req /></label>
+        <CustomSelect 
+        name={fieldName} 
+        options={cantonmentZoneOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
+        value={formData[fieldName]} 
+        onChange={handleChange} 
+        />
+        </div>
+        );
         }
         
         // সাধারণ উপজেলার জন্য সাধারণ ওয়ার্ড
@@ -234,6 +244,7 @@ export default function Apply() {
       city_corp: formData.birth_upazila,
       union_name: formData.birth_union,
       ward: formData.birth_ward,
+      sub_ward: formData.birth_ward || '',
       village_bn: formData.birth_villageBn,
       village_en: formData.birth_villageEn,
       post_office_bn: formData.birth_postOfficeBn,
