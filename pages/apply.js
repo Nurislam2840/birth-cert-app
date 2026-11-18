@@ -42,7 +42,7 @@ const DynamicField = ({ field, formData, handleChange }) => {
   );
 };
 
-const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, specialAreas, formConfig }) => {
+const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions, districts, upazilas, unions, zones, wards, formConfig }) => {
   const currentDiv = formData[`${prefix}division`];
   const currentDist = formData[`${prefix}district`];
   const currentUpazila = formData[`${prefix}upazila`];
@@ -56,12 +56,15 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
 
   const selectedUpazilaObj = allUpazilaOptions.find(u => u.id.toString() === currentUpazila);
   
-  const isCityCorp = selectedUpazilaObj?.type === 'city_corp' || (selectedUpazilaObj?.name_bn || '').includes('সিটি কর্পোরেশন') || (selectedUpazilaObj?.name_en || '').toLowerCase().includes('city corporation');
-  const isCantonment = selectedUpazilaObj?.type === 'cantonment' || (selectedUpazilaObj?.name_bn || '').includes('ক্যান্টনমেন্ট') || (selectedUpazilaObj?.name_en || '').toLowerCase().includes('cantonment');
+  const isCityCorp = selectedUpazilaObj?.type === 'city_corp' || (selectedUpazilaObj?.name_bn || '').includes('সিটি কর্পোরেশন');
+  const isCantonment = selectedUpazilaObj?.type === 'cantonment' || (selectedUpazilaObj?.name_bn || '').includes('ক্যান্টনমেন্ট');
 
-  // 🟢 অ্যাডমিন প্যানেল থেকে আসা স্পেশাল এরিয়ার ডাটা (শুধু নির্দিষ্ট সিটির অধীনে)
-  const cityWardOptions = specialAreas.filter(sa => sa.upazila_id?.toString() === currentUpazila);
-  const cantonmentZoneOptions = specialAreas.filter(sa => sa.upazila_id?.toString() === currentUpazila);
+  // 🟢 সিটি কর্পোরেশন ও ক্যান্টনমেন্টের জোন ফিল্টার
+  const availableZones = zones.filter(z => z.upazila_id?.toString() === currentUpazila);
+  
+  // 🟢 সিলেক্ট করা জোনের অধীনে থাকা ওয়ার্ড ফিল্টার (শুধু সিটির জন্য)
+  const selectedZoneId = formData[`${prefix}zone`];
+  const availableWards = wards.filter(w => w.zone_id?.toString() === selectedZoneId);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -76,39 +79,41 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
         
         if (fieldName === `${prefix}upazila`) return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={allUpazilaOptions.map(u => ({ value: u.id.toString(), label: u.name_bn }))} value={formData[fieldName]} onChange={handleChange} disabled={!currentDist} /></div>;
 
-        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে "ওয়ার্ড/অঞ্চল" ড্রপডাউন শো করবে
-        if (isCityCorp && fieldName === `${prefix}ward`) {
+        // 🟢 সিটি কর্পোরেশন বা ক্যান্টনমেন্ট সিলেক্ট করলে জোন/অঞ্চলের ড্রপডাউন
+        if ((isCityCorp || isCantonment) && fieldName === `${prefix}ward`) {
           return (
-            <div key={field.id}>
-              <label className="text-sm font-bold text-black">ওয়ার্ড/অঞ্চল <Req /></label>
+            <div key={`${field.id}-zone`}>
+              <label className="text-sm font-bold text-black">
+                {isCityCorp ? 'ওয়ার্ড/অঞ্চল' : 'অঞ্চল'} <Req />
+              </label>
               <CustomSelect 
-                name={fieldName} 
-                options={cityWardOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
-                value={formData[fieldName]} 
+                name={`${prefix}zone`} 
+                options={availableZones.map(o => ({ value: o.id.toString(), label: o.name_bn }))} 
+                value={formData[`${prefix}zone`] || ''} 
                 onChange={handleChange} 
               />
             </div>
           );
         }
 
-        // 🟢 সেনানিবাস সিলেক্ট করলে "অঞ্চল" ড্রপডাউন শো করবে
-        if (isCantonment && fieldName === `${prefix}ward`) {
+        // 🟢 সিটি কর্পোরেশন সিলেক্ট করলে শুধুমাত্র ওয়ার্ডের ড্রপডাউন (জোন সিলেক্ট করার পর)
+        if (isCityCorp && fieldName === `${prefix}ward_no`) {
           return (
-            <div key={field.id}>
-              <label className="text-sm font-bold text-black">অঞ্চল <Req /></label>
+            <div key={`${field.id}-ward`}>
+              <label className="text-sm font-bold text-black">ওয়ার্ড <Req /></label>
               <CustomSelect 
-                name={fieldName} 
-                options={cantonmentZoneOptions.map(o => ({ value: o.name_bn, label: o.name_bn }))} 
-                value={formData[fieldName]} 
+                name={`${prefix}ward_no`} 
+                options={availableWards.map(o => ({ value: o.ward_no, label: o.name_bn }))} 
+                value={formData[`${prefix}ward_no`] || ''} 
                 onChange={handleChange} 
+                disabled={!selectedZoneId} 
               />
             </div>
           );
         }
-        
-        // সাধারণ উপজেলার জন্য সাধারণ ওয়ার্ড
-        if (fieldName === `${prefix}ward`) {
-          if (isCityCorp || isCantonment) return null; 
+
+        // 🟢 সাধারণ উপজেলার জন্য সাধারণ ওয়ার্ড (১-৯)
+        if (fieldName === `${prefix}ward` && !isCityCorp && !isCantonment) {
           return <div key={field.id}><label className="text-sm font-bold text-black">{field.label_bn} <Req /></label><CustomSelect name={fieldName} options={[1,2,3,4,5,6,7,8,9].map(w => ({ value: w.toString(), label: w.toString() }))} value={formData[fieldName]} onChange={handleChange} /></div>;
         }
 
@@ -141,7 +146,8 @@ export default function Apply() {
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
-  const [specialAreas, setSpecialAreas] = useState([]);
+  const [zones, setZones] = useState([]);     // 🟢 নতুন: জোন/অঞ্চল
+  const [wards, setWards] = useState([]);     // 🟢 নতুন: ওয়ার্ড
 
   const [formConfig, setFormConfig] = useState([]);
   const [formData, setFormData] = useState({ permanentSame: false });
@@ -156,18 +162,20 @@ export default function Apply() {
     });
 
     const fetchLocations = async () => {
-      const [divRes, distRes, upaRes, uniRes, specRes] = await Promise.all([
+      const [divRes, distRes, upaRes, uniRes, zoneRes, wardRes] = await Promise.all([
         supabase.from('divisions').select('*'),
         supabase.from('districts').select('*'),
         supabase.from('upazilas').select('*'),
         supabase.from('unions').select('*'),
-        supabase.from('special_areas').select('*')
+        supabase.from('zones').select('*'),    // 🟢 Supabase থেকে জোন লোড
+        supabase.from('wards').select('*')     // 🟢 Supabase থেকে ওয়ার্ড লোড
       ]);
       setDivisions(divRes.data || []);
       setDistricts(distRes.data || []);
       setUpazilas(upaRes.data || []);
       setUnions(uniRes.data || []);
-      setSpecialAreas(specRes.data || []);
+      setZones(zoneRes.data || []);
+      setWards(wardRes.data || []);
     };
     fetchLocations();
 
@@ -185,7 +193,27 @@ export default function Apply() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      
+      // 🟢 জোন বা উপজেলা পরিবর্তন হলে এর অধীনে থাকা ড্রপডাউনগুলো রিসেট করা
+      if (name === 'birth_upazila' || name === 'perm_upazila') {
+         newData.birth_zone = ''; newData.birth_ward_no = ''; newData.perm_zone = ''; newData.perm_ward_no = '';
+      }
+      if (name === 'birth_zone' || name === 'perm_zone') {
+         newData.birth_ward_no = ''; newData.perm_ward_no = '';
+      }
+      if (name === 'birth_division' || name === 'perm_division') {
+         newData.birth_district = ''; newData.birth_upazila = ''; newData.birth_union = ''; newData.birth_zone = '';
+         newData.perm_district = ''; newData.perm_upazila = ''; newData.perm_union = ''; newData.perm_zone = '';
+      }
+      if (name === 'birth_district' || name === 'perm_district') {
+         newData.birth_upazila = ''; newData.birth_union = ''; newData.birth_zone = ''; newData.birth_ward_no = '';
+         newData.perm_upazila = ''; newData.perm_union = ''; newData.perm_zone = ''; newData.perm_ward_no = '';
+      }
+      
+      return newData;
+    });
   };
 
   const handleSubmit = async () => {
@@ -200,7 +228,17 @@ export default function Apply() {
     const selDist = districts.find(d => d.id.toString() === formData.birth_district);
     const selUpa = upazilas.find(u => u.id.toString() === formData.birth_upazila);
     const selUni = unions.find(u => u.id.toString() === formData.birth_union);
-    const trackingId = generate17DigitBRN(birthYear, selDist?.code, selUpa?.code, selUni?.name_en, formData.birth_ward);
+    const selZone = zones.find(z => z.id.toString() === formData.birth_zone);
+    const selWard = wards.find(w => w.ward_no === formData.birth_ward_no);
+
+    // BRN জেনারেট লজিক (আপনার generateBRN.js অনুযায়ী)
+    const trackingId = generate17DigitBRN(
+      birthYear, 
+      selDist?.code, 
+      selUpa?.code, 
+      selUni?.name_bn || selZone?.name_bn, // 🟢 unionName বা zoneName পাঠানো হলো RMO চেকের জন্য
+      formData.birth_ward_no || formData.birth_ward
+    );
 
     const payload = {
       user_id: user.id,
@@ -226,10 +264,17 @@ export default function Apply() {
       mother_nationality: formData.mother_nationality,
       
       division: formData.birth_division,
-      district: formData.birth_district,
-      city_corp: formData.birth_upazila,
-      union_name: formData.birth_union,
-      ward: formData.birth_ward,
+      division_en: divisions.find(d => d.id.toString() === formData.birth_division)?.name_en || '',
+      district: selDist?.name_bn || '',       // 🟢 নাম সেভ হচ্ছে
+      district_en: selDist?.name_en || '',    // 🟢 নাম সেভ হচ্ছে
+      city_corp: selUpa?.type === 'city_corp' ? selUpa?.name_bn : null,
+      upazila_en: selUpa?.name_en || '',      // 🟢 নাম সেভ হচ্ছে
+      union_name: selUni?.name_bn || '',      // 🟢 নাম সেভ হচ্ছে
+      union_en: selUni?.name_en || '',        // 🟢 নাম সেভ হচ্ছে
+      ward: selWard?.name_bn || formData.birth_ward || '',
+      zone: selZone?.name_bn || null,         // 🟢 জোনের নাম
+      zone_id: selZone?.id || null,           // 🟢 জোনের আইডি
+      ward_no: formData.birth_ward_no || formData.birth_ward,
       village_bn: formData.birth_villageBn,
       village_en: formData.birth_villageEn,
       post_office_bn: formData.birth_postOfficeBn,
@@ -238,7 +283,8 @@ export default function Apply() {
       house_road_en: formData.birth_houseRoadEn,
 
       permanent_same: formData.permanentSame,
-      permanent_district: formData.permanentSame ? formData.birth_district : formData.perm_district,
+      permanent_division: formData.permanentSame ? formData.birth_division : formData.perm_division,
+      permanent_district: formData.permanentSame ? (selDist?.name_bn || '') : (districts.find(d => d.id.toString() === formData.perm_district)?.name_bn || ''),
       permanent_village_bn: formData.permanentSame ? formData.birth_villageBn : formData.perm_villageBn,
       permanent_village_en: formData.permanentSame ? formData.birth_villageEn : formData.perm_villageEn,
     };
@@ -308,7 +354,7 @@ export default function Apply() {
             <div className="mt-8 space-y-8">
               <div>
                 <h3 className="text-lg font-bold text-black border-b pb-2 mb-4">জন্মস্থান / বর্তমান ঠিকানা</h3>
-                <AddressSection sectionType="birth" prefix="birth_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} specialAreas={specialAreas} formConfig={formConfig} />
+                <AddressSection sectionType="birth" prefix="birth_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} zones={zones} wards={wards} formConfig={formConfig} />
               </div>
 
               <div>
@@ -321,7 +367,7 @@ export default function Apply() {
                 </div>
                 
                 {!formData.permanentSame ? (
-                  <AddressSection sectionType="permanent" prefix="perm_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} specialAreas={specialAreas} formConfig={formConfig} />
+                  <AddressSection sectionType="permanent" prefix="perm_" formData={formData} handleChange={handleChange} divisions={divisions} districts={districts} upazilas={upazilas} unions={unions} zones={zones} wards={wards} formConfig={formConfig} />
                 ) : (
                   <p className="text-sm text-gray-500 italic">জন্মস্থানের ঠিকানাটি স্থায়ী ঠিকানা হিসেবে ব্যবহৃত হবে।</p>
                 )}
