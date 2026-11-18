@@ -57,7 +57,10 @@ export default function Admin() {
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
-  const [specialAreas, setSpecialAreas] = useState([]);
+  
+  // 🟢 নতুন: Zones এবং Wards স্টেট
+  const [zones, setZones] = useState([]);
+  const [wards, setWards] = useState([]);
   
   const [expandedDivs, setExpandedDivs] = useState(new Set());
   const [expandedDists, setExpandedDists] = useState(new Set());
@@ -75,10 +78,12 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
-  // 🟢 Ward/Zone States
+  // 🟢 নতুন: Zone এবং Ward Modal স্টেট
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
-  const [newWard, setNewWard] = useState({ upazila_id: '', name_bn: '', sub_type: 'ward' });
-  const [editSpecial, setEditSpecial] = useState(null);
+  
+  const [newZone, setNewZone] = useState({ upazila_id: '', type: 'city_corp', name_bn: '' });
+  const [newWard, setNewWard] = useState({ zone_id: '', ward_no: '', name_bn: '' });
 
   const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -107,18 +112,20 @@ export default function Admin() {
   }, []);
 
   const fetchAllLocations = async () => {
-    const [divRes, distRes, upaRes, uniRes, specRes] = await Promise.all([
+    const [divRes, distRes, upaRes, uniRes, zoneRes, wardRes] = await Promise.all([
       supabase.from('divisions').select('*').order('id'),
       supabase.from('districts').select('*').order('id'),
       supabase.from('upazilas').select('*').order('order_index'),
       supabase.from('unions').select('*').order('id'),
-      supabase.from('special_areas').select('*').order('id')
+      supabase.from('zones').select('*').order('id'),
+      supabase.from('wards').select('*').order('id')
     ]);
     setDivisions(divRes.data || []);
     setDistricts(distRes.data || []);
     setUpazilas(upaRes.data || []);
     setUnions(uniRes.data || []);
-    setSpecialAreas(specRes.data || []);
+    setZones(zoneRes.data || []);
+    setWards(wardRes.data || []);
   };
 
   const fetchApplications = async () => {
@@ -157,43 +164,55 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  const handleAddWard = async (e) => {
+  // 🟢 Zone Add Handler
+  const handleAddZone = async (e) => {
     e.preventDefault();
-    if (!newWard.upazila_id) return setDebugError('সিটি কর্পোরেশন বা সেনানিবাস নির্বাচন করুন।');
+    if (!newZone.upazila_id) return setDebugError('সিটি বা সেনানিবাস নির্বাচন করুন।');
 
-    const { error } = await supabase.from('special_areas').insert([{
-      upazila_id: parseInt(newWard.upazila_id),
-      type: 'city_corp',
-      sub_type: newWard.sub_type,
-      name_bn: newWard.name_bn,
-      name_en: newWard.name_bn
+    const { error } = await supabase.from('zones').insert([{
+      upazila_id: parseInt(newZone.upazila_id),
+      type: newZone.type,
+      name_bn: newZone.name_bn,
+      name_en: newZone.name_bn // English name not required per user
     }]);
 
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'সেভ হয়েছে!', type: 'success' });
-    setNewWard({ upazila_id: '', name_bn: '', sub_type: 'ward' });
+    setAlertState({ isOpen: true, message: 'জোন সেভ হয়েছে!', type: 'success' });
+    setNewZone({ upazila_id: '', type: 'city_corp', name_bn: '' });
+    setIsZoneModalOpen(false);
     fetchAllLocations();
   };
 
-  const handleUpdateSpecial = async (e) => {
+  // 🟢 Ward Add Handler
+  const handleAddWard = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.from('special_areas').update({
-      sub_type: editSpecial.sub_type,
-      name_bn: editSpecial.name_bn,
-      name_en: editSpecial.name_bn
-    }).eq('id', editSpecial.id);
-    
+    if (!newWard.zone_id) return setDebugError('জোন নির্বাচন করুন।');
+
+    const { error } = await supabase.from('wards').insert([{
+      zone_id: parseInt(newWard.zone_id),
+      ward_no: newWard.ward_no,
+      name_bn: newWard.name_bn,
+    }]);
+
     if (error) return setDebugError(error.message);
-    setAlertState({ isOpen: true, message: 'আপডেট হয়েছে!', type: 'success' });
-    setEditSpecial(null);
+    setAlertState({ isOpen: true, message: 'ওয়ার্ড সেভ হয়েছে!', type: 'success' });
+    setNewWard({ zone_id: '', ward_no: '', name_bn: '' });
+    setIsWardModalOpen(false);
     fetchAllLocations();
+  };
+
+  const handleDeleteZone = async (id) => {
+    if (!window.confirm('জোনটি ডিলিট করতে চান?')) return;
+    const { error } = await supabase.from('zones').delete().eq('id', id);
+    if (error) setDebugError('ডিলিট ব্যর্থ: ' + error.message);
+    else { setAlertState({ isOpen: true, message: 'জোন ডিলিট হয়েছে!', type: 'success' }); fetchAllLocations(); }
   };
 
   const handleDeleteWard = async (id) => {
-    if (!window.confirm('ডিলিট করতে চান?')) return;
-    const { error } = await supabase.from('special_areas').delete().eq('id', id);
+    if (!window.confirm('ওয়ার্ডটি ডিলিট করতে চান?')) return;
+    const { error } = await supabase.from('wards').delete().eq('id', id);
     if (error) setDebugError('ডিলিট ব্যর্থ: ' + error.message);
-    else { setAlertState({ isOpen: true, message: 'ডিলিট হয়েছে!', type: 'success' }); fetchAllLocations(); }
+    else { setAlertState({ isOpen: true, message: 'ওয়ার্ড ডিলিট হয়েছে!', type: 'success' }); fetchAllLocations(); }
   };
 
   const openEditLoc = (type, data) => { setEditLocType(type); setEditLocData(data); setIsEditLocOpen(true); };
@@ -684,13 +703,13 @@ export default function Admin() {
                                             <div className="p-2 md:p-3 border-t">
                                               <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[9px] md:text-xs font-bold text-teal-700">ওয়ার্ড/অঞ্চল:</span>
-                                                <button onClick={() => { setNewWard({ upazila_id: upa.id.toString(), name_bn: '', sub_type: 'ward' }); setIsWardModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
+                                                <button onClick={() => { setNewZone({ upazila_id: upa.id.toString(), type: upa.type, name_bn: '' }); setIsZoneModalOpen(true); }} className="text-teal-600 text-[9px] md:text-xs font-bold hover:underline">+ Add</button>
                                               </div>
                                               <div className="flex flex-wrap gap-1.5 md:gap-2">
-                                                {specialAreas.filter(sa => sa.upazila_id === upa.id).map(area => (
-                                                  <span key={area.id} className="bg-teal-50 text-teal-700 px-1.5 md:px-3 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-bold border border-teal-200 flex items-center gap-1">
-                                                    {area.name_bn}
-                                                    <button onClick={() => handleDeleteWard(area.id)} className="text-red-500 hover:text-red-700"><Icons.Trash /></button>
+                                                {zones.filter(z => z.upazila_id === upa.id).map(zone => (
+                                                  <span key={zone.id} className="bg-teal-50 text-teal-700 px-1.5 md:px-3 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-bold border border-teal-200 flex items-center gap-1">
+                                                    {zone.name_bn}
+                                                    <button onClick={() => handleDeleteZone(zone.id)} className="text-red-500 hover:text-red-700"><Icons.Trash /></button>
                                                   </span>
                                                 ))}
                                               </div>
@@ -727,56 +746,97 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 City & Cantonment Tab (মোবাইল ফ্রেন্ডলি) */}
+        {/* 🟢 City & Cantonment Tab */}
         {activeTab === 'specialAreas' && (
           <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
               <div>
                 <h2 className="text-base md:text-xl font-bold text-gray-800">City & Cantonment</h2>
-                <p className="text-[10px] md:text-sm text-gray-500 mt-1">Manage Ward, Zone, and Areas for City Corporations and Cantonments.</p>
+                <p className="text-[10px] md:text-sm text-gray-500 mt-1">Manage Zone, and Wards for City Corporations and Cantonments.</p>
               </div>
-              <button onClick={() => { setNewWard({ upazila_id: '', name_bn: '', sub_type: 'ward' }); setIsWardModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
-                <Icons.Plus /> Add New Area
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => { setNewZone({ upazila_id: '', type: 'city_corp', name_bn: '' }); setIsZoneModalOpen(true); }} className="bg-teal-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-teal-700 flex items-center gap-1 md:gap-2">
+                  <Icons.Plus /> Add New Zone
+                </button>
+                <button onClick={() => { setNewWard({ zone_id: '', ward_no: '', name_bn: '' }); setIsWardModalOpen(true); }} className="bg-blue-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-sm shadow-lg hover:bg-blue-700 flex items-center gap-1 md:gap-2">
+                  <Icons.Plus /> Add New Ward
+                </button>
+              </div>
             </div>
 
-            <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
-              <div className="overflow-x-auto w-full hide-scrollbar">
-                <table className="w-full text-sm text-left min-w-[500px] md:min-w-full">
-                  <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
-                    <tr>
-                      <th className="px-2 md:px-4 py-3">সিটি/সেনানিবাস</th>
-                      <th className="px-2 md:px-4 py-3">Type</th>
-                      <th className="px-2 md:px-4 py-3">Name</th>
-                      <th className="px-2 md:px-4 py-3 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {specialAreas.map(area => {
-                      const parentUpa = upazilas.find(u => u.id === area.upazila_id);
-                      return (
-                        <tr key={area.id} className="hover:bg-gray-50">
-                          <td className="px-2 md:px-4 py-3 font-bold text-gray-800 text-xs md:text-sm">
-                            {parentUpa ? parentUpa.name_bn : 'N/A'}
-                          </td>
-                          <td className="px-2 md:px-4 py-3 text-teal-700 font-bold text-xs md:text-sm whitespace-nowrap">
-                            {area.sub_type === 'ward' ? 'ওয়ার্ড' : area.sub_type === 'zone' ? 'অঞ্চল' : 'ওয়ার্ড/অঞ্চল'}
-                          </td>
-                          <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
-                          <td className="px-2 md:px-4 py-3">
-                            <div className="flex justify-center gap-1 md:gap-2">
-                              <button onClick={() => setEditSpecial(area)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Icons.Edit /></button>
-                              <button onClick={() => handleDeleteWard(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
-                            </div>
-                          </td>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Zones Table */}
+              <div>
+                <h3 className="font-bold text-gray-700 mb-2">Zones / Areas</h3>
+                <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
+                  <div className="overflow-x-auto w-full hide-scrollbar">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
+                        <tr>
+                          <th className="px-2 md:px-4 py-3">সিটি/সেনানিবাস</th>
+                          <th className="px-2 md:px-4 py-3">TYPE</th>
+                          <th className="px-2 md:px-4 py-3">NAME</th>
+                          <th className="px-2 md:px-4 py-3 text-center">Actions</th>
                         </tr>
-                      );
-                    })}
-                    {specialAreas.length === 0 && (
-                      <tr><td colSpan="4" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new area.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {zones.map(area => {
+                          const parentUpa = upazilas.find(u => u.id === area.upazila_id);
+                          return (
+                            <tr key={area.id} className="hover:bg-gray-50">
+                              <td className="px-2 md:px-4 py-3 font-bold text-gray-800 text-xs md:text-sm">{parentUpa ? parentUpa.name_bn : 'N/A'}</td>
+                              <td className="px-2 md:px-4 py-3 text-teal-700 font-bold text-xs md:text-sm whitespace-nowrap">{area.type === 'city_corp' ? 'City Corp' : 'Cantonment'}</td>
+                              <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{area.name_bn}</td>
+                              <td className="px-2 md:px-4 py-3">
+                                <div className="flex justify-center gap-1 md:gap-2">
+                                  <button onClick={() => handleDeleteZone(area.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {zones.length === 0 && <tr><td colSpan="4" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new zone.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Wards Table */}
+              <div>
+                <h3 className="font-bold text-gray-700 mb-2">Wards (City Corp Only)</h3>
+                <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
+                  <div className="overflow-x-auto w-full hide-scrollbar">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] tracking-wider font-semibold">
+                        <tr>
+                          <th className="px-2 md:px-4 py-3">ZONE</th>
+                          <th className="px-2 md:px-4 py-3">WARD NO</th>
+                          <th className="px-2 md:px-4 py-3">NAME</th>
+                          <th className="px-2 md:px-4 py-3 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {wards.map(ward => {
+                          const parentZone = zones.find(z => z.id === ward.zone_id);
+                          return (
+                            <tr key={ward.id} className="hover:bg-gray-50">
+                              <td className="px-2 md:px-4 py-3 font-bold text-gray-800 text-xs md:text-sm">{parentZone ? parentZone.name_bn : 'N/A'}</td>
+                              <td className="px-2 md:px-4 py-3 text-gray-700 text-xs md:text-sm">{ward.ward_no}</td>
+                              <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{ward.name_bn}</td>
+                              <td className="px-2 md:px-4 py-3">
+                                <div className="flex justify-center gap-1 md:gap-2">
+                                  <button onClick={() => handleDeleteWard(ward.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {wards.length === 0 && <tr><td colSpan="4" className="text-center py-8 text-gray-500 text-xs md:text-sm">No data found. Add a new ward.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1073,79 +1133,78 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 Add/Edit Ward Modal */}
-        {(isWardModalOpen || editSpecial) && (
+        {/* 🟢 Add Zone Modal */}
+        {isZoneModalOpen && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="px-4 md:px-6 py-3 md:py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="text-base md:text-lg font-bold">
-                  {editSpecial ? 'Edit Area' : 'Add New Area'}
-                </h3>
-                <button 
-                  onClick={() => { setIsWardModalOpen(false); setNewWard({ upazila_id: '', name_bn: '', sub_type: 'ward' }); setEditSpecial(null); }} 
-                  className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"
-                >
-                  <Icons.Close />
-                </button>
+                <h3 className="text-base md:text-lg font-bold">Add New Zone/Area</h3>
+                <button onClick={() => setIsZoneModalOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
               </div>
-              <form onSubmit={editSpecial ? handleUpdateSpecial : handleAddWard} className="p-4 md:p-6 space-y-3 md:space-y-4">
-                
-                {!editSpecial && (
-                  <div>
-                    <label className="text-[10px] md:text-xs font-bold text-gray-700">সিটি কর্পোরেশন / সেনানিবাস</label>
-                    <select 
-                      value={newWard.upazila_id} 
-                      onChange={e => setNewWard({...newWard, upazila_id: e.target.value})} 
-                      className={inputClass}
-                      required
-                    >
-                      <option value="">সিলেক্ট করুন</option>
-                      {upazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি') || (u.name_bn || '').includes('ক্যান্টনমেন্ট')).map(u => (
-                        <option key={u.id} value={u.id}>{u.name_bn}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {editSpecial && (
-                  <div>
-                    <label className="text-[10px] md:text-xs font-bold text-gray-700">সিটি কর্পোরেশন / সেনানিবাস</label>
-                    <input 
-                      value={upazilas.find(u => u.id === editSpecial.upazila_id)?.name_bn || 'N/A'} 
-                      className={inputClass} disabled 
-                    />
-                  </div>
-                )}
-
+              <form onSubmit={handleAddZone} className="p-4 md:p-6 space-y-3 md:space-y-4">
                 <div>
-                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Sub Type</label>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">সিটি কর্পোরেশন / সেনানিবাস</label>
                   <select 
-                    value={editSpecial ? editSpecial.sub_type : newWard.sub_type} 
-                    onChange={e => editSpecial 
-                      ? setEditSpecial({...editSpecial, sub_type: e.target.value}) 
-                      : setNewWard({...newWard, sub_type: e.target.value})} 
+                    value={newZone.upazila_id} 
+                    onChange={e => {
+                      const upaId = e.target.value;
+                      const upaType = upazilas.find(u => u.id.toString() === upaId)?.type || 'city_corp';
+                      setNewZone({...newZone, upazila_id: upaId, type: upaType});
+                    }} 
                     className={inputClass}
+                    required
                   >
-                    <option value="ward">শুধু ওয়ার্ড</option>
-                    <option value="zone">শুধু অঞ্চল</option>
-                    <option value="ward_zone">ওয়ার্ড/অঞ্চল</option>
+                    <option value="">সিলেক্ট করুন</option>
+                    {upazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি') || (u.name_bn || '').includes('ক্যান্টনমেন্ট')).map(u => (
+                      <option key={u.id} value={u.id}>{u.name_bn}</option>
+                    ))}
                   </select>
                 </div>
-                
                 <div>
-                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Name</label>
-                  <input 
-                    value={editSpecial ? editSpecial.name_bn : newWard.name_bn} 
-                    onChange={e => editSpecial ? setEditSpecial({...editSpecial, name_bn: e.target.value}) : setNewWard({...newWard, name_bn: e.target.value})} 
-                    className={inputClass} required
-                    placeholder="যেমন: ১ নং ওয়ার্ড / Ward No-1"
-                  />
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Zone/Area Name (বাংলা)</label>
+                  <input value={newZone.name_bn} onChange={e => setNewZone({...newZone, name_bn: e.target.value})} className={inputClass} required placeholder="যেমন: জোন ১ / বিবিসি ওয়ার্ড ০১" />
                 </div>
-                
                 <div className="flex justify-end pt-3 md:pt-4">
-                  <button type="submit" className="bg-teal-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold text-xs md:text-sm">
-                    {editSpecial ? 'Update' : 'Save'}
-                  </button>
+                  <button type="submit" className="bg-teal-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold text-xs md:text-sm">Save Zone</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 🟢 Add Ward Modal */}
+        {isWardModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b bg-gray-50 flex justify-between items-center">
+                <h3 className="text-base md:text-lg font-bold">Add New Ward</h3>
+                <button onClick={() => setIsWardModalOpen(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full shadow-sm"><Icons.Close /></button>
+              </div>
+              <form onSubmit={handleAddWard} className="p-4 md:p-6 space-y-3 md:space-y-4">
+                <div>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">জোন / ওয়ার্ড-অঞ্চল</label>
+                  <select 
+                    value={newWard.zone_id} 
+                    onChange={e => setNewWard({...newWard, zone_id: e.target.value})} 
+                    className={inputClass}
+                    required
+                  >
+                    <option value="">সিলেক্ট করুন</option>
+                    {zones.filter(z => z.type === 'city_corp').map(z => (
+                      <option key={z.id} value={z.id}>{z.name_bn} ({upazilas.find(u => u.id === z.upazila_id)?.name_bn})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Ward No (যেমন: 01)</label>
+                  <input value={newWard.ward_no} onChange={e => setNewWard({...newWard, ward_no: e.target.value})} className={inputClass} required placeholder="01" />
+                </div>
+                <div>
+                  <label className="text-[10px] md:text-xs font-bold text-gray-700">Ward Name (বাংলা)</label>
+                  <input value={newWard.name_bn} onChange={e => setNewWard({...newWard, name_bn: e.target.value})} className={inputClass} required placeholder="যেমন: ১ নং ওয়ার্ড" />
+                </div>
+                <div className="flex justify-end pt-3 md:pt-4">
+                  <button type="submit" className="bg-blue-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold text-xs md:text-sm">Save Ward</button>
                 </div>
               </form>
             </div>
