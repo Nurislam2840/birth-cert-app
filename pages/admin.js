@@ -58,7 +58,7 @@ export default function Admin() {
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
   
-  // 🟢 নতুন: Zones এবং Wards স্টেট
+  // 🟢 Zones এবং Wards স্টেট
   const [zones, setZones] = useState([]);
   const [wards, setWards] = useState([]);
   
@@ -78,7 +78,7 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
-  // 🟢 নতুন: Zone এবং Ward Modal স্টেট
+  // 🟢 Zone এবং Ward Modal স্টেট
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
   
@@ -488,7 +488,6 @@ export default function Admin() {
             <Icons.Settings /> <span className="hidden md:inline">Settings</span>
           </button>
           
-          {/* 🟢 মেইন সাইটে যাওয়ার বাটন */}
           <div className="mt-4 pt-4 border-t border-gray-800 w-full">
             <Link href="/" className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl font-medium text-xs md:text-sm transition-all whitespace-nowrap text-teal-400 hover:bg-teal-600/20 hover:text-teal-300 w-full">
               <Icons.Globe /> <span className="hidden md:inline">Go to Site</span>
@@ -699,7 +698,7 @@ export default function Admin() {
 
                                       {expandedUpas.has(upa.id) && (
                                         <div className="pl-4 md:pl-10 bg-white">
-                                          {(upa.type === 'city_corp' || upa.type === 'cantonment') ? (
+                                          {(upa.type === 'city_corp' || upa.type === 'cantonment' || (upa.name_bn || '').includes('সিটি কর্পোরেশন') || (upa.name_bn || '').includes('সেনানিবাস')) ? (
                                             <div className="p-2 md:p-3 border-t">
                                               <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[9px] md:text-xs font-bold text-teal-700">ওয়ার্ড/অঞ্চল:</span>
@@ -765,7 +764,6 @@ export default function Admin() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Zones Table */}
               <div>
                 <h3 className="font-bold text-gray-700 mb-2">Zones / Areas</h3>
                 <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
@@ -802,7 +800,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Wards Table */}
               <div>
                 <h3 className="font-bold text-gray-700 mb-2">Wards (City Corp Only)</h3>
                 <div className="border border-gray-200 rounded-xl overflow-hidden w-full max-w-full">
@@ -1148,14 +1145,26 @@ export default function Admin() {
                     value={newZone.upazila_id} 
                     onChange={e => {
                       const upaId = e.target.value;
-                      const upaType = upazilas.find(u => u.id.toString() === upaId)?.type || 'city_corp';
+                      const selectedUpa = upazilas.find(u => u.id.toString() === upaId);
+                      let upaType = 'city_corp';
+                      if (selectedUpa?.type === 'cantonment' || (selectedUpa?.name_bn || '').includes('সেনানিবাস') || (selectedUpa?.name_en || '').toLowerCase().includes('cantonment')) {
+                        upaType = 'cantonment';
+                      }
                       setNewZone({...newZone, upazila_id: upaId, type: upaType});
                     }} 
                     className={inputClass}
                     required
                   >
                     <option value="">সিলেক্ট করুন</option>
-                    {upazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি') || (u.name_bn || '').includes('ক্যান্টনমেন্ট')).map(u => (
+                    {upazilas.filter(u => 
+                      u.type === 'city_corp' || 
+                      u.type === 'cantonment' || 
+                      (u.name_bn || '').includes('সিটি কর্পোরেশন') || 
+                      (u.name_bn || '').includes('ক্যান্টনমেন্ট') || 
+                      (u.name_bn || '').includes('সেনানিবাস') || 
+                      (u.name_en || '').toLowerCase().includes('city corporation') ||
+                      (u.name_en || '').toLowerCase().includes('cantonment')
+                    ).map(u => (
                       <option key={u.id} value={u.id}>{u.name_bn}</option>
                     ))}
                   </select>
@@ -1190,7 +1199,7 @@ export default function Admin() {
                     required
                   >
                     <option value="">সিলেক্ট করুন</option>
-                    {zones.filter(z => z.type === 'city_corp').map(z => (
+                    {zones.map(z => (
                       <option key={z.id} value={z.id}>{z.name_bn} ({upazilas.find(u => u.id === z.upazila_id)?.name_bn})</option>
                     ))}
                   </select>

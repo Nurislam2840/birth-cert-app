@@ -50,19 +50,36 @@ const AddressSection = ({ sectionType, prefix, formData, handleChange, divisions
   const availableDistricts = currentDiv ? districts.filter(d => d.division_id.toString() === currentDiv) : [];
   const availableUpazilas = currentDist ? upazilas.filter(u => u.district_id.toString() === currentDist) : [];
   
-  const specialUpazilaOptions = availableUpazilas.filter(u => u.type === 'city_corp' || u.type === 'cantonment' || (u.name_bn || '').includes('সিটি কর্পোরেশন') || (u.name_bn || '').includes('ক্যান্টনমেন্ট'));
+  // 🟢 স্মার্ট ফিল্টার: type ভুল থাকলেও নামের ভেতরে "সিটি"/"সেনানিবাস"/"ক্যান্টনমেন্ট" থাকলে সেটি স্পেশাল হিসেবে ধরা হবে
+  const specialUpazilaOptions = availableUpazilas.filter(u => 
+    u.type === 'city_corp' || 
+    u.type === 'cantonment' || 
+    (u.name_bn || '').includes('সিটি কর্পোরেশন') || 
+    (u.name_bn || '').includes('ক্যান্টনমেন্ট') || 
+    (u.name_bn || '').includes('সেনানিবাস') || 
+    (u.name_en || '').toLowerCase().includes('city corporation') || 
+    (u.name_en || '').toLowerCase().includes('cantonment')
+  );
+  
   const normalUpazilaOptions = availableUpazilas.filter(u => !specialUpazilaOptions.includes(u));
   const allUpazilaOptions = [...normalUpazilaOptions, ...specialUpazilaOptions];
 
   const selectedUpazilaObj = allUpazilaOptions.find(u => u.id.toString() === currentUpazila);
   
-  const isCityCorp = selectedUpazilaObj?.type === 'city_corp' || (selectedUpazilaObj?.name_bn || '').includes('সিটি কর্পোরেশন');
-  const isCantonment = selectedUpazilaObj?.type === 'cantonment' || (selectedUpazilaObj?.name_bn || '').includes('ক্যান্টনমেন্ট');
+  // 🟢 সিটি এবং ক্যান্টনমেন্ট ডিটেকশন
+  const isCityCorp = selectedUpazilaObj?.type === 'city_corp' || 
+    (selectedUpazilaObj?.name_bn || '').includes('সিটি কর্পোরেশন') || 
+    (selectedUpazilaObj?.name_en || '').toLowerCase().includes('city corporation');
+    
+  const isCantonment = selectedUpazilaObj?.type === 'cantonment' || 
+    (selectedUpazilaObj?.name_bn || '').includes('সেনানিবাস') || 
+    (selectedUpazilaObj?.name_bn || '').includes('ক্যান্টনমেন্ট') ||
+    (selectedUpazilaObj?.name_en || '').toLowerCase().includes('cantonment');
 
-  // 🟢 সিটি কর্পোরেশন ও ক্যান্টনমেন্টের জোন ফিল্টার
+  // 🟢 নির্দিষ্ট সিটির/ক্যান্টনমেন্টের জোনগুলো ফিল্টার
   const availableZones = zones.filter(z => z.upazila_id?.toString() === currentUpazila);
   
-  // 🟢 সিলেক্ট করা জোনের অধীনে থাকা ওয়ার্ড ফিল্টার (শুধু সিটির জন্য)
+  // 🟢 ইউজার যে জোন সিলেক্ট করেছে, তার অধীনে থাকা ওয়ার্ডগুলো ফিল্টার
   const selectedZoneId = formData[`${prefix}zone`];
   const availableWards = wards.filter(w => w.zone_id?.toString() === selectedZoneId);
 
@@ -146,8 +163,8 @@ export default function Apply() {
   const [districts, setDistricts] = useState([]);
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
-  const [zones, setZones] = useState([]);     // 🟢 নতুন: জোন/অঞ্চল
-  const [wards, setWards] = useState([]);     // 🟢 নতুন: ওয়ার্ড
+  const [zones, setZones] = useState([]);
+  const [wards, setWards] = useState([]);
 
   const [formConfig, setFormConfig] = useState([]);
   const [formData, setFormData] = useState({ permanentSame: false });
@@ -167,8 +184,8 @@ export default function Apply() {
         supabase.from('districts').select('*'),
         supabase.from('upazilas').select('*'),
         supabase.from('unions').select('*'),
-        supabase.from('zones').select('*'),    // 🟢 Supabase থেকে জোন লোড
-        supabase.from('wards').select('*')     // 🟢 Supabase থেকে ওয়ার্ড লোড
+        supabase.from('zones').select('*'),
+        supabase.from('wards').select('*')
       ]);
       setDivisions(divRes.data || []);
       setDistricts(distRes.data || []);
@@ -231,12 +248,12 @@ export default function Apply() {
     const selZone = zones.find(z => z.id.toString() === formData.birth_zone);
     const selWard = wards.find(w => w.ward_no === formData.birth_ward_no);
 
-    // BRN জেনারেট লজিক (আপনার generateBRN.js অনুযায়ী)
+    // BRN জেনারেট লজিক
     const trackingId = generate17DigitBRN(
       birthYear, 
       selDist?.code, 
       selUpa?.code, 
-      selUni?.name_bn || selZone?.name_bn, // 🟢 unionName বা zoneName পাঠানো হলো RMO চেকের জন্য
+      selUni?.name_bn || selZone?.name_bn, // unionName বা zoneName পাঠানো হলো RMO চেকের জন্য
       formData.birth_ward_no || formData.birth_ward
     );
 
@@ -265,15 +282,15 @@ export default function Apply() {
       
       division: formData.birth_division,
       division_en: divisions.find(d => d.id.toString() === formData.birth_division)?.name_en || '',
-      district: selDist?.name_bn || '',       // 🟢 নাম সেভ হচ্ছে
-      district_en: selDist?.name_en || '',    // 🟢 নাম সেভ হচ্ছে
-      city_corp: selUpa?.type === 'city_corp' ? selUpa?.name_bn : null,
-      upazila_en: selUpa?.name_en || '',      // 🟢 নাম সেভ হচ্ছে
-      union_name: selUni?.name_bn || '',      // 🟢 নাম সেভ হচ্ছে
-      union_en: selUni?.name_en || '',        // 🟢 নাম সেভ হচ্ছে
+      district: selDist?.name_bn || '',       
+      district_en: selDist?.name_en || '',    
+      city_corp: selUpa?.type === 'city_corp' || (selUpa?.name_bn || '').includes('সিটি কর্পোরেশন') ? selUpa?.name_bn : null,
+      upazila_en: selUpa?.name_en || '',      
+      union_name: selUni?.name_bn || '',      
+      union_en: selUni?.name_en || '',        
       ward: selWard?.name_bn || formData.birth_ward || '',
-      zone: selZone?.name_bn || null,         // 🟢 জোনের নাম
-      zone_id: selZone?.id || null,           // 🟢 জোনের আইডি
+      zone: selZone?.name_bn || null,         
+      zone_id: selZone?.id || null,           
       ward_no: formData.birth_ward_no || formData.birth_ward,
       village_bn: formData.birth_villageBn,
       village_en: formData.birth_villageEn,
