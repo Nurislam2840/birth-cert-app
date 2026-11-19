@@ -58,7 +58,6 @@ export default function Admin() {
   const [upazilas, setUpazilas] = useState([]);
   const [unions, setUnions] = useState([]);
   
-  // 🟢 Zones এবং Wards স্টেট
   const [zones, setZones] = useState([]);
   const [wards, setWards] = useState([]);
   
@@ -78,14 +77,23 @@ export default function Admin() {
   const [editLocType, setEditLocType] = useState('');
   const [editLocData, setEditLocData] = useState({ id: '', name_bn: '', name_en: '', code: '', type: 'upazila' });
 
-  // 🟢 Zone এবং Ward Modal স্টেট
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
   const [isWardModalOpen, setIsWardModalOpen] = useState(false);
   
   const [newZone, setNewZone] = useState({ upazila_id: '', type: 'city_corp', name_bn: '' });
   const [newWard, setNewWard] = useState({ zone_id: '', ward_no: '', name_bn: '' });
 
-  const [certSettings, setCertSettings] = useState({ id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '' });
+  // 🟢 Settings State (সব নতুন ফিল্ড সহ)
+  const [certSettings, setCertSettings] = useState({ 
+    id: 1, govt_name: '', office_name: '', rule_text: '', qr_prefix: '', footer_text: '', custom_union_name: '',
+    cert_title_bn: '', cert_title_en: '', reg_date_label: '', issue_date_label: '', brn_label: '',
+    dob_label: '', in_word_label: '', sex_label: '', name_label_bn: '', name_label_en: '',
+    mother_label_bn: '', mother_label_en: '', father_label_bn: '', father_label_en: '',
+    nationality_label_bn: '', nationality_label_en: '', pob_label_bn: '', pob_label_en: '',
+    perm_addr_label_bn: '', perm_addr_label_en: '', nationalities: '',
+    sign_1_title: '', sign_1_name: '', sign_1_sub: '', sign_2_title: '', sign_2_name: '', sign_2_sub: '',
+    watermark_url: '', logo_url: ''
+  });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -164,7 +172,6 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // 🟢 Zone Add Handler
   const handleAddZone = async (e) => {
     e.preventDefault();
     if (!newZone.upazila_id) return setDebugError('সিটি বা সেনানিবাস নির্বাচন করুন।');
@@ -173,7 +180,7 @@ export default function Admin() {
       upazila_id: parseInt(newZone.upazila_id),
       type: newZone.type,
       name_bn: newZone.name_bn,
-      name_en: newZone.name_bn // English name not required per user
+      name_en: newZone.name_bn
     }]);
 
     if (error) return setDebugError(error.message);
@@ -183,7 +190,6 @@ export default function Admin() {
     fetchAllLocations();
   };
 
-  // 🟢 Ward Add Handler
   const handleAddWard = async (e) => {
     e.preventDefault();
     if (!newWard.zone_id) return setDebugError('জোন নির্বাচন করুন।');
@@ -352,17 +358,49 @@ export default function Admin() {
     fetchFormFields();
   };
 
+  // 🟢 Settings Save Handler
   const handleUpdateSettings = async (e) => {
     e.preventDefault();
     setIsSavingSettings(true);
+    
     const { error } = await supabase.from('certificate_settings').update({
       govt_name: certSettings.govt_name,
       office_name: certSettings.office_name,
       rule_text: certSettings.rule_text,
       qr_prefix: certSettings.qr_prefix,
       footer_text: certSettings.footer_text,
-      custom_union_name: certSettings.custom_union_name
+      custom_union_name: certSettings.custom_union_name,
+      cert_title_bn: certSettings.cert_title_bn,
+      cert_title_en: certSettings.cert_title_en,
+      reg_date_label: certSettings.reg_date_label,
+      issue_date_label: certSettings.issue_date_label,
+      brn_label: certSettings.brn_label,
+      dob_label: certSettings.dob_label,
+      in_word_label: certSettings.in_word_label,
+      sex_label: certSettings.sex_label,
+      name_label_bn: certSettings.name_label_bn,
+      name_label_en: certSettings.name_label_en,
+      mother_label_bn: certSettings.mother_label_bn,
+      mother_label_en: certSettings.mother_label_en,
+      father_label_bn: certSettings.father_label_bn,
+      father_label_en: certSettings.father_label_en,
+      nationality_label_bn: certSettings.nationality_label_bn,
+      nationality_label_en: certSettings.nationality_label_en,
+      pob_label_bn: certSettings.pob_label_bn,
+      pob_label_en: certSettings.pob_label_en,
+      perm_addr_label_bn: certSettings.perm_addr_label_bn,
+      perm_addr_label_en: certSettings.perm_addr_label_en,
+      nationalities: certSettings.nationalities,
+      sign_1_title: certSettings.sign_1_title,
+      sign_1_name: certSettings.sign_1_name,
+      sign_1_sub: certSettings.sign_1_sub,
+      sign_2_title: certSettings.sign_2_title,
+      sign_2_name: certSettings.sign_2_name,
+      sign_2_sub: certSettings.sign_2_sub,
+      watermark_url: certSettings.watermark_url,
+      logo_url: certSettings.logo_url
     }).eq('id', 1);
+
     setIsSavingSettings(false);
     if (error) return setDebugError('আপডেট ব্যর্থ: ' + error.message);
     setAlertState({ isOpen: true, message: 'সেটিংস আপডেট হয়েছে!', type: 'success' });
@@ -745,7 +783,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* 🟢 City & Cantonment Tab */}
         {activeTab === 'specialAreas' && (
           <div className="bg-white p-3 md:p-6 rounded-2xl shadow-sm border border-gray-100 w-full max-w-full">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
@@ -899,6 +936,9 @@ export default function Admin() {
           <div className="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
             <h2 className="text-base md:text-xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2 border-b pb-3 md:pb-4"><Icons.Settings /> Certificate Settings</h2>
             <form onSubmit={handleUpdateSettings} className="space-y-4 md:space-y-6">
+              
+              {/* Header Section */}
+              <h3 className="text-teal-700 font-bold border-b pb-1">Header & Main Info</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
                   <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Govt. Name</label>
@@ -916,16 +956,90 @@ export default function Admin() {
                   <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">QR Prefix</label>
                   <input value={certSettings.qr_prefix || ''} onChange={(e) => setCertSettings({...certSettings, qr_prefix: e.target.value})} className={inputClass} />
                 </div>
+                <div>
+                  <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Cert Title (BN)</label>
+                  <input value={certSettings.cert_title_bn || ''} onChange={(e) => setCertSettings({...certSettings, cert_title_bn: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Cert Title (EN)</label>
+                  <input value={certSettings.cert_title_en || ''} onChange={(e) => setCertSettings({...certSettings, cert_title_en: e.target.value})} className={inputClass} />
+                </div>
                 <div className="md:col-span-2">
-                  <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Custom Union Name</label>
+                  <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Custom Union Name (If you want to override auto union)</label>
                   <input value={certSettings.custom_union_name || ''} onChange={(e) => setCertSettings({...certSettings, custom_union_name: e.target.value})} className={inputClass} />
+                </div>
+              </div>
+
+              {/* Labels Section */}
+              <h3 className="text-teal-700 font-bold border-b pb-1 mt-6">Field Labels</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div><label className="block text-[10px] font-bold text-gray-700">Reg Date</label><input value={certSettings.reg_date_label || ''} onChange={(e) => setCertSettings({...certSettings, reg_date_label: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Issue Date</label><input value={certSettings.issue_date_label || ''} onChange={(e) => setCertSettings({...certSettings, issue_date_label: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">BRN Label</label><input value={certSettings.brn_label || ''} onChange={(e) => setCertSettings({...certSettings, brn_label: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">DOB Label</label><input value={certSettings.dob_label || ''} onChange={(e) => setCertSettings({...certSettings, dob_label: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">In Word</label><input value={certSettings.in_word_label || ''} onChange={(e) => setCertSettings({...certSettings, in_word_label: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Sex</label><input value={certSettings.sex_label || ''} onChange={(e) => setCertSettings({...certSettings, sex_label: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Name (BN)</label><input value={certSettings.name_label_bn || ''} onChange={(e) => setCertSettings({...certSettings, name_label_bn: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Name (EN)</label><input value={certSettings.name_label_en || ''} onChange={(e) => setCertSettings({...certSettings, name_label_en: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Mother (BN)</label><input value={certSettings.mother_label_bn || ''} onChange={(e) => setCertSettings({...certSettings, mother_label_bn: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Mother (EN)</label><input value={certSettings.mother_label_en || ''} onChange={(e) => setCertSettings({...certSettings, mother_label_en: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Father (BN)</label><input value={certSettings.father_label_bn || ''} onChange={(e) => setCertSettings({...certSettings, father_label_bn: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Father (EN)</label><input value={certSettings.father_label_en || ''} onChange={(e) => setCertSettings({...certSettings, father_label_en: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Nationality (BN)</label><input value={certSettings.nationality_label_bn || ''} onChange={(e) => setCertSettings({...certSettings, nationality_label_bn: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Nationality (EN)</label><input value={certSettings.nationality_label_en || ''} onChange={(e) => setCertSettings({...certSettings, nationality_label_en: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">POB (BN)</label><input value={certSettings.pob_label_bn || ''} onChange={(e) => setCertSettings({...certSettings, pob_label_bn: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">POB (EN)</label><input value={certSettings.pob_label_en || ''} onChange={(e) => setCertSettings({...certSettings, pob_label_en: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Perm Addr (BN)</label><input value={certSettings.perm_addr_label_bn || ''} onChange={(e) => setCertSettings({...certSettings, perm_addr_label_bn: e.target.value})} className={inputClass} /></div>
+                <div><label className="block text-[10px] font-bold text-gray-700">Perm Addr (EN)</label><input value={certSettings.perm_addr_label_en || ''} onChange={(e) => setCertSettings({...certSettings, perm_addr_label_en: e.target.value})} className={inputClass} /></div>
+                <div className="col-span-2"><label className="block text-[10px] font-bold text-gray-700">Nationality Value (Both)</label><input value={certSettings.nationalities || ''} onChange={(e) => setCertSettings({...certSettings, nationalities: e.target.value})} className={inputClass} /></div>
+              </div>
+
+              {/* Signature & Footer Section */}
+              <h3 className="text-teal-700 font-bold border-b pb-1 mt-6">Signatures & Footer</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700">Sign 1 Title</label>
+                  <input value={certSettings.sign_1_title || ''} onChange={(e) => setCertSettings({...certSettings, sign_1_title: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700">Sign 1 Name</label>
+                  <input value={certSettings.sign_1_name || ''} onChange={(e) => setCertSettings({...certSettings, sign_1_name: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700">Sign 1 Sub</label>
+                  <input value={certSettings.sign_1_sub || ''} onChange={(e) => setCertSettings({...certSettings, sign_1_sub: e.target.value})} className={inputClass} />
+                </div>
+                
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700">Sign 2 Title</label>
+                  <input value={certSettings.sign_2_title || ''} onChange={(e) => setCertSettings({...certSettings, sign_2_title: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700">Sign 2 Name</label>
+                  <input value={certSettings.sign_2_name || ''} onChange={(e) => setCertSettings({...certSettings, sign_2_name: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700">Sign 2 Sub</label>
+                  <input value={certSettings.sign_2_sub || ''} onChange={(e) => setCertSettings({...certSettings, sign_2_sub: e.target.value})} className={inputClass} />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Logo URL</label>
+                  <input value={certSettings.logo_url || ''} onChange={(e) => setCertSettings({...certSettings, logo_url: e.target.value})} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Watermark URL</label>
+                  <input value={certSettings.watermark_url || ''} onChange={(e) => setCertSettings({...certSettings, watermark_url: e.target.value})} className={inputClass} />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase mb-1 md:mb-2">Footer Text</label>
-                  <textarea rows="3" value={certSettings.footer_text || ''} onChange={(e) => setCertSettings({...certSettings, footer_text: e.target.value})} className={inputClass} />
+                  <textarea rows="2" value={certSettings.footer_text || ''} onChange={(e) => setCertSettings({...certSettings, footer_text: e.target.value})} className={inputClass} />
                 </div>
               </div>
-              <div className="flex justify-end pt-3 md:pt-4 border-t">
+
+              <div className="flex justify-end pt-3 md:pt-4 border-t mt-6">
                 <button type="submit" disabled={isSavingSettings} className="bg-teal-600 text-white px-6 md:px-8 py-2 md:py-3 rounded-xl font-bold text-xs md:text-sm hover:bg-teal-700 transition disabled:bg-gray-400 flex items-center gap-2">
                   {isSavingSettings ? 'Saving...' : <><Icons.Check /> Save Changes</>}
                 </button>
