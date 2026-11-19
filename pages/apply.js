@@ -213,7 +213,6 @@ export default function Apply() {
     setFormData(prev => {
       const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
       
-      // 🟢 জোন বা উপজেলা পরিবর্তন হলে এর অধীনে থাকা ড্রপডাউনগুলো রিসেট করা
       if (name === 'birth_upazila' || name === 'perm_upazila') {
          newData.birth_zone = ''; newData.birth_ward_no = ''; newData.perm_zone = ''; newData.perm_ward_no = '';
       }
@@ -241,6 +240,7 @@ export default function Apply() {
     }
 
     setLoading(true);
+    
     const birthYear = formData.dob ? formData.dob.split('-')[0] : '';
     const selDist = districts.find(d => d.id.toString() === formData.birth_district);
     const selUpa = upazilas.find(u => u.id.toString() === formData.birth_upazila);
@@ -248,13 +248,13 @@ export default function Apply() {
     const selZone = zones.find(z => z.id.toString() === formData.birth_zone);
     const selWard = wards.find(w => w.ward_no === formData.birth_ward_no);
 
-    // BRN জেনারেট লজিক
+    // 🟢 ১৭ ডিজিট BRN জেনারেশন (অরজিনাল ফরম্যাট অনুযায়ী)
     const trackingId = generate17DigitBRN(
       birthYear, 
       selDist?.code, 
       selUpa?.code, 
-      selUni?.name_bn || selZone?.name_bn, // unionName বা zoneName পাঠানো হলো RMO চেকের জন্য
-      formData.birth_ward_no || formData.birth_ward
+      selUni?.name_en || selUni?.name_bn || selUpa?.name_en || selZone?.name_bn || '', // RMO কোড চেনার জন্য
+      formData.birth_ward_no || formData.birth_ward || '01'
     );
 
     const payload = {
